@@ -1,80 +1,72 @@
-// Smooth scroll navigation
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+// Flip card functionality for desktop and mobile
+const flipCards = document.querySelectorAll('.flip-card');
+let touchStartX = 0;
+let touchEndX = 0;
+
+// Desktop: hover to flip
+flipCards.forEach(card => {
+    card.addEventListener('mouseenter', () => {
+        card.classList.add('flipped');
     });
-});
-
-// Active nav link on scroll
-const sections = document.querySelectorAll('section');
-const navLinks = document.querySelectorAll('.nav-links a');
-
-window.addEventListener('scroll', () => {
-    let currentSection = '';
     
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (window.pageYOffset >= sectionTop - 200) {
-            currentSection = section.getAttribute('id');
-        }
+    card.addEventListener('mouseleave', () => {
+        card.classList.remove('flipped');
     });
 
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href') === `#${currentSection}`) {
-            link.classList.add('active');
-        }
-    });
+    // Mobile: swipe to flip
+    card.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, false);
+
+    card.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe(card);
+    }, false);
 });
 
-// Intersection Observer for fade-in animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -100px 0px'
-};
+function handleSwipe(card) {
+    const swipeThreshold = 30;
+    const diff = touchStartX - touchEndX;
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observe cards for animation
-document.querySelectorAll('.about-card, .social-card').forEach(card => {
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(20px)';
-    card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(card);
-});
-
-// Parallax effect for hero visual
-const heroVisual = document.querySelector('.gradient-blob');
-if (heroVisual) {
-    window.addEventListener('mousemove', (e) => {
-        const moveX = (e.clientX / window.innerWidth) * 20 - 10;
-        const moveY = (e.clientY / window.innerHeight) * 20 - 10;
-        heroVisual.style.transform = `translate(${moveX}px, ${moveY}px)`;
-    });
+    if (Math.abs(diff) > swipeThreshold) {
+        card.classList.toggle('flipped');
+    }
 }
 
-// Social card interactions
-document.querySelectorAll('.social-card').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-10px) scale(1.02)';
+// Smooth scroll for navigation
+const navLinks = document.querySelectorAll('.nav-links a');
+
+navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        if (href.startsWith('#')) {
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
     });
-    
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1)';
+});
+
+// Update active nav link on scroll
+window.addEventListener('scroll', () => {
+    const sections = document.querySelectorAll('section');
+    const scrollPosition = window.scrollY + 100;
+
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionBottom = sectionTop + section.offsetHeight;
+        const sectionId = section.getAttribute('id');
+        const navLink = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
+
+        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+            navLinks.forEach(link => link.classList.remove('active'));
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+        }
     });
 });
