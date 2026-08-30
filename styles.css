@@ -93,19 +93,19 @@ body {
 
 /* Hero Section */
 .hero {
-    min-height: 70vh;
+    min-height: 50vh;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 4rem 0;
+    padding: 3rem 0;
 }
 
 .hero-content {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    max-width: 600px;
+    max-width: 700px;
 }
 
 .name {
@@ -138,9 +138,18 @@ body {
 }
 
 .description {
+    text-align: left;
+}
+
+.description p {
     font-size: 1rem;
     color: var(--text-muted);
     line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.description p:last-child {
+    margin-bottom: 0;
 }
 
 .cta-buttons {
@@ -187,7 +196,7 @@ body {
 
 /* About Section */
 .about {
-    padding: 6rem 0;
+    padding: 4rem 0;
     border-top: 1px solid var(--border);
 }
 
@@ -203,24 +212,8 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 2rem;
-    margin-top: 3rem;
+    margin-top: 2.5rem;
     perspective: 1000px;
-}
-
-.bio {
-    max-width: 700px;
-    margin: 3rem auto 0;
-}
-
-.bio p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    line-height: 1.7;
-    margin-bottom: 1rem;
-}
-
-.bio p:last-child {
-    margin-bottom: 0;
 }
 
 /* Flip Card Styles */
@@ -257,12 +250,30 @@ body {
     padding: 2rem;
     border-radius: 8px;
     border: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .flip-card-front {
     background-color: var(--bg);
     color: var(--text);
     gap: 1rem;
+}
+
+.flip-card-front::before {
+    content: attr(data-bg-icon);
+    position: absolute;
+    right: -0.5rem;
+    bottom: -1.5rem;
+    font-size: 7rem;
+    line-height: 1;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.flip-card-front > * {
+    position: relative;
+    z-index: 1;
 }
 
 .flip-card-back {
@@ -304,7 +315,7 @@ body {
 
 /* Projects Section */
 .projects {
-    padding: 6rem 0;
+    padding: 4rem 0;
     border-top: 1px solid var(--border);
 }
 
@@ -312,14 +323,14 @@ body {
     text-align: center;
     color: var(--text-muted);
     font-size: 1rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 2rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .project-card {
@@ -359,7 +370,7 @@ body {
 
 /* Social Section */
 .social {
-    padding: 6rem 0;
+    padding: 4rem 0;
     border-top: 1px solid var(--border);
 }
 
@@ -367,39 +378,38 @@ body {
     text-align: center;
     color: var(--text-muted);
     font-size: 1rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .social-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 2rem;
-    margin-bottom: 4rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
     justify-content: center;
 }
 
 .social-card {
-    padding: 2rem;
-    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
     border: 1px solid var(--border);
     text-decoration: none;
     color: var(--text);
     transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 1rem;
-    text-align: center;
+    gap: 0.75rem;
 }
 
 .social-card:hover {
     border-color: var(--primary);
     background: var(--accent);
-    transform: translateY(-5px);
+    transform: translateY(-3px);
 }
 
 .social-card i {
-    font-size: 2rem;
+    font-size: 1.3rem;
     transition: all 0.3s ease;
 }
 
@@ -436,10 +446,10 @@ body {
 
 /* Footer */
 .footer {
-    padding: 2rem 0;
+    padding: 1.5rem 0;
     text-align: center;
     border-top: 1px solid var(--border);
-    margin-top: 4rem;
+    margin-top: 2.5rem;
     color: var(--text-muted);
     font-size: 0.9rem;
 }
@@ -472,10 +482,6 @@ body {
     .flip-card {
         height: 280px;
     }
-
-    .social-grid {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    }
 }
 
 @media (max-width: 480px) {
@@ -493,7 +499,6 @@ body {
     }
 
     .about-grid,
-    .social-grid,
     .projects-grid {
         grid-template-columns: 1fr;
     }
