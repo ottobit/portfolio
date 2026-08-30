@@ -250,12 +250,30 @@ body {
     padding: 2rem;
     border-radius: 8px;
     border: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .flip-card-front {
     background-color: var(--bg);
     color: var(--text);
     gap: 1rem;
+}
+
+.flip-card-front::before {
+    content: attr(data-bg-icon);
+    position: absolute;
+    right: -0.5rem;
+    bottom: -1.5rem;
+    font-size: 7rem;
+    line-height: 1;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.flip-card-front > * {
+    position: relative;
+    z-index: 1;
 }
 
 .flip-card-back {
@@ -364,35 +382,34 @@ body {
 }
 
 .social-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-bottom: 4rem;
     justify-content: center;
 }
 
 .social-card {
-    padding: 2rem;
-    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
     border: 1px solid var(--border);
     text-decoration: none;
     color: var(--text);
     transition: all 0.3s ease;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 1rem;
-    text-align: center;
+    gap: 0.75rem;
 }
 
 .social-card:hover {
     border-color: var(--primary);
     background: var(--accent);
-    transform: translateY(-5px);
+    transform: translateY(-3px);
 }
 
 .social-card i {
-    font-size: 2rem;
+    font-size: 1.3rem;
     transition: all 0.3s ease;
 }
 
@@ -465,10 +482,6 @@ body {
     .flip-card {
         height: 280px;
     }
-
-    .social-grid {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    }
 }
 
 @media (max-width: 480px) {
@@ -486,7 +499,6 @@ body {
     }
 
     .about-grid,
-    .social-grid,
     .projects-grid {
         grid-template-columns: 1fr;
     }
