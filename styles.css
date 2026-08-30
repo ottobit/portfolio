@@ -207,6 +207,22 @@ body {
     perspective: 1000px;
 }
 
+.bio {
+    max-width: 700px;
+    margin: 3rem auto 0;
+}
+
+.bio p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.bio p:last-child {
+    margin-bottom: 0;
+}
+
 /* Flip Card Styles */
 .flip-card {
     background-color: transparent;
