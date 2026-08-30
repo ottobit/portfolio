@@ -105,7 +105,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    max-width: 600px;
+    max-width: 700px;
 }
 
 .name {
@@ -138,9 +138,18 @@ body {
 }
 
 .description {
+    text-align: left;
+}
+
+.description p {
     font-size: 1rem;
     color: var(--text-muted);
     line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.description p:last-child {
+    margin-bottom: 0;
 }
 
 .cta-buttons {
@@ -205,22 +214,6 @@ body {
     gap: 2rem;
     margin-top: 3rem;
     perspective: 1000px;
-}
-
-.bio {
-    max-width: 700px;
-    margin: 3rem auto 0;
-}
-
-.bio p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    line-height: 1.7;
-    margin-bottom: 1rem;
-}
-
-.bio p:last-child {
-    margin-bottom: 0;
 }
 
 /* Flip Card Styles */
