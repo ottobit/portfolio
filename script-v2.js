@@ -79,7 +79,7 @@ if ('IntersectionObserver' in window) {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const hero = canvas.closest('.hero');
+    const heroVisual = canvas.closest('.hero-visual');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isSmallScreen = window.matchMedia('(max-width: 600px)').matches;
 
@@ -95,8 +95,8 @@ if ('IntersectionObserver' in window) {
 
     function resize() {
         dpr = window.devicePixelRatio || 1;
-        width = hero.clientWidth;
-        height = hero.clientHeight;
+        width = heroVisual.clientWidth;
+        height = heroVisual.clientHeight;
         canvas.width = width * dpr;
         canvas.height = height * dpr;
         canvas.style.width = width + 'px';
@@ -166,13 +166,13 @@ if ('IntersectionObserver' in window) {
         }
     }
 
-    hero.addEventListener('mousemove', (e) => {
-        const rect = hero.getBoundingClientRect();
+    heroVisual.addEventListener('mousemove', (e) => {
+        const rect = heroVisual.getBoundingClientRect();
         mouse.x = e.clientX - rect.left;
         mouse.y = e.clientY - rect.top;
     });
 
-    hero.addEventListener('mouseleave', () => {
+    heroVisual.addEventListener('mouseleave', () => {
         mouse.x = null;
         mouse.y = null;
     });
