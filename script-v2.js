@@ -288,13 +288,38 @@ window.addEventListener('scroll', () => {
         const prefix = bcp47.split('-')[0];
         const candidates = availableVoices.filter(v => v.lang.toLowerCase().startsWith(prefix));
         if (!candidates.length) return null;
+        // Prefer, in order: explicitly-marked high-quality voices, then
+        // specific named voices platforms ship that sound noticeably less
+        // robotic than their eSpeak-style default (macOS's Samantha/Alba,
+        // Windows' newer neural names), then any non-local (network) voice,
+        // then an exact-locale local voice, then whatever's left.
         const qualityRe = /natural|neural|online|premium|enhanced|google/i;
+        const goodNamesRe = /samantha|alba|alice|federica|elsa|luca|aria|jenny|guy|sonia|libby/i;
         return (
             candidates.find(v => qualityRe.test(v.name)) ||
+            candidates.find(v => goodNamesRe.test(v.name)) ||
             candidates.find(v => !v.localService) ||
             candidates.find(v => v.lang.toLowerCase() === bcp47.toLowerCase()) ||
             candidates[0]
         );
+    }
+
+    // Long flat utterances read more monotone than they need to — splitting
+    // on sentence boundaries and queueing them with a short pause in
+    // between mimics natural breathing/phrasing better than one run-on.
+    function speakSentences(text, opts, onDone) {
+        const sentences = text.match(/[^.!?]+[.!?]*/g)?.map(s => s.trim()).filter(Boolean) || [text];
+        let i = 0;
+        function next() {
+            if (i >= sentences.length) { onDone(); return; }
+            const u = new SpeechSynthesisUtterance(sentences[i]);
+            Object.assign(u, opts);
+            i++;
+            u.onend = () => window.setTimeout(next, 120);
+            u.onerror = onDone;
+            window.speechSynthesis.speak(u);
+        }
+        next();
     }
 
     const LINK_TEXT = {
@@ -382,18 +407,16 @@ window.addEventListener('scroll', () => {
                 return;
             }
             const lang = siteState.getLang();
-            const utterance = new SpeechSynthesisUtterance(`${detailTitle.textContent}. ${detailText.textContent}`);
-            utterance.lang = lang === 'en' ? 'en-US' : 'it-IT';
-            const voice = pickVoice(utterance.lang);
-            if (voice) utterance.voice = voice;
-            utterance.rate = 0.95;
-            utterance.pitch = 1;
-            utterance.onend = stopSpeech;
-            utterance.onerror = stopSpeech;
+            const bcp47 = lang === 'en' ? 'en-US' : 'it-IT';
+            const voice = pickVoice(bcp47);
             detailSpeak.classList.add('speaking');
             detailSpeakIcon.textContent = '⏹';
             detailSpeakLabel.textContent = LINK_TEXT[lang].stop;
-            window.speechSynthesis.speak(utterance);
+            speakSentences(
+                `${detailTitle.textContent}. ${detailText.textContent}`,
+                { lang: bcp47, voice, rate: 0.95, pitch: 1 },
+                stopSpeech
+            );
         });
     }
 
