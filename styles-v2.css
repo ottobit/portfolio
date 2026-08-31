@@ -377,6 +377,32 @@ body {
     line-height: 1.7;
 }
 
+.detail-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 50px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.detail-link:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
 .detail-close {
     position: absolute;
     top: 0.85rem;
