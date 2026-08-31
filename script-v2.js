@@ -14,13 +14,15 @@ const siteState = (() => {
         en: { toDark: 'Dark theme', toLight: 'Light theme' }
     };
 
-    let lang = localStorage.getItem('lang') || 'it';
-    let theme = localStorage.getItem('theme'); // 'light' | 'dark' | null (system)
+    // Light theme and English are the default experience regardless of the
+    // visitor's system settings — dark/Italian stay one click away, but a
+    // first-time visit never auto-switches based on OS preference.
+    let lang = localStorage.getItem('lang') || 'en';
+    let theme = localStorage.getItem('theme') || 'light'; // 'light' | 'dark'
 
     function applyThemeUI() {
-        const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        if (theme) root.setAttribute('data-theme', theme);
-        else root.removeAttribute('data-theme');
+        const isDark = theme === 'dark';
+        root.setAttribute('data-theme', theme);
         if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
         if (themeLabel) themeLabel.textContent = isDark ? THEME_TEXT[lang].toLight : THEME_TEXT[lang].toDark;
         if (themeToggle) themeToggle.setAttribute('aria-pressed', String(isDark));
@@ -41,8 +43,7 @@ const siteState = (() => {
 
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
-            const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            theme = isDark ? 'light' : 'dark';
+            theme = theme === 'dark' ? 'light' : 'dark';
             localStorage.setItem('theme', theme);
             applyThemeUI();
         });
@@ -50,7 +51,7 @@ const siteState = (() => {
 
     if (langToggle) {
         langToggle.addEventListener('click', () => {
-            lang = lang === 'it' ? 'en' : 'it';
+            lang = lang === 'en' ? 'it' : 'en';
             localStorage.setItem('lang', lang);
             applyLangUI();
             applyThemeUI(); // theme button label is language-dependent too
