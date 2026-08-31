@@ -736,7 +736,16 @@ body {
     }
 
     .navbar {
-        padding: 1rem 0;
+        padding: 0.6rem 0;
+    }
+
+    .logo {
+        font-size: 1.1rem;
+    }
+
+    .nav-toggle {
+        width: 32px;
+        height: 32px;
     }
 
     .hero-visual {
