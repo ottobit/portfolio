@@ -829,8 +829,10 @@ window.addEventListener('scroll', () => {
     // since dragging doesn't reset the streak, it can be picked up and
     // dragged around while still inflated.
     function updateInflate(count) {
-        const t = Math.min(1, count / POP_THRESHOLD);
-        mascot.style.setProperty('--mascot-scale', (1 + t * 1.3).toFixed(3));
+        // A fixed, generous jump per tap (not a fraction of the streak) so
+        // the growth is obvious immediately, not just once you're a few
+        // clicks in.
+        mascot.style.setProperty('--mascot-scale', (1 + count * 0.4).toFixed(3));
     }
 
     function resetInflate() {
