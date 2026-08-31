@@ -271,6 +271,32 @@ window.addEventListener('scroll', () => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canSpeak = 'speechSynthesis' in window;
 
+    // The browser's default pick is often the flattest local voice it has
+    // (especially on Linux/Chrome OS). Most platforms also ship at least one
+    // noticeably better one — network-backed or explicitly "Natural" —
+    // so prefer that when available instead of leaving it to chance.
+    let availableVoices = [];
+    function refreshVoices() {
+        if (canSpeak) availableVoices = window.speechSynthesis.getVoices();
+    }
+    if (canSpeak) {
+        refreshVoices();
+        window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
+    }
+
+    function pickVoice(bcp47) {
+        const prefix = bcp47.split('-')[0];
+        const candidates = availableVoices.filter(v => v.lang.toLowerCase().startsWith(prefix));
+        if (!candidates.length) return null;
+        const qualityRe = /natural|neural|online|premium|enhanced|google/i;
+        return (
+            candidates.find(v => qualityRe.test(v.name)) ||
+            candidates.find(v => !v.localService) ||
+            candidates.find(v => v.lang.toLowerCase() === bcp47.toLowerCase()) ||
+            candidates[0]
+        );
+    }
+
     const LINK_TEXT = {
         it: { repo: 'Codice', link: 'Vedi live', ref: 'Scopri di più', listen: 'Ascolta', stop: 'Ferma' },
         en: { repo: 'Code', link: 'Live demo', ref: 'Learn more', listen: 'Listen', stop: 'Stop' }
@@ -358,6 +384,10 @@ window.addEventListener('scroll', () => {
             const lang = siteState.getLang();
             const utterance = new SpeechSynthesisUtterance(`${detailTitle.textContent}. ${detailText.textContent}`);
             utterance.lang = lang === 'en' ? 'en-US' : 'it-IT';
+            const voice = pickVoice(utterance.lang);
+            if (voice) utterance.voice = voice;
+            utterance.rate = 0.95;
+            utterance.pitch = 1;
             utterance.onend = stopSpeech;
             utterance.onerror = stopSpeech;
             detailSpeak.classList.add('speaking');
@@ -411,19 +441,30 @@ window.addEventListener('scroll', () => {
             w: sub.offsetWidth || 120,
             h: sub.offsetHeight || 32
         }));
-        const avgSpacing = sizes.reduce((sum, s) => sum + s.w, 0) / count + gap;
+        // Full 360° star: sub-nodes ring the hub on every side, like a real
+        // star-topology diagram — but a perfectly even split (esp. at 4
+        // nodes: N/E/S/W) reads as a rigid cross. A diagonal base angle plus
+        // a small, deterministic per-node jitter (stable across re-renders,
+        // not random each time) breaks that symmetry into something more
+        // organic without ever overlapping — the relax pass below still
+        // has the final say.
+        const baseRadius = Math.min(170, Math.max(95, panelWidth * 0.3)) + Math.max(0, count - 3) * 16;
+        const angleStep = count > 1 ? 360 / count : 0;
+        const startAngle = -45; // diagonal, not straight up — avoids a N/E/S/W cross
 
-        const radius = Math.min(170, Math.max(95, panelWidth * 0.3)) + Math.max(0, count - 3) * 16;
-        let angleStep = count > 1
-            ? (2 * Math.asin(Math.min(1, avgSpacing / (2 * radius))) * 180) / Math.PI
-            : 0;
-        angleStep = Math.max(26, Math.min(70, angleStep));
-        const spread = Math.min(190, angleStep * (count - 1));
-        const startAngle = 90 - spread / 2;
+        function seededUnit(seed) {
+            let h = 0;
+            for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+            return (h % 1000) / 1000; // deterministic, 0..1
+        }
 
+        const hubKey = hub.dataset.hub || '';
         const points = subs.map((sub, i) => {
-            const angleDeg = count === 1 ? 90 : startAngle + (spread / (count - 1)) * i;
+            const angleJitter = (seededUnit(`${hubKey}-${i}-a`) - 0.5) * 2 * 20; // ±20°
+            const radiusJitter = 0.85 + seededUnit(`${hubKey}-${i}-r`) * 0.35; // 85%–120%
+            const angleDeg = count === 1 ? -90 : startAngle + angleStep * i + angleJitter;
             const angle = (angleDeg * Math.PI) / 180;
+            const radius = baseRadius * radiusJitter;
             return {
                 sub,
                 x: hx + radius * Math.cos(angle),
