@@ -1,5 +1,5 @@
 // Smooth scroll for navigation
-const navLinks = document.querySelectorAll('.nav-links a');
+const navLinks = document.querySelectorAll('.nav-menu a');
 
 navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -16,6 +16,41 @@ navLinks.forEach(link => {
     });
 });
 
+// Hamburger menu: the navbar's links are now all reachable from the
+// interactive graph too, so they collapse into a single dropdown.
+(() => {
+    const toggle = document.getElementById('nav-toggle');
+    const menu = document.getElementById('nav-menu');
+    if (!toggle || !menu) return;
+
+    function closeMenu() {
+        menu.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMenu() {
+        const open = menu.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(open));
+    }
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    menu.addEventListener('click', (e) => {
+        if (e.target.closest('a')) closeMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+    });
+})();
+
 // Update active nav link on scroll
 window.addEventListener('scroll', () => {
     const sections = document.querySelectorAll('section');
@@ -25,7 +60,7 @@ window.addEventListener('scroll', () => {
         const sectionTop = section.offsetTop;
         const sectionBottom = sectionTop + section.offsetHeight;
         const sectionId = section.getAttribute('id');
-        const navLink = document.querySelector(`.nav-links a[href="#${sectionId}"]`);
+        const navLink = document.querySelector(`.nav-menu a[href="#${sectionId}"]`);
 
         if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
             navLinks.forEach(link => link.classList.remove('active'));
@@ -399,7 +434,7 @@ window.addEventListener('scroll', () => {
     });
 
     // --- Nav links + hero CTA: open the right hub from anywhere on the page ---
-    document.querySelectorAll('.nav-links a[data-hub], .cta-buttons a[data-hub]').forEach(el => {
+    document.querySelectorAll('.nav-menu a[data-hub], .cta-buttons a[data-hub]').forEach(el => {
         el.addEventListener('click', () => openHub(el.dataset.hub));
     });
 })();
