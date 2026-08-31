@@ -780,10 +780,64 @@ window.addEventListener('scroll', () => {
         };
     }
 
+    // Moses effect: the bio text doesn't block the mascot — it parts around
+    // it as it passes, then closes back up. Each word is wrapped in its own
+    // span so it can be nudged sideways independently, purely via
+    // transform (content/layout untouched, nothing to ever "fix" back).
+    const PART_TEXT_SELECTOR = '.description p';
+    const PART_INFLUENCE = 70; // px, horizontal reach of the effect
+    const PART_MAX_PUSH = 26; // px, shove on the word right next to the ball
+    let wordRects = [];
+
+    function wrapWords(el) {
+        const text = el.textContent;
+        el.innerHTML = text.split(/(\s+)/).map(chunk =>
+            /^\s+$/.test(chunk) || !chunk ? chunk : `<span class="word">${chunk}</span>`
+        ).join('');
+    }
+
+    function refreshWordRects() {
+        wordRects = [];
+        if (reduceMotion) return;
+        document.querySelectorAll(`${PART_TEXT_SELECTOR} .word`).forEach(w => {
+            const r = w.getBoundingClientRect();
+            wordRects.push({ el: w, top: r.top, bottom: r.bottom, centerX: (r.left + r.right) / 2, pushed: false });
+        });
+    }
+
+    function initTextParting() {
+        if (reduceMotion) return;
+        document.querySelectorAll(PART_TEXT_SELECTOR).forEach(wrapWords);
+        refreshWordRects();
+    }
+    initTextParting();
+    // The language toggle replaces each paragraph's textContent wholesale
+    // (see applyLangUI), which wipes the word-wrapping — redo it after.
+    document.addEventListener('langchange', initTextParting);
+
+    function updateTextParting(cx, cy) {
+        wordRects.forEach(w => {
+            const inLine = cy >= w.top - 14 && cy <= w.bottom + 14;
+            const dist = Math.abs(w.centerX - cx);
+            if (!inLine || dist > PART_INFLUENCE) {
+                if (w.pushed) {
+                    w.el.style.transform = '';
+                    w.pushed = false;
+                }
+                return;
+            }
+            const strength = 1 - dist / PART_INFLUENCE;
+            const push = Math.sign(w.centerX - cx || 1) * strength * PART_MAX_PUSH;
+            w.el.style.transform = `translateX(${push.toFixed(1)}px)`;
+            w.pushed = true;
+        });
+    }
+
     function place(x, y) {
         pos = clamp(x, y);
         mascot.style.left = pos.x + 'px';
         mascot.style.top = pos.y + 'px';
+        if (wordRects.length) updateTextParting(pos.x, pos.y);
     }
 
     function restartAnimation(className, autoRemoveMs) {
@@ -1112,6 +1166,7 @@ window.addEventListener('scroll', () => {
             pos.y = ny;
             mascot.style.left = pos.x + 'px';
             mascot.style.top = pos.y + 'px';
+            if (wordRects.length) updateTextParting(pos.x, pos.y);
 
             if (!settled) {
                 requestAnimationFrame(step);
@@ -1219,5 +1274,8 @@ window.addEventListener('scroll', () => {
     mascot.addEventListener('pointerup', endDrag);
     mascot.addEventListener('pointercancel', endDrag);
 
-    window.addEventListener('resize', () => place(pos.x, pos.y));
+    window.addEventListener('resize', () => {
+        refreshWordRects();
+        place(pos.x, pos.y);
+    });
 })();
