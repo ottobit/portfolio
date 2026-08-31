@@ -343,7 +343,7 @@ body {
        grainy at anything beyond a small factor. Real width/height forces
        a fresh, crisp render at every size. Squash/rotate stay as transform
        since those are quick, small, transient effects (bounce impacts). */
-    --mascot-base: 30px;
+    --mascot-base: 38px;
     width: calc(var(--mascot-base) * var(--mascot-scale, 1));
     height: calc(var(--mascot-base) * var(--mascot-scale, 1));
     transform: translate(-50%, -50%)
@@ -352,7 +352,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(5.5px * var(--mascot-scale, 1));
+    gap: calc(7px * var(--mascot-scale, 1));
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -380,8 +380,8 @@ body {
 }
 
 .mascot-eye {
-    width: calc(5.5px * var(--mascot-scale, 1));
-    height: calc(5.5px * var(--mascot-scale, 1));
+    width: calc(7px * var(--mascot-scale, 1));
+    height: calc(7px * var(--mascot-scale, 1));
     border-radius: 50%;
     background: #fff;
 }

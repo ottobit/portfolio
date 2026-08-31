@@ -742,6 +742,12 @@ window.addEventListener('scroll', () => {
     function playHitSound() {
         chirp({ freqStart: 700, freqEnd: 180, duration: 0.09, type: 'triangle', gain: 0.05 });
     }
+    // A brittle crack layered on top of the knock — noise burst plus a
+    // sharp downward sweep, for the "breaking apart" feel on impact.
+    function playCrackSound() {
+        staticBurst(0.12, 0.05);
+        chirp({ freqStart: 1400, freqEnd: 90, duration: 0.12, type: 'sawtooth', gain: 0.04 });
+    }
     // A woozy, wavering tone (vibrato via an LFO on the oscillator's own
     // frequency) for when the mascot gets shaken around too much — sounds
     // dazed rather than hurt (that's playPopSound's job).
@@ -970,7 +976,7 @@ window.addEventListener('scroll', () => {
     // nothing is ever removed or altered in the DOM, so the site stays
     // fully usable during and after.
     const HITTABLE_SELECTOR = '.role, .btn, .logo, .nav-menu a, .footer a, .hub-dot, .sub-dot';
-    const MASCOT_BASE_RADIUS = 15; // half of --mascot-base
+    const MASCOT_BASE_RADIUS = 19; // half of --mascot-base
     const HIT_COOLDOWN_MS = 500;
     const HIT_RESTITUTION = 0.4; // weaker than a wall — the element isn't rigid
     const hitCooldowns = new Map();
@@ -1013,6 +1019,8 @@ window.addEventListener('scroll', () => {
             }
             squashBounce(1.2, 0.85);
             playHitSound();
+            playCrackSound();
+            burstParticles();
             break; // one hit per frame is plenty — avoids double-counting overlaps
         }
         return { vx, vy };
