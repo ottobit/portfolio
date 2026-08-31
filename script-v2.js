@@ -631,51 +631,138 @@ window.addEventListener('scroll', () => {
     });
 })();
 
-// Mascot: a small node that hops around the hero canvas on its own, glances
-// toward the cursor, gets excited on graph interaction, and reacts to clicks.
+// Mascot: a small node that roams the whole page on its own (fixed to the
+// viewport, not confined to the hero canvas), glances toward the cursor,
+// gets excited on graph interaction, can be picked up and dragged around,
+// and "pops" if you mash clicks on it — then recovers a moment later.
 // Pure fun, no functional role — safe to fail silently if missing.
 (() => {
-    const heroVisual = document.querySelector('.hero-visual');
     const mascot = document.getElementById('mascot');
     const bubble = document.getElementById('mascot-bubble');
-    if (!heroVisual || !mascot || !bubble) return;
+    if (!mascot || !bubble) return;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const MARGIN = 20;
+    const POP_THRESHOLD = 6;
+    const POP_WINDOW_MS = 2200;
 
     const LINES = {
-        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!', '✨'],
-        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨']
+        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!', '✨', 'Ehi, piano!', 'Ahia!'],
+        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨', 'Hey, easy!', 'Ouch!']
     };
 
-    let pos = { x: 50, y: 45 };
+    let pos = { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
+    let isDragging = false;
+    let dragStart = null;
+    let dragMoved = 0;
+    let clickTimes = [];
+    let isPopped = false;
 
-    function place(xPct, yPct) {
-        pos = { x: xPct, y: yPct };
-        mascot.style.left = xPct + '%';
-        mascot.style.top = yPct + '%';
+    // A little synthesized "creature" voice — no audio files, just Web
+    // Audio oscillators/noise, so there's nothing to load or license. Silent
+    // until the browser's autoplay policy is unlocked by a real user
+    // gesture (the mascot's own click/drag qualify), then it just works.
+    let audioCtx = null;
+    function getAudioCtx() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        if (!audioCtx) audioCtx = new Ctx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
     }
 
-    function restartAnimation(className) {
+    function chirp({ freqStart, freqEnd, duration, type, gain }) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freqStart, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 1), ctx.currentTime + duration);
+        gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gainNode).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    }
+
+    function staticBurst(duration, gain) {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const size = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1200;
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(gain, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        noise.connect(filter).connect(gainNode).connect(ctx.destination);
+        noise.start();
+    }
+
+    function playHopSound() {
+        chirp({ freqStart: 500 + Math.random() * 120, freqEnd: 720 + Math.random() * 150, duration: 0.08, type: 'square', gain: 0.03 });
+    }
+    function playClickSound() {
+        chirp({ freqStart: 320, freqEnd: 900, duration: 0.1, type: 'square', gain: 0.05 });
+    }
+    function playDropSound() {
+        chirp({ freqStart: 320, freqEnd: 110, duration: 0.15, type: 'sine', gain: 0.04 });
+    }
+    function playPopSound() {
+        staticBurst(0.22, 0.06);
+        chirp({ freqStart: 900, freqEnd: 70, duration: 0.3, type: 'sawtooth', gain: 0.05 });
+    }
+    function playRecoverSound() {
+        chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
+    }
+
+    function clamp(x, y) {
+        return {
+            x: Math.max(MARGIN, Math.min(window.innerWidth - MARGIN, x)),
+            y: Math.max(MARGIN, Math.min(window.innerHeight - MARGIN, y))
+        };
+    }
+
+    function place(x, y) {
+        pos = clamp(x, y);
+        mascot.style.left = pos.x + 'px';
+        mascot.style.top = pos.y + 'px';
+    }
+
+    function restartAnimation(className, autoRemoveMs) {
         if (reduceMotion) return;
         mascot.classList.remove(className);
         void mascot.offsetWidth; // force reflow so the animation can replay
         mascot.classList.add(className);
+        if (autoRemoveMs) window.setTimeout(() => mascot.classList.remove(className), autoRemoveMs);
     }
 
     function randomHop() {
-        const margin = 12;
-        place(margin + Math.random() * (100 - margin * 2), margin + Math.random() * (100 - margin * 2));
-        restartAnimation('hopping');
+        if (isDragging || isPopped) return;
+        place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
+        restartAnimation('hopping', 600);
+        playHopSound();
     }
 
     place(pos.x, pos.y);
 
-    if (!reduceMotion) {
-        window.setInterval(randomHop, 4000 + Math.random() * 2000);
+    function scheduleHop() {
+        window.setTimeout(() => {
+            randomHop();
+            scheduleHop();
+        }, 4000 + Math.random() * 2000);
     }
+    if (!reduceMotion) scheduleHop();
 
-    // Eyes glance toward the cursor when it's nearby.
-    heroVisual.addEventListener('mousemove', (e) => {
+    // Eyes glance toward the cursor when it's nearby, anywhere on the page.
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging || isPopped) return;
         const rect = mascot.getBoundingClientRect();
         const dx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / 60));
         const dy = Math.max(-1, Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / 60));
@@ -684,23 +771,112 @@ window.addEventListener('scroll', () => {
         });
     });
 
-    heroVisual.addEventListener('mouseleave', () => {
-        mascot.querySelectorAll('.mascot-eye').forEach(eye => { eye.style.transform = ''; });
+    // Perks up whenever a hub or a detail panel opens elsewhere on the graph.
+    document.addEventListener('graphinteraction', () => {
+        if (!isPopped) restartAnimation('excited', 500);
     });
 
-    // Perks up whenever a hub or a detail panel opens elsewhere on the graph.
-    document.addEventListener('graphinteraction', () => restartAnimation('excited'));
+    function burstParticles() {
+        const rect = mascot.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('span');
+            p.className = 'mascot-particle';
+            const angle = (i / 8) * Math.PI * 2;
+            p.style.setProperty('--px', Math.cos(angle) * 40 + 'px');
+            p.style.setProperty('--py', Math.sin(angle) * 40 + 'px');
+            p.style.left = cx + 'px';
+            p.style.top = cy + 'px';
+            document.body.appendChild(p);
+            p.addEventListener('animationend', () => p.remove());
+        }
+    }
 
-    mascot.addEventListener('click', (e) => {
-        e.stopPropagation();
-        restartAnimation('excited');
-        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
-        const lines = LINES[lang] || LINES.it;
-        bubble.textContent = lines[Math.floor(Math.random() * lines.length)];
-        bubble.style.left = pos.x + '%';
-        bubble.style.top = pos.y + '%';
+    function pop() {
+        if (isPopped) return;
+        isPopped = true;
+        clickTimes = [];
+        bubble.hidden = true;
+        if (reduceMotion) {
+            window.setTimeout(() => { isPopped = false; }, 300);
+            return;
+        }
+        burstParticles();
+        playPopSound();
+        mascot.classList.remove('excited', 'hopping', 'dropped');
+        restartAnimation('popping');
+        window.setTimeout(() => {
+            mascot.classList.remove('popping');
+            place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
+            restartAnimation('recovering', 500);
+            playRecoverSound();
+            isPopped = false;
+        }, 380);
+    }
+
+    function showBubble(text) {
+        bubble.textContent = text;
+        bubble.style.left = pos.x + 'px';
+        bubble.style.top = pos.y + 'px';
         bubble.hidden = false;
         window.clearTimeout(bubble._timer);
-        bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, 1800);
+        bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, 1500);
+    }
+
+    function registerClick() {
+        const now = Date.now();
+        clickTimes.push(now);
+        clickTimes = clickTimes.filter(t => now - t < POP_WINDOW_MS);
+        if (clickTimes.length >= POP_THRESHOLD) {
+            pop();
+            return;
+        }
+        restartAnimation('excited', 500);
+        playClickSound();
+        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
+        const lines = LINES[lang] || LINES.it;
+        showBubble(lines[Math.floor(Math.random() * lines.length)]);
+    }
+
+    // Pick up, drag anywhere on the page, and drop — vs. a plain click,
+    // distinguished by how far the pointer actually moved.
+    mascot.addEventListener('pointerdown', (e) => {
+        if (isPopped) return;
+        dragStart = { x: e.clientX, y: e.clientY, mascotX: pos.x, mascotY: pos.y };
+        dragMoved = 0;
+        mascot.setPointerCapture(e.pointerId);
     });
+
+    mascot.addEventListener('pointermove', (e) => {
+        if (!dragStart) return;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        dragMoved = Math.max(dragMoved, Math.hypot(dx, dy));
+        if (dragMoved > 5) {
+            if (!isDragging) {
+                isDragging = true;
+                mascot.classList.add('dragging');
+            }
+            place(dragStart.mascotX + dx, dragStart.mascotY + dy);
+        }
+    });
+
+    function endDrag() {
+        if (!dragStart) return;
+        const wasDragging = isDragging;
+        if (wasDragging) {
+            mascot.classList.remove('dragging');
+            restartAnimation('dropped', 400);
+            playDropSound();
+        }
+        isDragging = false;
+        dragStart = null;
+        if (!wasDragging) registerClick();
+    }
+
+    mascot.addEventListener('pointerup', endDrag);
+    mascot.addEventListener('pointercancel', endDrag);
+
+    window.addEventListener('resize', () => place(pos.x, pos.y));
 })();

@@ -227,12 +227,15 @@ body {
     gap: 1.75rem;
     padding: 3rem clamp(1.5rem, 5vw, 4rem);
     text-align: left;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .hero-visual {
     position: relative;
     overflow: hidden;
     background: linear-gradient(160deg, var(--accent-soft), var(--bg) 65%);
+    min-height: 0;
 }
 
 #network-canvas {
@@ -325,9 +328,11 @@ body {
     box-shadow: 0 12px 28px var(--glow);
 }
 
-/* Mascot: a small animated node that hops around the canvas on its own. */
+/* Mascot: a small animated node that roams the whole page on its own —
+   fixed to the viewport (not confined to the hero canvas), draggable,
+   and it can be "popped" by mashing clicks on it. */
 .mascot {
-    position: absolute;
+    position: fixed;
     left: 50%;
     top: 45%;
     transform: translate(-50%, -50%);
@@ -342,9 +347,15 @@ body {
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 4px 10px var(--glow);
-    cursor: pointer;
-    z-index: 1;
+    cursor: grab;
+    z-index: 500;
+    touch-action: none;
     transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mascot.dragging {
+    cursor: grabbing;
+    transition: none;
 }
 
 .mascot-eye {
@@ -375,8 +386,55 @@ body {
     100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); }
 }
 
+.mascot.dropped {
+    animation: mascot-land 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mascot-land {
+    0% { transform: translate(-50%, -50%) scale(1, 1); }
+    40% { transform: translate(-50%, -50%) scale(1.35, 0.7); }
+    70% { transform: translate(-50%, -50%) scale(0.9, 1.1); }
+    100% { transform: translate(-50%, -50%) scale(1, 1); }
+}
+
+.mascot.popping {
+    animation: mascot-pop 0.35s ease forwards;
+}
+
+@keyframes mascot-pop {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    40% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.mascot.recovering {
+    animation: mascot-recover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes mascot-recover {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    60% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.mascot-particle {
+    position: fixed;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    pointer-events: none;
+    z-index: 499;
+    animation: mascot-particle 0.5s ease-out forwards;
+}
+
+@keyframes mascot-particle {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
+}
+
 .mascot-bubble {
-    position: absolute;
+    position: fixed;
     transform: translate(-50%, -160%);
     background: var(--surface);
     border: 1px solid var(--border);
@@ -387,7 +445,7 @@ body {
     color: var(--text);
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 3;
+    z-index: 501;
     pointer-events: none;
 }
 
