@@ -337,16 +337,22 @@ body {
     position: fixed;
     left: 50%;
     top: 45%;
+    /* The click-inflate grows the mascot via actual width/height (below),
+       not transform: scale() — a scaled transform reuses the element's
+       already-rasterized layer and stretches that bitmap, which looks
+       grainy at anything beyond a small factor. Real width/height forces
+       a fresh, crisp render at every size. Squash/rotate stay as transform
+       since those are quick, small, transient effects (bounce impacts). */
+    --mascot-base: 22px;
+    width: calc(var(--mascot-base) * var(--mascot-scale, 1));
+    height: calc(var(--mascot-base) * var(--mascot-scale, 1));
     transform: translate(-50%, -50%)
-        scale(var(--mascot-scale, 1))
         rotate(var(--mascot-rotate, 0deg))
         scale(var(--mascot-squash-x, 1), var(--mascot-squash-y, 1));
-    width: 22px;
-    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: calc(4px * var(--mascot-scale, 1));
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -356,7 +362,7 @@ body {
     /* Above the sticky navbar and the detail panel/backdrop, always. */
     z-index: 1200;
     touch-action: none;
-    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.18s ease-out;
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.18s ease-out, width 0.25s ease-out, height 0.25s ease-out;
 }
 
 .mascot.dragging {
@@ -374,8 +380,8 @@ body {
 }
 
 .mascot-eye {
-    width: 4px;
-    height: 4px;
+    width: calc(4px * var(--mascot-scale, 1));
+    height: calc(4px * var(--mascot-scale, 1));
     border-radius: 50%;
     background: #fff;
 }
