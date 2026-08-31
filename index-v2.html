@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — AI Enthusiast | Music | Gaming (v2)</title>
-    <link rel="stylesheet" href="styles-v2.css?v=1.4">
+    <link rel="stylesheet" href="styles-v2.css?v=2.2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -15,9 +15,9 @@
                 <div class="logo">ottobit<span class="dot">.</span></div>
                 <ul class="nav-links">
                     <li><a href="#home" class="active">Home</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#projects">Progetti</a></li>
-                    <li><a href="#social">Social</a></li>
+                    <li><a href="#explore" data-hub="about">About</a></li>
+                    <li><a href="#explore" data-hub="projects">Progetti</a></li>
+                    <li><a href="#explore" data-hub="social">Social</a></li>
                 </ul>
             </div>
         </nav>
@@ -49,94 +49,81 @@
     </section>
 
     <div class="container">
-        <!-- About Section -->
-        <section id="about" class="about">
-            <h2>Chi sono</h2>
-            <div class="about-grid">
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🤖">
-                            <div class="about-icon">🤖</div>
-                            <h3>AI Enthusiast</h3>
-                            <p>Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.</p>
-                        </div>
-                        <div class="flip-card-back">
-                        </div>
+        <!-- Explore Section: interactive node graph for About/Projects/Social -->
+        <section id="explore" class="explore">
+            <h2>Esplora</h2>
+            <p class="explore-subtitle">Tocca un nodo per scoprire di più</p>
+
+            <div class="graph" id="graph">
+                <svg class="graph-lines" id="graph-lines"></svg>
+
+                <div class="hub-group">
+                    <button class="hub" data-hub="about" data-x="18" data-y="70">
+                        <span class="hub-icon">🧑‍💻</span>
+                        <span>Chi sono</span>
+                    </button>
+                    <div class="node-list">
+                        <button class="node" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.">
+                            <span class="node-icon">🤖</span>
+                            <span>AI Enthusiast</span>
+                        </button>
+                        <button class="node" data-parent="about" data-icon="🎵" data-title="Music" data-detail="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.">
+                            <span class="node-icon">🎵</span>
+                            <span>Music</span>
+                        </button>
+                        <button class="node" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
+                            <span class="node-icon">🎮</span>
+                            <span>Gaming</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🎵">
-                            <div class="about-icon">🎵</div>
-                            <h3>Music</h3>
-                            <p>La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.</p>
-                        </div>
-                        <div class="flip-card-back">
-                        </div>
+                <div class="hub-group">
+                    <button class="hub" data-hub="projects" data-x="50" data-y="70">
+                        <span class="hub-icon">🗂️</span>
+                        <span>Progetti</span>
+                    </button>
+                    <div class="node-list">
+                        <button class="node" data-parent="projects" data-icon="💻" data-title="Presto" data-detail="I progetti verranno aggiunti man mano. Torna presto! 🚀">
+                            <span class="node-icon">💻</span>
+                            <span>Presto</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🎮">
-                            <div class="about-icon">🎮</div>
-                            <h3>Gaming</h3>
-                            <p>Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo.</p>
-                        </div>
-                        <div class="flip-card-back">
-                            <h4>Preferiti</h4>
-                            <ul class="game-list">
-                                <li>Final Fantasy VIII</li>
-                                <li>Expedition 33</li>
-                                <li>Zelda: Breath of the Wild</li>
-                                <li>Zelda: Tears of the Kingdom</li>
-                            </ul>
-                        </div>
+                <div class="hub-group">
+                    <button class="hub" data-hub="social" data-x="82" data-y="70">
+                        <span class="hub-icon">🔗</span>
+                        <span>Social</span>
+                    </button>
+                    <div class="node-list">
+                        <a class="node node-link" data-parent="social" href="https://github.com/ottobit" target="_blank" rel="noopener noreferrer">
+                            <span class="node-icon"><i class="fab fa-github"></i></span>
+                            <span>GitHub</span>
+                        </a>
+                        <a class="node node-link" data-parent="social" href="https://www.linkedin.com/in/giuseppequartarone" target="_blank" rel="noopener noreferrer">
+                            <span class="node-icon"><i class="fab fa-linkedin"></i></span>
+                            <span>LinkedIn</span>
+                        </a>
+                        <a class="node node-link" data-parent="social" href="https://www.instagram.com/skypassenger" target="_blank" rel="noopener noreferrer">
+                            <span class="node-icon"><i class="fab fa-instagram"></i></span>
+                            <span>Instagram</span>
+                        </a>
+                        <a class="node node-link" data-parent="social" href="mailto:giuseppe.quartz@gmail.com">
+                            <span class="node-icon"><i class="fas fa-envelope"></i></span>
+                            <span>Email</span>
+                        </a>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Projects Section -->
-        <section id="projects" class="projects">
-            <h2>Progetti</h2>
-            <p class="projects-subtitle">Quello che ho studiato e realizzato</p>
-
-            <div class="projects-grid">
-                <div class="project-card">
-                    <div class="project-empty">
-                        <i class="fas fa-code"></i>
-                        <p>Pronto ad aggiungere</p>
-                    </div>
+            <div class="detail-panel" id="detail-panel" hidden>
+                <button class="detail-close" id="detail-close" aria-label="Chiudi dettaglio">✕</button>
+                <div class="detail-icon" id="detail-icon"></div>
+                <div class="detail-body">
+                    <h3 id="detail-title"></h3>
+                    <p id="detail-text"></p>
                 </div>
-            </div>
-
-            <p class="projects-note">I progetti verranno aggiunti man mano. Torna presto! 🚀</p>
-        </section>
-
-        <!-- Social Section -->
-        <section id="social" class="social">
-            <div class="social-grid">
-                <a href="https://github.com/ottobit" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
-                </a>
-
-                <a href="https://www.linkedin.com/in/giuseppequartarone" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-linkedin"></i>
-                    <span>LinkedIn</span>
-                </a>
-
-                <a href="https://www.instagram.com/skypassenger" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-instagram"></i>
-                    <span>Instagram</span>
-                </a>
-
-                <a href="mailto:giuseppe.quartz@gmail.com" class="social-card">
-                    <i class="fas fa-envelope"></i>
-                    <span>giuseppe.quartz@gmail.com</span>
-                </a>
             </div>
         </section>
 
@@ -146,6 +133,6 @@
         </footer>
     </div>
 
-    <script src="script-v2.js?v=1.2"></script>
+    <script src="script-v2.js?v=2.0"></script>
 </body>
 </html>

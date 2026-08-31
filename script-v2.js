@@ -1,21 +1,3 @@
-// Flip card functionality for desktop and mobile
-const flipCards = document.querySelectorAll('.flip-card');
-
-flipCards.forEach(card => {
-    card.addEventListener('mouseenter', () => {
-        card.classList.add('flipped');
-    });
-
-    card.addEventListener('mouseleave', () => {
-        card.classList.remove('flipped');
-    });
-
-    card.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        card.classList.toggle('flipped');
-    }, false);
-});
-
 // Smooth scroll for navigation
 const navLinks = document.querySelectorAll('.nav-links a');
 
@@ -57,7 +39,7 @@ window.addEventListener('scroll', () => {
 // Fade-in sections on scroll (progressive enhancement: content is visible
 // by default in CSS, the fade class is only added here when JS runs)
 if ('IntersectionObserver' in window) {
-    const observedSections = document.querySelectorAll('.about, .projects, .social');
+    const observedSections = document.querySelectorAll('.explore');
     const sectionObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -186,4 +168,177 @@ if ('IntersectionObserver' in window) {
     resize();
     createNodes();
     step();
+})();
+
+// Interactive node graph for About / Progetti / Social
+(() => {
+    const graph = document.getElementById('graph');
+    if (!graph) return;
+
+    const svg = document.getElementById('graph-lines');
+    const hubs = Array.from(graph.querySelectorAll('.hub'));
+    const detailPanel = document.getElementById('detail-panel');
+    const detailIcon = document.getElementById('detail-icon');
+    const detailTitle = document.getElementById('detail-title');
+    const detailText = document.getElementById('detail-text');
+    const detailClose = document.getElementById('detail-close');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function isDesktop() {
+        return window.matchMedia('(min-width: 769px)').matches;
+    }
+
+    function nodesFor(hub) {
+        return Array.from(graph.querySelectorAll(`.node[data-parent="${hub.dataset.hub}"]`));
+    }
+
+    function positionHubs() {
+        hubs.forEach(hub => {
+            if (isDesktop()) {
+                hub.style.left = hub.dataset.x + '%';
+                hub.style.top = hub.dataset.y + 'px';
+            } else {
+                hub.style.left = '';
+                hub.style.top = '';
+            }
+        });
+    }
+
+    function clearLines() {
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+    }
+
+    function positionNodes(hub, nodes) {
+        if (!isDesktop()) {
+            nodes.forEach(node => {
+                node.style.left = '';
+                node.style.top = '';
+            });
+            return;
+        }
+
+        const hx = (parseFloat(hub.dataset.x) / 100) * graph.clientWidth;
+        const hy = parseFloat(hub.dataset.y);
+        const radius = 165;
+        const count = nodes.length;
+        const spread = count === 1 ? 0 : Math.min(100, (count - 1) * 35);
+        const startAngle = 90 - spread / 2;
+
+        nodes.forEach((node, i) => {
+            const angleDeg = count === 1 ? 90 : startAngle + (spread / (count - 1)) * i;
+            const angle = (angleDeg * Math.PI) / 180;
+            node.style.left = hx + radius * Math.cos(angle) + 'px';
+            node.style.top = hy + radius * Math.sin(angle) + 'px';
+        });
+    }
+
+    function drawLines(hub, nodes) {
+        clearLines();
+        if (!isDesktop()) return;
+
+        const hx = (parseFloat(hub.dataset.x) / 100) * graph.clientWidth;
+        const hy = parseFloat(hub.dataset.y);
+
+        nodes.forEach((node, i) => {
+            const nx = parseFloat(node.style.left);
+            const ny = parseFloat(node.style.top);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', hx);
+            line.setAttribute('y1', hy);
+            line.setAttribute('x2', hx);
+            line.setAttribute('y2', hy);
+            svg.appendChild(line);
+
+            if (reduceMotion) {
+                line.setAttribute('x2', nx);
+                line.setAttribute('y2', ny);
+                return;
+            }
+
+            requestAnimationFrame(() => {
+                line.style.transition = `x2 0.4s ease ${i * 0.06}s, y2 0.4s ease ${i * 0.06}s`;
+                line.setAttribute('x2', nx);
+                line.setAttribute('y2', ny);
+            });
+        });
+    }
+
+    function closeDetail() {
+        detailPanel.classList.remove('visible');
+        window.setTimeout(() => {
+            detailPanel.hidden = true;
+        }, reduceMotion ? 0 : 300);
+    }
+
+    function openDetail(node) {
+        detailIcon.textContent = node.dataset.icon || '';
+        detailTitle.textContent = node.dataset.title || '';
+        detailText.textContent = node.dataset.detail || '';
+        detailPanel.hidden = false;
+        requestAnimationFrame(() => detailPanel.classList.add('visible'));
+    }
+
+    function openHub(hub) {
+        const alreadyOpen = hub.classList.contains('active');
+
+        hubs.forEach(h => {
+            if (h === hub) return;
+            h.classList.remove('active');
+            h.closest('.hub-group').classList.remove('active');
+            nodesFor(h).forEach(n => n.classList.remove('visible', 'animate-in'));
+        });
+
+        const group = hub.closest('.hub-group');
+        const nodes = nodesFor(hub);
+
+        hub.classList.toggle('active', !alreadyOpen);
+        group.classList.toggle('active', !alreadyOpen);
+
+        if (alreadyOpen) {
+            nodes.forEach(n => n.classList.remove('visible', 'animate-in'));
+            clearLines();
+            closeDetail();
+            return;
+        }
+
+        closeDetail();
+        positionNodes(hub, nodes);
+        nodes.forEach(n => n.classList.add('visible'));
+
+        nodes.forEach((n, i) => {
+            window.setTimeout(() => n.classList.add('animate-in'), reduceMotion ? 0 : i * 70);
+        });
+
+        drawLines(hub, nodes);
+    }
+
+    hubs.forEach(hub => {
+        hub.addEventListener('click', () => openHub(hub));
+    });
+
+    graph.querySelectorAll('.node:not(.node-link)').forEach(node => {
+        node.addEventListener('click', () => openDetail(node));
+    });
+
+    detailClose.addEventListener('click', closeDetail);
+
+    window.addEventListener('resize', () => {
+        positionHubs();
+        const activeHub = hubs.find(h => h.classList.contains('active'));
+        if (!activeHub) return;
+        const nodes = nodesFor(activeHub);
+        positionNodes(activeHub, nodes);
+        drawLines(activeHub, nodes);
+    });
+
+    positionHubs();
+
+    document.querySelectorAll('.nav-links a[data-hub]').forEach(link => {
+        link.addEventListener('click', () => {
+            const hub = hubs.find(h => h.dataset.hub === link.dataset.hub);
+            if (hub && !hub.classList.contains('active')) {
+                openHub(hub);
+            }
+        });
+    });
 })();
