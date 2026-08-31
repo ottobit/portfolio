@@ -211,12 +211,7 @@ body {
     box-shadow: 0 12px 28px var(--glow);
 }
 
-/* Explore Section: interactive node graph */
-.explore {
-    padding: 5rem 0;
-    border-top: 1px solid var(--border);
-}
-
+/* Hub/sub-node dots overlaid on the hero canvas (desktop) */
 .fade-section {
     opacity: 0;
     transform: translateY(24px);
@@ -228,24 +223,11 @@ body {
     transform: translateY(0);
 }
 
-.explore h2 {
-    font-size: 2.1rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 0.5rem;
-    text-align: center;
-}
-
-.explore-subtitle {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 1rem;
-    margin-bottom: 2rem;
-}
-
-.graph {
-    position: relative;
-    min-height: 620px;
+.hub-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .graph-lines {
@@ -255,101 +237,169 @@ body {
     height: 100%;
     overflow: visible;
     pointer-events: none;
-    z-index: 0;
 }
 
 .graph-lines line {
     stroke: var(--accent);
-    stroke-width: 1.5;
-    opacity: 0.5;
+    stroke-width: 1;
+    opacity: 0.45;
 }
 
-.hub {
+.hub-dot,
+.sub-dot {
     position: absolute;
-    transform: translate(-50%, -50%);
-    z-index: 2;
+    left: 0;
+    top: 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: 50%;
-    width: 110px;
-    height: 110px;
+    gap: 0.5rem;
+    transform: translate(-50%, -50%);
+    background: none;
+    border: none;
+    padding: 0.35rem;
     cursor: pointer;
     font-family: inherit;
-    font-weight: 700;
+    text-decoration: none;
+    pointer-events: auto;
+}
+
+.node-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--glow);
+    flex-shrink: 0;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.dot-label {
     font-size: 0.85rem;
+    font-weight: 700;
     color: var(--text);
-    justify-content: center;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    background: rgba(255, 255, 255, 0.85);
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    white-space: nowrap;
 }
 
-.hub:hover {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 6px var(--glow);
+.hub-dot:hover .node-dot,
+.hub-dot.active .node-dot {
+    box-shadow: 0 0 0 7px var(--glow);
+    transform: scale(1.15);
 }
 
-.hub.active {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    box-shadow: 0 0 0 8px var(--glow);
-    transform: translate(-50%, -50%) scale(1.08);
+.hub-dot.active .dot-label {
+    color: var(--accent);
 }
 
-.hub-icon {
-    font-size: 1.6rem;
-}
-
-.node {
-    position: absolute;
-    top: 0;
-    left: 0;
+.sub-dot {
     display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
-    transform: translate(-50%, -50%) scale(0.6);
     opacity: 0;
     z-index: 1;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 86px;
-    height: 86px;
-    justify-content: center;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--text);
-    text-decoration: none;
-    text-align: center;
-    padding: 0.25rem;
-    transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: opacity 0.35s ease;
 }
 
-.node.visible {
+.sub-dot .node-dot {
+    width: 11px;
+    height: 11px;
+    box-shadow: 0 0 0 3px var(--glow);
+}
+
+.sub-dot .dot-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.sub-dot.visible {
     display: flex;
 }
 
-.node.animate-in {
+.sub-dot.label-left {
+    flex-direction: row-reverse;
+}
+
+.sub-dot.animate-in {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
 }
 
-.node:hover {
+.sub-dot:hover .node-dot {
+    transform: scale(1.25);
+}
+
+/* Mobile fallback: compact accordion below the hero (same content, no canvas overlay) */
+.hub-row {
+    display: none;
+    padding: 3rem 0;
+    border-top: 1px solid var(--border);
+}
+
+.hub-row-group {
+    margin-bottom: 0.75rem;
+}
+
+.hub-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hub-row-btn:hover,
+.hub-row-btn.active {
     border-color: var(--accent);
-    box-shadow: 0 0 0 5px var(--glow);
+    box-shadow: 0 0 0 4px var(--glow);
 }
 
-.node-icon {
-    font-size: 1.3rem;
+.hub-row-list {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    padding-left: 1.25rem;
+    border-left: 2px solid var(--border);
 }
 
-.node-link .node-icon i {
-    color: var(--accent);
+.hub-row-group.active .hub-row-list {
+    display: flex;
+}
+
+.hub-row-node {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.25s ease;
+}
+
+.hub-row-node .node-dot {
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 3px var(--glow);
+}
+
+.hub-row-node:hover {
+    border-color: var(--accent);
 }
 
 .detail-panel {
@@ -479,73 +529,13 @@ body {
         font-size: 0.9rem;
     }
 
-    .explore h2 {
-        font-size: 1.5rem;
-    }
-
-    /* Graph: switch from absolute node-graph to a stacked accordion */
-    .graph {
-        min-height: 0;
-    }
-
-    .graph-lines {
+    /* Canvas overlay doesn't fit small screens: hide it, show the accordion instead */
+    .hub-overlay {
         display: none;
     }
 
-    .hub-group {
-        margin-bottom: 1rem;
-    }
-
-    .hub {
-        position: static;
-        transform: none;
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 0.75rem;
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-    }
-
-    .hub.active {
-        transform: none;
-    }
-
-    .node-list {
-        display: none;
-        flex-direction: column;
-        gap: 0.6rem;
-        margin-top: 0.75rem;
-        padding-left: 1.25rem;
-        border-left: 2px solid var(--border);
-    }
-
-    .hub-group.active .node-list {
-        display: flex;
-    }
-
-    .node,
-    .node.animate-in {
-        position: static;
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 0.75rem;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        text-align: left;
-        transform: none;
-        opacity: 1;
-    }
-
-    .node.visible {
-        display: flex;
-    }
-
-    .node:not(.visible) {
-        display: none;
+    .hub-row {
+        display: block;
     }
 }
 
