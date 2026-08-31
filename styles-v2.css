@@ -211,19 +211,13 @@ body {
     box-shadow: 0 12px 28px var(--glow);
 }
 
-/* Hub/sub-node dots overlaid on the hero canvas, draggable to reach nodes
-   that would otherwise fall past the panel's clipped edges. */
+/* Hub/sub-node chips overlaid on the hero canvas, fixed relative to the
+   panel (they do not pan — only the animated background moves). */
 .hub-overlay {
     position: absolute;
     inset: 0;
     z-index: 2;
-    pointer-events: auto;
-    cursor: grab;
-    touch-action: none;
-}
-
-.hub-overlay.dragging {
-    cursor: grabbing;
+    pointer-events: none;
 }
 
 .graph-lines {
@@ -248,63 +242,62 @@ body {
     top: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     transform: translate(-50%, -50%);
-    background: none;
+    background: var(--accent);
     border: none;
-    padding: 0.35rem;
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
     cursor: pointer;
     font-family: inherit;
     text-decoration: none;
     pointer-events: auto;
+    box-shadow: 0 6px 18px var(--glow);
+    transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
 }
 
 .node-dot {
-    width: 16px;
-    height: 16px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 4px var(--glow);
+    background: #fff;
     flex-shrink: 0;
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .dot-label {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.85);
-    padding: 0.2rem 0.55rem;
-    border-radius: 8px;
+    color: #fff;
     white-space: nowrap;
 }
 
-.hub-dot:hover .node-dot,
-.hub-dot.active .node-dot {
-    box-shadow: 0 0 0 7px var(--glow);
-    transform: scale(1.15);
-}
-
-.hub-dot.active .dot-label {
-    color: var(--accent);
+.hub-dot:hover,
+.hub-dot.active {
+    box-shadow: 0 8px 22px var(--glow), 0 0 0 5px var(--glow);
+    transform: translate(-50%, -50%) scale(1.08);
 }
 
 .sub-dot {
     display: none;
     opacity: 0;
     z-index: 1;
-    transition: opacity 0.35s ease;
+    background: #fff;
+    border: 1px solid var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 0.4rem 0.8rem;
+    transition: opacity 0.35s ease, transform 0.25s ease;
 }
 
 .sub-dot .node-dot {
-    width: 11px;
-    height: 11px;
-    box-shadow: 0 0 0 3px var(--glow);
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
 }
 
 .sub-dot .dot-label {
     font-size: 0.75rem;
     font-weight: 600;
+    color: var(--text);
 }
 
 .sub-dot.visible {
@@ -319,8 +312,9 @@ body {
     opacity: 1;
 }
 
-.sub-dot:hover .node-dot {
-    transform: scale(1.25);
+.sub-dot:hover {
+    transform: translate(-50%, -50%) scale(1.06);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .detail-panel {
