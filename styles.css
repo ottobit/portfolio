@@ -426,13 +426,32 @@ body {
 }
 
 .mascot.popping {
-    animation: mascot-pop 0.35s ease forwards;
+    animation: mascot-pop 0.4s ease forwards;
 }
 
 @keyframes mascot-pop {
     0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    40% { transform: translate(-50%, -50%) scale(1.6); opacity: 1; }
+    35% { transform: translate(-50%, -50%) scale(2.2); opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.mascot-shockwave {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    pointer-events: none;
+    z-index: 1198;
+    animation: mascot-shockwave 0.45s ease-out forwards;
+}
+
+@keyframes mascot-shockwave {
+    0% { transform: scale(0.5); opacity: 0.8; border-width: 4px; }
+    100% { transform: scale(7); opacity: 0; border-width: 1px; }
 }
 
 .mascot.recovering {
