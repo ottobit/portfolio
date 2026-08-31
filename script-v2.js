@@ -216,25 +216,77 @@ window.addEventListener('scroll', () => {
         const panelHeight = heroVisual.clientHeight;
         const hx = (parseFloat(hub.dataset.x) / 100) * panelWidth;
         const hy = (parseFloat(hub.dataset.y) / 100) * panelHeight;
-        const radius = Math.min(130, panelWidth * 0.32);
         const count = subs.length;
-        const spread = count === 1 ? 0 : Math.min(130, (count - 1) * 55);
+        const gap = 14;
+
+        // Chips are pills sized by their label, so measure them (they must
+        // already be display:flex — opacity can still be 0) instead of
+        // assuming a fixed width, or dense groups (e.g. Social's 4 links)
+        // end up overlapping.
+        const sizes = subs.map(sub => ({
+            w: sub.offsetWidth || 120,
+            h: sub.offsetHeight || 32
+        }));
+        const avgSpacing = sizes.reduce((sum, s) => sum + s.w, 0) / count + gap;
+
+        const radius = Math.min(170, Math.max(95, panelWidth * 0.3)) + Math.max(0, count - 3) * 16;
+        let angleStep = count > 1
+            ? (2 * Math.asin(Math.min(1, avgSpacing / (2 * radius))) * 180) / Math.PI
+            : 0;
+        angleStep = Math.max(26, Math.min(70, angleStep));
+        const spread = Math.min(190, angleStep * (count - 1));
         const startAngle = 90 - spread / 2;
+
+        const points = subs.map((sub, i) => {
+            const angleDeg = count === 1 ? 90 : startAngle + (spread / (count - 1)) * i;
+            const angle = (angleDeg * Math.PI) / 180;
+            return {
+                sub,
+                x: hx + radius * Math.cos(angle),
+                y: hy + radius * Math.sin(angle),
+                w: sizes[i].w,
+                h: sizes[i].h
+            };
+        });
+
+        // Relax any remaining overlap (e.g. tight radius on small panels)
+        // by nudging colliding pairs apart along their separation vector.
+        for (let pass = 0; pass < 6; pass++) {
+            let moved = false;
+            for (let i = 0; i < points.length; i++) {
+                for (let j = i + 1; j < points.length; j++) {
+                    const a = points[i];
+                    const b = points[j];
+                    const minDx = (a.w + b.w) / 2 + gap;
+                    const minDy = (a.h + b.h) / 2 + gap / 2;
+                    let dx = b.x - a.x;
+                    let dy = b.y - a.y;
+                    if (Math.abs(dx) >= minDx || Math.abs(dy) >= minDy) continue;
+                    if (dx === 0 && dy === 0) dx = 0.01;
+                    const overlapX = minDx - Math.abs(dx);
+                    const overlapY = minDy - Math.abs(dy);
+                    const push = Math.min(overlapX, overlapY) / 2 + 0.5;
+                    const len = Math.hypot(dx, dy) || 1;
+                    const nx = (dx / len) * push;
+                    const ny = (dy / len) * push;
+                    a.x -= nx; a.y -= ny;
+                    b.x += nx; b.y += ny;
+                    moved = true;
+                }
+            }
+            if (!moved) break;
+        }
 
         // Chips are fixed (no pan to reach ones past the edge), so clamp
         // their center within the panel, leaving room for their own width.
-        const marginX = 75;
-        const marginY = 24;
-
-        subs.forEach((sub, i) => {
-            const angleDeg = count === 1 ? 90 : startAngle + (spread / (count - 1)) * i;
-            const angle = (angleDeg * Math.PI) / 180;
-            const offsetX = radius * Math.cos(angle);
-            const x = Math.max(marginX, Math.min(panelWidth - marginX, hx + offsetX));
-            const y = Math.max(marginY, Math.min(panelHeight - marginY, hy + radius * Math.sin(angle)));
-            sub.style.left = x + 'px';
-            sub.style.top = y + 'px';
-            sub.classList.toggle('label-left', x < hx - 10);
+        points.forEach(p => {
+            const marginX = p.w / 2 + 10;
+            const marginY = p.h / 2 + 10;
+            const x = Math.max(marginX, Math.min(panelWidth - marginX, p.x));
+            const y = Math.max(marginY, Math.min(panelHeight - marginY, p.y));
+            p.sub.style.left = x + 'px';
+            p.sub.style.top = y + 'px';
+            p.sub.classList.toggle('label-left', x < hx - 10);
         });
 
         return { hx, hy };
@@ -295,8 +347,8 @@ window.addEventListener('scroll', () => {
         closeDetail();
 
         const subs = subDotsFor(key);
-        const { hx, hy } = positionSubDots(hub, subs);
         subs.forEach(s => s.classList.add('visible'));
+        const { hx, hy } = positionSubDots(hub, subs);
         subs.forEach((s, i) => {
             window.setTimeout(() => s.classList.add('animate-in'), reduceMotion ? 0 : i * 70);
         });
