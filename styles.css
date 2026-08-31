@@ -495,6 +495,22 @@ body {
     100% { rotate: var(--impact-turns, 360deg); }
 }
 
+/* The mascot's pop sends a blast through anything standing nearby —
+   falls over, holds for a beat, then rights itself back up. Same
+   standalone `rotate` property as .page-hit, but this one doesn't return
+   in a full turn: it topples and recovers, a different feel for a
+   different trigger. */
+.page-tipped {
+    animation: page-tip 1.15s cubic-bezier(0.36, 0, 0.66, 0);
+}
+
+@keyframes page-tip {
+    0% { rotate: 0deg; }
+    18% { rotate: var(--tip-angle, 70deg); }
+    70% { rotate: var(--tip-angle, 70deg); }
+    100% { rotate: 0deg; }
+}
+
 .mascot-bubble {
     position: fixed;
     transform: translate(-50%, -160%);
