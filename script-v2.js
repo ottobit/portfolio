@@ -653,8 +653,10 @@ window.addEventListener('scroll', () => {
 
     let pos = { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
     let isDragging = false;
+    let isThrown = false;
     let dragStart = null;
     let dragMoved = 0;
+    let moveHistory = [];
     let clickTimes = [];
     let isPopped = false;
 
@@ -744,7 +746,7 @@ window.addEventListener('scroll', () => {
     }
 
     function randomHop() {
-        if (isDragging || isPopped) return;
+        if (isDragging || isThrown || isPopped) return;
         place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
         restartAnimation('hopping', 600);
         playHopSound();
@@ -762,7 +764,7 @@ window.addEventListener('scroll', () => {
 
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
     document.addEventListener('mousemove', (e) => {
-        if (isDragging || isPopped) return;
+        if (isDragging || isThrown || isPopped) return;
         const rect = mascot.getBoundingClientRect();
         const dx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / 60));
         const dy = Math.max(-1, Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / 60));
@@ -839,12 +841,81 @@ window.addEventListener('scroll', () => {
         showBubble(lines[Math.floor(Math.random() * lines.length)]);
     }
 
+    // Throw physics: once let go after a real drag, the mascot keeps the
+    // velocity it had at release and falls/bounces like a thrown ball —
+    // gravity, wall/floor bounces with energy loss, friction, until it
+    // settles. Skipped under reduced motion (just lands where dropped).
+    const GRAVITY = 2600; // px/s^2
+    const RESTITUTION = 0.5; // energy kept per bounce
+    const FRICTION = 0.82; // horizontal damping per floor bounce
+    const REST_VEL = 60; // px/s below which a bounce is considered settled
+    const BOUNCE_SOUND_VEL = 150; // px/s impact speed worth a sound
+
+    function throwMascot(vx, vy) {
+        isThrown = true;
+        let lastT = performance.now();
+
+        function step(now) {
+            const dt = Math.min(0.032, (now - lastT) / 1000);
+            lastT = now;
+            vy += GRAVITY * dt;
+
+            let nx = pos.x + vx * dt;
+            let ny = pos.y + vy * dt;
+
+            if (nx < MARGIN) {
+                nx = MARGIN;
+                vx = -vx * RESTITUTION;
+            } else if (nx > window.innerWidth - MARGIN) {
+                nx = window.innerWidth - MARGIN;
+                vx = -vx * RESTITUTION;
+            }
+
+            if (ny < MARGIN) {
+                ny = MARGIN;
+                vy = -vy * RESTITUTION;
+            }
+
+            const floor = window.innerHeight - MARGIN;
+            let settled = false;
+            if (ny >= floor) {
+                ny = floor;
+                if (Math.abs(vy) > REST_VEL) {
+                    if (Math.abs(vy) > BOUNCE_SOUND_VEL) {
+                        restartAnimation('dropped', 200);
+                        playDropSound();
+                    }
+                    vy = -vy * RESTITUTION;
+                    vx *= FRICTION;
+                } else {
+                    vy = 0;
+                    vx *= FRICTION;
+                    settled = Math.abs(vx) < 15;
+                }
+            }
+
+            pos.x = nx;
+            pos.y = ny;
+            mascot.style.left = pos.x + 'px';
+            mascot.style.top = pos.y + 'px';
+
+            if (!settled) {
+                requestAnimationFrame(step);
+            } else {
+                isThrown = false;
+            }
+        }
+
+        requestAnimationFrame(step);
+    }
+
     // Pick up, drag anywhere on the page, and drop — vs. a plain click,
     // distinguished by how far the pointer actually moved.
     mascot.addEventListener('pointerdown', (e) => {
-        if (isPopped) return;
+        if (isPopped || isThrown) return;
         dragStart = { x: e.clientX, y: e.clientY, mascotX: pos.x, mascotY: pos.y };
         dragMoved = 0;
+        moveHistory = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
         mascot.setPointerCapture(e.pointerId);
     });
 
@@ -859,6 +930,11 @@ window.addEventListener('scroll', () => {
                 mascot.classList.add('dragging');
             }
             place(dragStart.mascotX + dx, dragStart.mascotY + dy);
+            moveHistory.push({ x: e.clientX, y: e.clientY, t: performance.now() });
+            // Keep only the last ~100ms of movement — recent velocity is
+            // what a real throw cares about, not the whole drag history.
+            const cutoff = performance.now() - 100;
+            while (moveHistory.length > 2 && moveHistory[0].t < cutoff) moveHistory.shift();
         }
     });
 
@@ -867,11 +943,32 @@ window.addEventListener('scroll', () => {
         const wasDragging = isDragging;
         if (wasDragging) {
             mascot.classList.remove('dragging');
-            restartAnimation('dropped', 400);
-            playDropSound();
+            if (reduceMotion) {
+                restartAnimation('dropped', 400);
+                playDropSound();
+            } else {
+                let vx = 0, vy = 0;
+                if (moveHistory.length >= 2) {
+                    const first = moveHistory[0];
+                    const last = moveHistory[moveHistory.length - 1];
+                    const dt = (last.t - first.t) / 1000;
+                    if (dt > 0) {
+                        vx = (last.x - first.x) / dt;
+                        vy = (last.y - first.y) / dt;
+                    }
+                }
+                const MAX_VEL = 2600;
+                const speed = Math.hypot(vx, vy);
+                if (speed > MAX_VEL) {
+                    vx = (vx / speed) * MAX_VEL;
+                    vy = (vy / speed) * MAX_VEL;
+                }
+                throwMascot(vx, vy);
+            }
         }
         isDragging = false;
         dragStart = null;
+        moveHistory = [];
         if (!wasDragging) registerClick();
     }
 

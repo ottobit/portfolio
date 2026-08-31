@@ -224,8 +224,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.75rem;
-    padding: 3rem clamp(1.5rem, 5vw, 4rem);
+    gap: 1.25rem;
+    padding: 2rem clamp(1.5rem, 5vw, 4rem);
     text-align: left;
     min-height: 0;
     overflow-y: auto;
@@ -246,7 +246,7 @@ body {
 }
 
 .name {
-    font-size: 3.75rem;
+    font-size: 3.25rem;
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -1.5px;
@@ -288,8 +288,8 @@ body {
 .description p {
     font-size: 1rem;
     color: var(--text-muted);
-    line-height: 1.8;
-    margin-bottom: 1rem;
+    line-height: 1.65;
+    margin-bottom: 0.75rem;
 }
 
 .description p:last-child {
@@ -300,7 +300,7 @@ body {
     display: flex;
     gap: 1rem;
     justify-content: flex-start;
-    margin-top: 1rem;
+    margin-top: 0.25rem;
 }
 
 .btn {
