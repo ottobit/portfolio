@@ -317,25 +317,48 @@ body {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
+.detail-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.detail-backdrop.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 .detail-panel {
-    position: relative;
-    margin: 2.5rem auto 0;
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    z-index: 1000;
+    width: calc(100% - 2.5rem);
     max-width: 560px;
-    background: var(--accent-soft);
+    background: #fff;
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 2rem;
     display: flex;
     gap: 1.25rem;
     align-items: flex-start;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
     opacity: 0;
-    transform: translateY(12px);
+    transform: translate(-50%, 20px);
     transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
 }
 
 .detail-panel.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
+    pointer-events: auto;
 }
 
 .detail-icon {

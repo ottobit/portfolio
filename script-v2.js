@@ -152,11 +152,13 @@ window.addEventListener('scroll', () => {
 })();
 
 // Hub/sub-node graph: dots overlaid on the hero canvas (desktop) and a
-// compact accordion fallback (mobile), sharing one detail panel below the hero.
+// compact accordion fallback (mobile), sharing one detail panel shown as a
+// fixed overlay anchored to the bottom of the viewport (no scrolling needed).
 (() => {
     const detailPanel = document.getElementById('detail-panel');
     if (!detailPanel) return;
 
+    const detailBackdrop = document.getElementById('detail-backdrop');
     const detailIcon = document.getElementById('detail-icon');
     const detailTitle = document.getElementById('detail-title');
     const detailText = document.getElementById('detail-text');
@@ -165,8 +167,10 @@ window.addEventListener('scroll', () => {
 
     function closeDetail() {
         detailPanel.classList.remove('visible');
+        if (detailBackdrop) detailBackdrop.classList.remove('visible');
         window.setTimeout(() => {
             detailPanel.hidden = true;
+            if (detailBackdrop) detailBackdrop.hidden = true;
         }, reduceMotion ? 0 : 300);
     }
 
@@ -175,10 +179,15 @@ window.addEventListener('scroll', () => {
         detailTitle.textContent = el.dataset.title || '';
         detailText.textContent = el.dataset.detail || '';
         detailPanel.hidden = false;
-        requestAnimationFrame(() => detailPanel.classList.add('visible'));
+        if (detailBackdrop) detailBackdrop.hidden = false;
+        requestAnimationFrame(() => {
+            detailPanel.classList.add('visible');
+            if (detailBackdrop) detailBackdrop.classList.add('visible');
+        });
     }
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
+    if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
 
     // --- Dots overlaid directly on the hero canvas, same at every breakpoint ---
     const heroVisual = document.querySelector('.hero-visual');
