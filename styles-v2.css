@@ -6,27 +6,27 @@
 
 :root {
     --primary: #000;
-    --accent: #5b3df5;
-    --accent-soft: #f2effe;
+    --accent: #166534;
+    --accent-soft: #eaf6ee;
     --bg: #fff;
     --surface: #fff;
     --text: #1a1a1a;
     --text-muted: #666;
     --border: #e0e0e0;
-    --glow: rgba(91, 61, 245, 0.35);
+    --glow: rgba(22, 101, 52, 0.35);
 }
 
 /* Light theme is always the default (see script-v2.js) — dark is only
    ever applied via the explicit toggle, never from system preference. */
 :root[data-theme="dark"] {
-    --accent: #8a7ffb;
-    --accent-soft: rgba(138, 127, 251, 0.16);
+    --accent: #4ade80;
+    --accent-soft: rgba(74, 222, 128, 0.16);
     --bg: #101014;
     --surface: #1a1a22;
     --text: #f2f2f5;
     --text-muted: #a3a3ad;
     --border: rgba(255, 255, 255, 0.12);
-    --glow: rgba(138, 127, 251, 0.45);
+    --glow: rgba(74, 222, 128, 0.45);
 }
 
 html {
