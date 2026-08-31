@@ -224,8 +224,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.75rem;
-    padding: 3rem clamp(1.5rem, 5vw, 4rem);
+    gap: 1.25rem;
+    padding: 2rem clamp(1.5rem, 5vw, 4rem);
     text-align: left;
     min-height: 0;
     overflow-y: auto;
@@ -246,7 +246,7 @@ body {
 }
 
 .name {
-    font-size: 3.75rem;
+    font-size: 3.25rem;
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -1.5px;
@@ -288,8 +288,8 @@ body {
 .description p {
     font-size: 1rem;
     color: var(--text-muted);
-    line-height: 1.8;
-    margin-bottom: 1rem;
+    line-height: 1.65;
+    margin-bottom: 0.75rem;
 }
 
 .description p:last-child {
@@ -300,7 +300,7 @@ body {
     display: flex;
     gap: 1rem;
     justify-content: flex-start;
-    margin-top: 1rem;
+    margin-top: 0.25rem;
 }
 
 .btn {
@@ -335,7 +335,7 @@ body {
     position: fixed;
     left: 50%;
     top: 45%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(var(--mascot-scale, 1));
     width: 22px;
     height: 22px;
     display: flex;
@@ -348,14 +348,15 @@ body {
     background: var(--accent);
     box-shadow: 0 4px 10px var(--glow);
     cursor: grab;
-    z-index: 500;
+    /* Above the sticky navbar and the detail panel/backdrop, always. */
+    z-index: 1200;
     touch-action: none;
-    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s ease-out;
 }
 
 .mascot.dragging {
     cursor: grabbing;
-    transition: none;
+    transition: transform 0.25s ease-out;
 }
 
 .mascot-eye {
@@ -424,7 +425,7 @@ body {
     border-radius: 50%;
     background: var(--accent);
     pointer-events: none;
-    z-index: 499;
+    z-index: 1199;
     animation: mascot-particle 0.5s ease-out forwards;
 }
 
@@ -445,7 +446,7 @@ body {
     color: var(--text);
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 501;
+    z-index: 1201;
     pointer-events: none;
 }
 
