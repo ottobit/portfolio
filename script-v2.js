@@ -659,6 +659,9 @@ window.addEventListener('scroll', () => {
     let moveHistory = [];
     let clickTimes = [];
     let isPopped = false;
+    let isDizzy = false;
+    let shakeReversalTimes = [];
+    let lastShakeDxSign = 0;
 
     // A little synthesized "creature" voice — no audio files, just Web
     // Audio oscillators/noise, so there's nothing to load or license. Silent
@@ -722,6 +725,30 @@ window.addEventListener('scroll', () => {
     }
     function playRecoverSound() {
         chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
+    }
+    // A woozy, wavering tone (vibrato via an LFO on the oscillator's own
+    // frequency) for when the mascot gets shaken around too much — sounds
+    // dazed rather than hurt (that's playPopSound's job).
+    function playDizzySound() {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const duration = 0.5;
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, ctx.currentTime);
+        lfo.frequency.setValueAtTime(9, ctx.currentTime);
+        lfoGain.gain.setValueAtTime(90, ctx.currentTime);
+        lfo.connect(lfoGain).connect(osc.frequency);
+        gainNode.gain.setValueAtTime(0.05, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gainNode).connect(ctx.destination);
+        lfo.start();
+        osc.start();
+        lfo.stop(ctx.currentTime + duration);
+        osc.stop(ctx.currentTime + duration);
     }
 
     function clamp(x, y) {
@@ -802,8 +829,8 @@ window.addEventListener('scroll', () => {
     // since dragging doesn't reset the streak, it can be picked up and
     // dragged around while still inflated.
     function updateInflate(count) {
-        const t = Math.max(0, Math.min(1, (count - 1) / (POP_THRESHOLD - 1)));
-        mascot.style.setProperty('--mascot-scale', (1 + t * 0.8).toFixed(3));
+        const t = Math.min(1, count / POP_THRESHOLD);
+        mascot.style.setProperty('--mascot-scale', (1 + t * 1.3).toFixed(3));
     }
 
     function resetInflate() {
@@ -868,22 +895,64 @@ window.addEventListener('scroll', () => {
 
     // Throw physics: once let go after a real drag, the mascot keeps the
     // velocity it had at release and falls/bounces like a thrown ball —
-    // gravity, wall/floor bounces with energy loss, friction, until it
-    // settles. Skipped under reduced motion (just lands where dropped).
-    const GRAVITY = 2600; // px/s^2
-    const RESTITUTION = 0.5; // energy kept per bounce
-    const FRICTION = 0.82; // horizontal damping per floor bounce
-    const REST_VEL = 60; // px/s below which a bounce is considered settled
-    const BOUNCE_SOUND_VEL = 150; // px/s impact speed worth a sound
+    // gravity, air drag, wall/floor bounces with energy loss and friction,
+    // until it settles. Skipped under reduced motion (just lands where
+    // dropped).
+    const GRAVITY = 2200; // px/s^2
+    const AIR_DRAG = 0.7; // exponential horizontal decay constant, per second
+    const RESTITUTION = 0.58; // energy kept per bounce
+    const FRICTION = 0.8; // extra horizontal damping per floor bounce
+    const REST_VEL = 55; // px/s below which a bounce is considered settled
+    const BOUNCE_SOUND_VEL = 150; // px/s impact speed worth a sound/squash
 
-    function throwMascot(vx, vy) {
+    function squashBounce(scaleX, scaleY) {
+        mascot.style.setProperty('--mascot-squash-x', scaleX);
+        mascot.style.setProperty('--mascot-squash-y', scaleY);
+        window.setTimeout(() => {
+            mascot.style.setProperty('--mascot-squash-x', 1);
+            mascot.style.setProperty('--mascot-squash-y', 1);
+        }, 90);
+    }
+
+    // A dazed stagger: a decaying side-to-side sway (with a matching gentle
+    // rotation) instead of a clean stop — played only when the mascot was
+    // shaken around mid-drag, so it looks visibly woozy when set down.
+    function wobbleSettle(baseX) {
+        const start = performance.now();
+        const DURATION = 900;
+        const AMPLITUDE = 16;
+        const FREQ = 13;
+
+        function step(now) {
+            const elapsed = now - start;
+            if (elapsed >= DURATION) {
+                mascot.style.left = baseX + 'px';
+                mascot.style.setProperty('--mascot-rotate', '0deg');
+                mascot.classList.remove('thrown');
+                isThrown = false;
+                return;
+            }
+            const t = elapsed / 1000;
+            const decay = 1 - elapsed / DURATION;
+            const sway = Math.sin(t * FREQ) * AMPLITUDE * decay;
+            mascot.style.left = (baseX + sway) + 'px';
+            mascot.style.setProperty('--mascot-rotate', (sway * 0.6).toFixed(2) + 'deg');
+            requestAnimationFrame(step);
+        }
+
+        requestAnimationFrame(step);
+    }
+
+    function throwMascot(vx, vy, dizzy) {
         isThrown = true;
+        mascot.classList.add('thrown');
         let lastT = performance.now();
 
         function step(now) {
             const dt = Math.min(0.032, (now - lastT) / 1000);
             lastT = now;
             vy += GRAVITY * dt;
+            vx *= Math.exp(-AIR_DRAG * dt);
 
             let nx = pos.x + vx * dt;
             let ny = pos.y + vy * dt;
@@ -891,9 +960,11 @@ window.addEventListener('scroll', () => {
             if (nx < MARGIN) {
                 nx = MARGIN;
                 vx = -vx * RESTITUTION;
+                if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
             } else if (nx > window.innerWidth - MARGIN) {
                 nx = window.innerWidth - MARGIN;
                 vx = -vx * RESTITUTION;
+                if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
             }
 
             if (ny < MARGIN) {
@@ -909,13 +980,14 @@ window.addEventListener('scroll', () => {
                     if (Math.abs(vy) > BOUNCE_SOUND_VEL) {
                         restartAnimation('dropped', 200);
                         playDropSound();
+                        squashBounce(1.32, 0.7);
                     }
                     vy = -vy * RESTITUTION;
                     vx *= FRICTION;
                 } else {
                     vy = 0;
                     vx *= FRICTION;
-                    settled = Math.abs(vx) < 15;
+                    settled = Math.abs(vx) < 12;
                 }
             }
 
@@ -926,7 +998,10 @@ window.addEventListener('scroll', () => {
 
             if (!settled) {
                 requestAnimationFrame(step);
+            } else if (dizzy) {
+                wobbleSettle(pos.x);
             } else {
+                mascot.classList.remove('thrown');
                 isThrown = false;
             }
         }
@@ -936,11 +1011,18 @@ window.addEventListener('scroll', () => {
 
     // Pick up, drag anywhere on the page, and drop — vs. a plain click,
     // distinguished by how far the pointer actually moved.
+    const SHAKE_WINDOW_MS = 650;
+    const SHAKE_REVERSALS = 4; // direction flips within the window to count as "shaking it"
+    const SHAKE_MIN_DELTA = 10; // px per step, filters out jitter
+
     mascot.addEventListener('pointerdown', (e) => {
         if (isPopped || isThrown) return;
         dragStart = { x: e.clientX, y: e.clientY, mascotX: pos.x, mascotY: pos.y };
         dragMoved = 0;
         moveHistory = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+        isDizzy = false;
+        shakeReversalTimes = [];
+        lastShakeDxSign = 0;
         mascot.setPointerCapture(e.pointerId);
     });
 
@@ -955,6 +1037,26 @@ window.addEventListener('scroll', () => {
                 mascot.classList.add('dragging');
             }
             place(dragStart.mascotX + dx, dragStart.mascotY + dy);
+
+            // Shake detection: rapid left-right direction reversals mid-drag
+            // means the visitor is roughing the mascot up, not just moving
+            // it — worth a dazed reaction of its own.
+            const prevPoint = moveHistory[moveHistory.length - 1];
+            const stepDx = e.clientX - prevPoint.x;
+            if (Math.abs(stepDx) > SHAKE_MIN_DELTA) {
+                const sign = stepDx > 0 ? 1 : -1;
+                if (lastShakeDxSign !== 0 && sign !== lastShakeDxSign) {
+                    const now = performance.now();
+                    shakeReversalTimes.push(now);
+                    shakeReversalTimes = shakeReversalTimes.filter(t => now - t < SHAKE_WINDOW_MS);
+                    if (!isDizzy && shakeReversalTimes.length >= SHAKE_REVERSALS) {
+                        isDizzy = true;
+                        playDizzySound();
+                    }
+                }
+                lastShakeDxSign = sign;
+            }
+
             moveHistory.push({ x: e.clientX, y: e.clientY, t: performance.now() });
             // Keep only the last ~100ms of movement — recent velocity is
             // what a real throw cares about, not the whole drag history.
@@ -988,7 +1090,7 @@ window.addEventListener('scroll', () => {
                     vx = (vx / speed) * MAX_VEL;
                     vy = (vy / speed) * MAX_VEL;
                 }
-                throwMascot(vx, vy);
+                throwMascot(vx, vy, isDizzy);
             }
         }
         isDragging = false;
