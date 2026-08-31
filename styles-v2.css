@@ -335,7 +335,10 @@ body {
     position: fixed;
     left: 50%;
     top: 45%;
-    transform: translate(-50%, -50%) scale(var(--mascot-scale, 1));
+    transform: translate(-50%, -50%)
+        scale(var(--mascot-scale, 1))
+        rotate(var(--mascot-rotate, 0deg))
+        scale(var(--mascot-squash-x, 1), var(--mascot-squash-y, 1));
     width: 22px;
     height: 22px;
     display: flex;
@@ -351,12 +354,21 @@ body {
     /* Above the sticky navbar and the detail panel/backdrop, always. */
     z-index: 1200;
     touch-action: none;
-    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s ease-out;
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.18s ease-out;
 }
 
 .mascot.dragging {
     cursor: grabbing;
-    transition: transform 0.25s ease-out;
+    transition: transform 0.18s ease-out;
+}
+
+/* While the throw physics loop drives left/top every frame, the hop's
+   0.6s elastic transition must not also be fighting those updates — it
+   would lag/smooth every frame behind a half-finished easing, turning a
+   crisp bounce into a mushy, delayed one. Position moves instantly here;
+   only the squash/rotate feel (transform) still eases. */
+.mascot.thrown {
+    transition: transform 0.18s ease-out;
 }
 
 .mascot-eye {
