@@ -298,6 +298,13 @@ body {
     margin-bottom: 0;
 }
 
+/* Moses effect: each word nudges sideways as the mascot passes near it,
+   then eases back — purely visual (transform), text/layout untouched. */
+.description .word {
+    display: inline-block;
+    transition: transform 0.15s ease-out;
+}
+
 .cta-buttons {
     display: flex;
     gap: 1rem;
