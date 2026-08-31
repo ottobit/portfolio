@@ -36,25 +36,6 @@ window.addEventListener('scroll', () => {
     });
 });
 
-// Fade-in sections on scroll (progressive enhancement: content is visible
-// by default in CSS, the fade class is only added here when JS runs)
-if ('IntersectionObserver' in window) {
-    const observedSections = document.querySelectorAll('.hub-row');
-    const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('in-view');
-                sectionObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.15 });
-
-    observedSections.forEach(section => {
-        section.classList.add('fade-section');
-        sectionObserver.observe(section);
-    });
-}
-
 // Animated node network in the hero
 (() => {
     const canvas = document.getElementById('network-canvas');
@@ -182,10 +163,6 @@ if ('IntersectionObserver' in window) {
     const detailClose = document.getElementById('detail-close');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function isDesktop() {
-        return window.matchMedia('(min-width: 769px)').matches;
-    }
-
     function closeDetail() {
         detailPanel.classList.remove('visible');
         window.setTimeout(() => {
@@ -203,12 +180,12 @@ if ('IntersectionObserver' in window) {
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
 
-    // --- Desktop: dots overlaid directly on the hero canvas ---
+    // --- Dots overlaid directly on the hero canvas, same at every breakpoint ---
     const heroVisual = document.querySelector('.hero-visual');
     const overlay = document.getElementById('hub-overlay');
     const svg = document.getElementById('graph-lines');
     const hubDots = overlay ? Array.from(overlay.querySelectorAll('.hub-dot')) : [];
-    let desktopOpenKey = null;
+    let openKey = null;
 
     function positionHubDots() {
         hubDots.forEach(hub => {
@@ -273,30 +250,30 @@ if ('IntersectionObserver' in window) {
         });
     }
 
-    function closeDesktopHub(hub) {
+    function closeHub(hub) {
         hub.classList.remove('active');
         subDotsFor(hub.dataset.hub).forEach(s => s.classList.remove('visible', 'animate-in'));
         clearLines();
     }
 
-    function openDesktopHub(key) {
+    function openHub(key) {
         const hub = hubDots.find(h => h.dataset.hub === key);
         if (!hub) return;
         const alreadyOpen = hub.classList.contains('active');
 
         hubDots.forEach(h => {
-            if (h !== hub) closeDesktopHub(h);
+            if (h !== hub) closeHub(h);
         });
 
         if (alreadyOpen) {
-            closeDesktopHub(hub);
+            closeHub(hub);
             closeDetail();
-            desktopOpenKey = null;
+            openKey = null;
             return;
         }
 
         hub.classList.add('active');
-        desktopOpenKey = key;
+        openKey = key;
         closeDetail();
 
         const subs = subDotsFor(key);
@@ -311,7 +288,7 @@ if ('IntersectionObserver' in window) {
     positionHubDots();
 
     hubDots.forEach(hub => {
-        hub.addEventListener('click', () => openDesktopHub(hub.dataset.hub));
+        hub.addEventListener('click', () => openHub(hub.dataset.hub));
     });
 
     if (overlay) {
@@ -321,55 +298,78 @@ if ('IntersectionObserver' in window) {
     }
 
     window.addEventListener('resize', () => {
-        if (!desktopOpenKey) return;
-        const hub = hubDots.find(h => h.dataset.hub === desktopOpenKey);
-        const subs = subDotsFor(desktopOpenKey);
+        if (!openKey) return;
+        const hub = hubDots.find(h => h.dataset.hub === openKey);
+        const subs = subDotsFor(openKey);
         const { hx, hy } = positionSubDots(hub, subs);
         drawLines(hx, hy, subs);
     });
 
-    // --- Mobile: compact accordion, same content, no positioning math ---
-    const hubRow = document.getElementById('hub-row');
-    const rowGroups = hubRow ? Array.from(hubRow.querySelectorAll('.hub-row-group')) : [];
+    // --- Drag to pan: some nodes fall past the panel's clipped edges,
+    // dragging the layer around brings them into view. Works for mouse and
+    // touch alike via Pointer Events.
+    if (overlay) {
+        const panLimit = 180;
+        let panX = 0;
+        let panY = 0;
+        let dragStart = null;
+        let dragDistance = 0;
+        let suppressNextClick = false;
 
-    function openMobileHub(key) {
-        const group = rowGroups.find(g => g.querySelector('.hub-row-btn').dataset.hub === key);
-        if (!group) return;
-        const btn = group.querySelector('.hub-row-btn');
-        const alreadyOpen = btn.classList.contains('active');
+        function clamp(value) {
+            return Math.max(-panLimit, Math.min(panLimit, value));
+        }
 
-        rowGroups.forEach(g => {
-            if (g === group) return;
-            g.classList.remove('active');
-            g.querySelector('.hub-row-btn').classList.remove('active');
+        function applyPan() {
+            overlay.style.transform = `translate(${panX}px, ${panY}px)`;
+        }
+
+        overlay.addEventListener('pointerdown', (e) => {
+            dragStart = { x: e.clientX, y: e.clientY, panX, panY, pointerId: e.pointerId };
+            dragDistance = 0;
         });
 
-        group.classList.toggle('active', !alreadyOpen);
-        btn.classList.toggle('active', !alreadyOpen);
-        closeDetail();
-    }
+        overlay.addEventListener('pointermove', (e) => {
+            if (!dragStart) return;
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            dragDistance = Math.max(dragDistance, Math.hypot(dx, dy));
 
-    rowGroups.forEach(group => {
-        const btn = group.querySelector('.hub-row-btn');
-        btn.addEventListener('click', () => openMobileHub(btn.dataset.hub));
-
-        group.querySelectorAll('.hub-row-node').forEach(node => {
-            if (node.tagName !== 'A') {
-                node.addEventListener('click', () => openDetail(node));
+            if (dragDistance > 4) {
+                // Only claim pointer capture once this is a confirmed drag —
+                // capturing on every pointerdown re-targets the click event
+                // onto the overlay itself, breaking plain taps on the dots.
+                if (!overlay.classList.contains('dragging')) {
+                    overlay.classList.add('dragging');
+                    overlay.setPointerCapture(dragStart.pointerId);
+                }
+                panX = clamp(dragStart.panX + dx);
+                panY = clamp(dragStart.panY + dy);
+                applyPan();
             }
         });
-    });
 
-    // --- Nav links + hero CTA: open the right hub regardless of breakpoint ---
-    function openHubByKey(key) {
-        if (isDesktop()) {
-            openDesktopHub(key);
-        } else {
-            openMobileHub(key);
+        function endDrag() {
+            if (!dragStart) return;
+            if (dragDistance > 6) suppressNextClick = true;
+            dragStart = null;
+            overlay.classList.remove('dragging');
         }
+
+        overlay.addEventListener('pointerup', endDrag);
+        overlay.addEventListener('pointercancel', endDrag);
+
+        overlay.addEventListener('click', (e) => {
+            if (suppressNextClick) {
+                e.stopPropagation();
+                e.preventDefault();
+                suppressNextClick = false;
+            }
+        }, true);
     }
 
+    // --- Nav links + hero CTA: open the right hub from anywhere on the page ---
     document.querySelectorAll('.nav-links a[data-hub], .cta-buttons a[data-hub]').forEach(el => {
-        el.addEventListener('click', () => openHubByKey(el.dataset.hub));
+        el.addEventListener('click', () => openHub(el.dataset.hub));
     });
 })();
