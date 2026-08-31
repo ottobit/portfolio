@@ -395,6 +395,7 @@ window.addEventListener('scroll', () => {
             detailPanel.classList.add('visible');
             if (detailBackdrop) detailBackdrop.classList.add('visible');
         });
+        document.dispatchEvent(new CustomEvent('graphinteraction'));
     }
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
@@ -593,6 +594,7 @@ window.addEventListener('scroll', () => {
         hub.classList.add('active');
         openKey = key;
         closeDetail();
+        document.dispatchEvent(new CustomEvent('graphinteraction'));
 
         const subs = subDotsFor(key);
         subs.forEach(s => s.classList.add('visible'));
@@ -626,5 +628,79 @@ window.addEventListener('scroll', () => {
     // --- Nav links + hero CTA: open the right hub from anywhere on the page ---
     document.querySelectorAll('.nav-menu a[data-hub], .cta-buttons a[data-hub]').forEach(el => {
         el.addEventListener('click', () => openHub(el.dataset.hub));
+    });
+})();
+
+// Mascot: a small node that hops around the hero canvas on its own, glances
+// toward the cursor, gets excited on graph interaction, and reacts to clicks.
+// Pure fun, no functional role — safe to fail silently if missing.
+(() => {
+    const heroVisual = document.querySelector('.hero-visual');
+    const mascot = document.getElementById('mascot');
+    const bubble = document.getElementById('mascot-bubble');
+    if (!heroVisual || !mascot || !bubble) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const LINES = {
+        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!', '✨'],
+        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨']
+    };
+
+    let pos = { x: 50, y: 45 };
+
+    function place(xPct, yPct) {
+        pos = { x: xPct, y: yPct };
+        mascot.style.left = xPct + '%';
+        mascot.style.top = yPct + '%';
+    }
+
+    function restartAnimation(className) {
+        if (reduceMotion) return;
+        mascot.classList.remove(className);
+        void mascot.offsetWidth; // force reflow so the animation can replay
+        mascot.classList.add(className);
+    }
+
+    function randomHop() {
+        const margin = 12;
+        place(margin + Math.random() * (100 - margin * 2), margin + Math.random() * (100 - margin * 2));
+        restartAnimation('hopping');
+    }
+
+    place(pos.x, pos.y);
+
+    if (!reduceMotion) {
+        window.setInterval(randomHop, 4000 + Math.random() * 2000);
+    }
+
+    // Eyes glance toward the cursor when it's nearby.
+    heroVisual.addEventListener('mousemove', (e) => {
+        const rect = mascot.getBoundingClientRect();
+        const dx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / 60));
+        const dy = Math.max(-1, Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / 60));
+        mascot.querySelectorAll('.mascot-eye').forEach(eye => {
+            eye.style.transform = `translate(${dx * 1.5}px, ${dy * 1.5}px)`;
+        });
+    });
+
+    heroVisual.addEventListener('mouseleave', () => {
+        mascot.querySelectorAll('.mascot-eye').forEach(eye => { eye.style.transform = ''; });
+    });
+
+    // Perks up whenever a hub or a detail panel opens elsewhere on the graph.
+    document.addEventListener('graphinteraction', () => restartAnimation('excited'));
+
+    mascot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        restartAnimation('excited');
+        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
+        const lines = LINES[lang] || LINES.it;
+        bubble.textContent = lines[Math.floor(Math.random() * lines.length)];
+        bubble.style.left = pos.x + '%';
+        bubble.style.top = pos.y + '%';
+        bubble.hidden = false;
+        window.clearTimeout(bubble._timer);
+        bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, 1800);
     });
 })();

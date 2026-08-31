@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — AI Enthusiast | Music | Gaming (v2)</title>
-    <link rel="stylesheet" href="styles-v2.css?v=5.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles-v2.css?v=5.3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -60,6 +61,15 @@
         </div>
         <div class="hero-visual">
             <canvas id="network-canvas"></canvas>
+
+            <!-- A little animated node that hops around the canvas on its own,
+                 reacts to hub/node clicks and is clickable itself. Pure fun,
+                 no functional role. -->
+            <button class="mascot" id="mascot" type="button" aria-label="🙂">
+                <span class="mascot-eye mascot-eye-l"></span>
+                <span class="mascot-eye mascot-eye-r"></span>
+            </button>
+            <div class="mascot-bubble" id="mascot-bubble" hidden></div>
 
             <!-- Hub/sub-node chips overlaid directly on the animated canvas, fixed at every breakpoint -->
             <div class="hub-overlay" id="hub-overlay">
@@ -144,6 +154,6 @@
         </footer>
     </div>
 
-    <script src="script-v2.js?v=5.4"></script>
+    <script src="script-v2.js?v=5.5"></script>
 </body>
 </html>
