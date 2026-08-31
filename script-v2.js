@@ -666,7 +666,7 @@ window.addEventListener('scroll', () => {
     // A little synthesized "creature" voice — no audio files, just Web
     // Audio oscillators/noise, so there's nothing to load or license. Silent
     // until the browser's autoplay policy is unlocked by a real user
-    // gesture (the mascot's own click/drag qualify), then it just works.
+    // gesture, then it just works.
     let audioCtx = null;
     function getAudioCtx() {
         const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -675,6 +675,16 @@ window.addEventListener('scroll', () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     }
+
+    // The mascot's own scheduled hops fire off a timer, not a click — if
+    // that's the very first thing to happen on the page, it creates the
+    // AudioContext before any real gesture has unlocked it, and it's stuck
+    // suspended (silent) until the *next* thing that happens to be a real
+    // click resumes it. Rather than depend on which control the visitor
+    // happens to press first, unlock it explicitly on the first real
+    // interaction anywhere on the page.
+    document.addEventListener('pointerdown', getAudioCtx, { once: true });
+    document.addEventListener('keydown', getAudioCtx, { once: true });
 
     function chirp({ freqStart, freqEnd, duration, type, gain }) {
         const ctx = getAudioCtx();
