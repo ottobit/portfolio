@@ -731,8 +731,11 @@ window.addEventListener('scroll', () => {
         chirp({ freqStart: 320, freqEnd: 110, duration: 0.15, type: 'sine', gain: 0.04 });
     }
     function playPopSound() {
-        staticBurst(0.22, 0.06);
-        chirp({ freqStart: 900, freqEnd: 70, duration: 0.3, type: 'sawtooth', gain: 0.05 });
+        // Layered for impact: a low thump for weight, the existing
+        // crackle/sweep for texture, louder and a touch longer overall.
+        chirp({ freqStart: 160, freqEnd: 40, duration: 0.18, type: 'sine', gain: 0.09 });
+        staticBurst(0.28, 0.09);
+        chirp({ freqStart: 1100, freqEnd: 60, duration: 0.35, type: 'sawtooth', gain: 0.07 });
     }
     function playRecoverSound() {
         chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
@@ -881,21 +884,39 @@ window.addEventListener('scroll', () => {
         if (!isPopped) restartAnimation('excited', 500);
     });
 
-    function burstParticles() {
+    function burstParticles({ count = 8, distance = 40, size = 5 } = {}) {
         const rect = mascot.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < count; i++) {
             const p = document.createElement('span');
             p.className = 'mascot-particle';
-            const angle = (i / 8) * Math.PI * 2;
-            p.style.setProperty('--px', Math.cos(angle) * 40 + 'px');
-            p.style.setProperty('--py', Math.sin(angle) * 40 + 'px');
+            // A little jitter on angle/distance so a big burst doesn't read
+            // as a too-perfect ring — looks more like an actual shatter.
+            const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            const dist = distance * (0.75 + Math.random() * 0.5);
+            p.style.setProperty('--px', Math.cos(angle) * dist + 'px');
+            p.style.setProperty('--py', Math.sin(angle) * dist + 'px');
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
             p.style.left = cx + 'px';
             p.style.top = cy + 'px';
             document.body.appendChild(p);
             p.addEventListener('animationend', () => p.remove());
         }
+    }
+
+    // A single expanding, fading ring at the mascot's position — a
+    // shockwave to make the pop read clearly even at a glance, not just
+    // another handful of small particles among the others.
+    function burstShockwave() {
+        const rect = mascot.getBoundingClientRect();
+        const ring = document.createElement('span');
+        ring.className = 'mascot-shockwave';
+        ring.style.left = (rect.left + rect.width / 2) + 'px';
+        ring.style.top = (rect.top + rect.height / 2) + 'px';
+        document.body.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
     }
 
     let inflateResetTimer = null;
@@ -934,7 +955,8 @@ window.addEventListener('scroll', () => {
             window.setTimeout(() => { isPopped = false; }, 300);
             return;
         }
-        burstParticles();
+        burstParticles({ count: 18, distance: 85, size: 8 });
+        burstShockwave();
         playPopSound();
         mascot.classList.remove('excited', 'hopping', 'dropped');
         restartAnimation('popping');
