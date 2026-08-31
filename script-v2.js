@@ -147,7 +147,7 @@ window.addEventListener('scroll', () => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isSmallScreen = window.matchMedia('(max-width: 600px)').matches;
 
-    const accentColor = '91, 61, 245';
+    const accentColor = '22, 101, 52';
     const nodeCount = isSmallScreen ? 28 : 60;
     const linkDistance = isSmallScreen ? 110 : 150;
     const nodeSpeed = 0.25;
