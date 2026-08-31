@@ -335,7 +335,7 @@ body {
     position: fixed;
     left: 50%;
     top: 45%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(var(--mascot-scale, 1));
     width: 22px;
     height: 22px;
     display: flex;
@@ -348,14 +348,15 @@ body {
     background: var(--accent);
     box-shadow: 0 4px 10px var(--glow);
     cursor: grab;
-    z-index: 500;
+    /* Above the sticky navbar and the detail panel/backdrop, always. */
+    z-index: 1200;
     touch-action: none;
-    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s ease-out;
 }
 
 .mascot.dragging {
     cursor: grabbing;
-    transition: none;
+    transition: transform 0.25s ease-out;
 }
 
 .mascot-eye {
@@ -424,7 +425,7 @@ body {
     border-radius: 50%;
     background: var(--accent);
     pointer-events: none;
-    z-index: 499;
+    z-index: 1199;
     animation: mascot-particle 0.5s ease-out forwards;
 }
 
@@ -445,7 +446,7 @@ body {
     color: var(--text);
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 501;
+    z-index: 1201;
     pointer-events: none;
 }
 

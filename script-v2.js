@@ -795,10 +795,33 @@ window.addEventListener('scroll', () => {
         }
     }
 
+    let inflateResetTimer = null;
+
+    // Grows the mascot a little more with each click in the current streak,
+    // so it visibly "puffs up" as it approaches the pop threshold — and
+    // since dragging doesn't reset the streak, it can be picked up and
+    // dragged around while still inflated.
+    function updateInflate(count) {
+        const t = Math.max(0, Math.min(1, (count - 1) / (POP_THRESHOLD - 1)));
+        mascot.style.setProperty('--mascot-scale', (1 + t * 0.8).toFixed(3));
+    }
+
+    function resetInflate() {
+        window.clearTimeout(inflateResetTimer);
+        inflateResetTimer = null;
+        mascot.style.setProperty('--mascot-scale', 1);
+    }
+
+    function scheduleInflateReset() {
+        window.clearTimeout(inflateResetTimer);
+        inflateResetTimer = window.setTimeout(resetInflate, POP_WINDOW_MS);
+    }
+
     function pop() {
         if (isPopped) return;
         isPopped = true;
         clickTimes = [];
+        resetInflate();
         bubble.hidden = true;
         if (reduceMotion) {
             window.setTimeout(() => { isPopped = false; }, 300);
@@ -834,6 +857,8 @@ window.addEventListener('scroll', () => {
             pop();
             return;
         }
+        updateInflate(clickTimes.length);
+        scheduleInflateReset();
         restartAnimation('excited', 500);
         playClickSound();
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
