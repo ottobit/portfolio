@@ -70,9 +70,7 @@ body {
 }
 
 .nav-content {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 clamp(1.5rem, 5vw, 4rem);
     display: flex;
     justify-content: space-between;
     align-items: center;
