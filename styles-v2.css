@@ -224,11 +224,13 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.25rem;
-    padding: 2rem clamp(1.5rem, 5vw, 4rem);
+    gap: clamp(0.35rem, 2.2vh, 1.25rem);
+    padding: clamp(0.5rem, 3.5vh, 2rem) clamp(1.5rem, 5vw, 4rem);
     text-align: left;
     min-height: 0;
-    overflow-y: auto;
+    /* Sized in vh below so this never has to scroll — a scrollbar here
+       would show up as an ugly bar right at the canvas edge. */
+    overflow: hidden;
 }
 
 .hero-visual {
@@ -246,7 +248,7 @@ body {
 }
 
 .name {
-    font-size: 3.25rem;
+    font-size: clamp(1.6rem, 5vh, 3.25rem);
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -1.5px;
@@ -260,15 +262,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.75rem;
+    gap: clamp(0.3rem, 1vh, 0.75rem);
     flex-wrap: wrap;
-    font-size: 1rem;
+    font-size: clamp(0.7rem, 1.8vh, 1rem);
     font-weight: 600;
 }
 
 .role {
     background: var(--accent-soft);
-    padding: 0.5rem 1rem;
+    padding: clamp(0.2rem, 1vh, 0.5rem) clamp(0.5rem, 2vh, 1rem);
     border-radius: 50px;
     border: 1px solid transparent;
     color: var(--text);
@@ -286,10 +288,10 @@ body {
 }
 
 .description p {
-    font-size: 1rem;
+    font-size: clamp(0.72rem, 1.8vh, 1rem);
     color: var(--text-muted);
-    line-height: 1.65;
-    margin-bottom: 0.75rem;
+    line-height: 1.4;
+    margin-bottom: clamp(0.2rem, 1vh, 0.75rem);
 }
 
 .description p:last-child {
@@ -300,11 +302,11 @@ body {
     display: flex;
     gap: 1rem;
     justify-content: flex-start;
-    margin-top: 0.25rem;
+    margin-top: 0;
 }
 
 .btn {
-    padding: 0.85rem 2.25rem;
+    padding: clamp(0.4rem, 1.8vh, 0.85rem) clamp(1.5rem, 4vw, 2.25rem);
     border-radius: 50px;
     text-decoration: none;
     font-weight: 600;
@@ -313,7 +315,7 @@ body {
     cursor: pointer;
     display: inline-block;
     text-align: center;
-    font-size: 0.95rem;
+    font-size: clamp(0.8rem, 1.8vh, 0.95rem);
 }
 
 .btn-primary {
