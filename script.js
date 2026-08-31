@@ -919,6 +919,33 @@ window.addEventListener('scroll', () => {
         ring.addEventListener('animationend', () => ring.remove());
     }
 
+    const POP_TIP_RADIUS = 220; // px, how far the pop's blast reaches
+    const POP_TIP_MAX_DEG = 80; // topples close to flat, never fully
+
+    // The pop's blast tips over whatever's standing nearby — unlike the
+    // mid-throw collision spin (which always lands back upright, a whole
+    // number of turns), this one falls over and holds for a beat before
+    // self-righting, for a more physical "knocked over" read. Still purely
+    // visual (the standalone `rotate` property, composes with each
+    // element's own transform) — nothing in the DOM ever changes.
+    function tipNearbyElements(cx, cy) {
+        document.querySelectorAll(HITTABLE_SELECTOR).forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (!rect.width && !rect.height) return;
+            const ex = rect.left + rect.width / 2;
+            const ey = rect.top + rect.height / 2;
+            const dist = Math.hypot(ex - cx, ey - cy);
+            if (dist > POP_TIP_RADIUS) return;
+            const strength = 1 - dist / POP_TIP_RADIUS;
+            const angle = (Math.sign(ex - cx) || 1) * (20 + strength * POP_TIP_MAX_DEG);
+            el.style.setProperty('--tip-angle', angle.toFixed(1) + 'deg');
+            el.classList.remove('page-tipped');
+            void el.offsetWidth; // force reflow so the animation can replay
+            el.classList.add('page-tipped');
+            window.setTimeout(() => el.classList.remove('page-tipped'), 1150);
+        });
+    }
+
     let inflateResetTimer = null;
 
     // Grows the mascot a little more with each click in the current streak,
@@ -955,8 +982,10 @@ window.addEventListener('scroll', () => {
             window.setTimeout(() => { isPopped = false; }, 300);
             return;
         }
+        const popRect = mascot.getBoundingClientRect();
         burstParticles({ count: 18, distance: 85, size: 8 });
         burstShockwave();
+        tipNearbyElements(popRect.left + popRect.width / 2, popRect.top + popRect.height / 2);
         playPopSound();
         mascot.classList.remove('excited', 'hopping', 'dropped');
         restartAnimation('popping');
