@@ -290,7 +290,12 @@ body {
     background-color: var(--bg);
     color: var(--text);
     gap: 1rem;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.6s, visibility 0s linear 0s;
+}
+
+.flip-card.flipped .flip-card-front {
+    visibility: hidden;
+    transition-delay: 0s, 0s, 0s, 0.6s;
 }
 
 .flip-card-front::before {
@@ -314,7 +319,13 @@ body {
     background-color: var(--accent-soft);
     color: var(--text);
     transform: rotateY(180deg);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    visibility: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.6s, visibility 0s linear 0.6s;
+}
+
+.flip-card.flipped .flip-card-back {
+    visibility: visible;
+    transition-delay: 0s, 0s, 0s, 0s;
 }
 
 .flip-card:hover .flip-card-front,
