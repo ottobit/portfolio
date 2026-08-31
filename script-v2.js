@@ -271,8 +271,8 @@ window.addEventListener('scroll', () => {
     const canSpeak = 'speechSynthesis' in window;
 
     const LINK_TEXT = {
-        it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma' },
-        en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop' }
+        it: { repo: 'Codice', link: 'Vedi live', ref: 'Scopri di più', listen: 'Ascolta', stop: 'Ferma' },
+        en: { repo: 'Code', link: 'Live demo', ref: 'Learn more', listen: 'Listen', stop: 'Stop' }
     };
 
     let currentEl = null;
@@ -306,13 +306,15 @@ window.addEventListener('scroll', () => {
         detailTitle.textContent = title;
         detailText.textContent = text;
 
-        // Optional repo/live-demo links — only shown when a node provides them,
-        // so lightweight entries (like most About/Social nodes) stay text-only.
+        // Optional repo/live-demo/reference links — only shown when a node
+        // provides them, so lightweight entries (like most About/Social
+        // nodes) stay text-only.
         if (detailLinks) {
             detailLinks.innerHTML = '';
             const links = [
                 { url: el.dataset.repo, label: LINK_TEXT[lang].repo, icon: '↗' },
-                { url: el.dataset.link, label: LINK_TEXT[lang].link, icon: '↗' }
+                { url: el.dataset.link, label: LINK_TEXT[lang].link, icon: '↗' },
+                { url: el.dataset.ref, label: LINK_TEXT[lang].ref, icon: '↗' }
             ].filter(l => l.url);
 
             links.forEach(({ url, label, icon }) => {
