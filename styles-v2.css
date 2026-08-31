@@ -16,19 +16,8 @@
     --glow: rgba(91, 61, 245, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --accent: #8a7ffb;
-        --accent-soft: rgba(138, 127, 251, 0.16);
-        --bg: #101014;
-        --surface: #1a1a22;
-        --text: #f2f2f5;
-        --text-muted: #a3a3ad;
-        --border: rgba(255, 255, 255, 0.12);
-        --glow: rgba(138, 127, 251, 0.45);
-    }
-}
-
+/* Light theme is always the default (see script-v2.js) — dark is only
+   ever applied via the explicit toggle, never from system preference. */
 :root[data-theme="dark"] {
     --accent: #8a7ffb;
     --accent-soft: rgba(138, 127, 251, 0.16);
