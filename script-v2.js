@@ -1,3 +1,68 @@
+// Theme (light/dark) and language (it/en) toggles, both persisted in
+// localStorage. Exposed on window so other IIFEs below (detail panel,
+// speech) can read the current language without re-reading storage.
+const siteState = (() => {
+    const root = document.documentElement;
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-toggle-icon');
+    const themeLabel = document.getElementById('theme-toggle-label');
+    const langToggle = document.getElementById('lang-toggle');
+    const langLabel = document.getElementById('lang-toggle-label');
+
+    const THEME_TEXT = {
+        it: { toDark: 'Tema scuro', toLight: 'Tema chiaro' },
+        en: { toDark: 'Dark theme', toLight: 'Light theme' }
+    };
+
+    let lang = localStorage.getItem('lang') || 'it';
+    let theme = localStorage.getItem('theme'); // 'light' | 'dark' | null (system)
+
+    function applyThemeUI() {
+        const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (theme) root.setAttribute('data-theme', theme);
+        else root.removeAttribute('data-theme');
+        if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+        if (themeLabel) themeLabel.textContent = isDark ? THEME_TEXT[lang].toLight : THEME_TEXT[lang].toDark;
+        if (themeToggle) themeToggle.setAttribute('aria-pressed', String(isDark));
+    }
+
+    function applyLangUI() {
+        root.lang = lang;
+        if (langLabel) langLabel.textContent = lang === 'it' ? 'English' : 'Italiano';
+        if (langToggle) langToggle.setAttribute('aria-pressed', String(lang === 'en'));
+
+        document.querySelectorAll('[data-en]').forEach(el => {
+            if (!el.dataset.it) el.dataset.it = el.textContent;
+            el.textContent = lang === 'en' ? el.dataset.en : el.dataset.it;
+        });
+
+        document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+    }
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            theme = isDark ? 'light' : 'dark';
+            localStorage.setItem('theme', theme);
+            applyThemeUI();
+        });
+    }
+
+    if (langToggle) {
+        langToggle.addEventListener('click', () => {
+            lang = lang === 'it' ? 'en' : 'it';
+            localStorage.setItem('lang', lang);
+            applyLangUI();
+            applyThemeUI(); // theme button label is language-dependent too
+        });
+    }
+
+    applyThemeUI();
+    applyLangUI();
+
+    return { getLang: () => lang };
+})();
+
 // Smooth scroll for navigation
 const navLinks = document.querySelectorAll('.nav-menu a');
 
@@ -199,29 +264,55 @@ window.addEventListener('scroll', () => {
     const detailText = document.getElementById('detail-text');
     const detailLinks = document.getElementById('detail-links');
     const detailClose = document.getElementById('detail-close');
+    const detailSpeak = document.getElementById('detail-speak');
+    const detailSpeakIcon = document.getElementById('detail-speak-icon');
+    const detailSpeakLabel = document.getElementById('detail-speak-label');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canSpeak = 'speechSynthesis' in window;
+
+    const LINK_TEXT = {
+        it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma' },
+        en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop' }
+    };
+
+    let currentEl = null;
+
+    function stopSpeech() {
+        if (canSpeak) window.speechSynthesis.cancel();
+        if (detailSpeak) {
+            detailSpeak.classList.remove('speaking');
+            detailSpeakIcon.textContent = '🔊';
+            detailSpeakLabel.textContent = LINK_TEXT[siteState.getLang()].listen;
+        }
+    }
 
     function closeDetail() {
         detailPanel.classList.remove('visible');
         if (detailBackdrop) detailBackdrop.classList.remove('visible');
+        stopSpeech();
+        currentEl = null;
         window.setTimeout(() => {
             detailPanel.hidden = true;
             if (detailBackdrop) detailBackdrop.hidden = true;
         }, reduceMotion ? 0 : 300);
     }
 
-    function openDetail(el) {
+    function renderDetail(el) {
+        const lang = siteState.getLang();
+        const title = (lang === 'en' && el.dataset.titleEn) || el.dataset.title || '';
+        const text = (lang === 'en' && el.dataset.detailEn) || el.dataset.detail || '';
+
         detailIcon.textContent = el.dataset.icon || '';
-        detailTitle.textContent = el.dataset.title || '';
-        detailText.textContent = el.dataset.detail || '';
+        detailTitle.textContent = title;
+        detailText.textContent = text;
 
         // Optional repo/live-demo links — only shown when a node provides them,
         // so lightweight entries (like most About/Social nodes) stay text-only.
         if (detailLinks) {
             detailLinks.innerHTML = '';
             const links = [
-                { url: el.dataset.repo, label: 'Codice', icon: '↗' },
-                { url: el.dataset.link, label: 'Vedi live', icon: '↗' }
+                { url: el.dataset.repo, label: LINK_TEXT[lang].repo, icon: '↗' },
+                { url: el.dataset.link, label: LINK_TEXT[lang].link, icon: '↗' }
             ].filter(l => l.url);
 
             links.forEach(({ url, label, icon }) => {
@@ -236,6 +327,14 @@ window.addEventListener('scroll', () => {
             detailLinks.hidden = links.length === 0;
         }
 
+        if (detailSpeak) detailSpeak.hidden = !canSpeak;
+        stopSpeech();
+    }
+
+    function openDetail(el) {
+        currentEl = el;
+        renderDetail(el);
+
         detailPanel.hidden = false;
         if (detailBackdrop) detailBackdrop.hidden = false;
         requestAnimationFrame(() => {
@@ -246,6 +345,30 @@ window.addEventListener('scroll', () => {
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
     if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
+
+    if (detailSpeak && canSpeak) {
+        detailSpeak.addEventListener('click', () => {
+            if (window.speechSynthesis.speaking) {
+                stopSpeech();
+                return;
+            }
+            const lang = siteState.getLang();
+            const utterance = new SpeechSynthesisUtterance(`${detailTitle.textContent}. ${detailText.textContent}`);
+            utterance.lang = lang === 'en' ? 'en-US' : 'it-IT';
+            utterance.onend = stopSpeech;
+            utterance.onerror = stopSpeech;
+            detailSpeak.classList.add('speaking');
+            detailSpeakIcon.textContent = '⏹';
+            detailSpeakLabel.textContent = LINK_TEXT[lang].stop;
+            window.speechSynthesis.speak(utterance);
+        });
+    }
+
+    // Re-render the open panel (and stop any speech mid-sentence) when the
+    // language toggle flips, so the shown text and the "read aloud" match.
+    document.addEventListener('langchange', () => {
+        if (currentEl && !detailPanel.hidden) renderDetail(currentEl);
+    });
 
     // --- Dots overlaid directly on the hero canvas, same at every breakpoint ---
     const heroVisual = document.querySelector('.hero-visual');

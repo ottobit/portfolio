@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — AI Enthusiast | Music | Gaming (v2)</title>
-    <link rel="stylesheet" href="styles-v2.css?v=4.5">
+    <link rel="stylesheet" href="styles-v2.css?v=4.6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -21,7 +21,20 @@
                     </button>
                     <ul class="nav-menu" id="nav-menu">
                         <li><a href="#home">Home</a></li>
-                        <li><span class="nav-menu-soon">CV <small>(presto)</small></span></li>
+                        <li><span class="nav-menu-soon">CV <small data-en="(soon)">(presto)</small></span></li>
+                        <li class="nav-menu-divider"></li>
+                        <li>
+                            <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                                <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                                <span id="theme-toggle-label">Tema scuro</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                                <span aria-hidden="true">🌐</span>
+                                <span id="lang-toggle-label">English</span>
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -40,11 +53,11 @@
                 <span class="role">Film</span>
             </div>
             <div class="description">
-                <p>Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.</p>
-                <p>In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.</p>
+                <p data-en="Classical high school, then Mathematics and Computer Science in Catania, always alongside a job. The most important part of my education, though, was never the one from books: it's the curiosity that pushes me to learn something new — or something, again.">Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.</p>
+                <p data-en="In a field that reinvents itself every six months, that works out fine: I'm obsessed with what I don't know.">In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.</p>
             </div>
             <div class="cta-buttons">
-                <a href="#home" class="btn btn-primary" data-hub="projects">Vedi i Progetti</a>
+                <a href="#home" class="btn btn-primary" data-hub="projects" data-en="See my Projects">Vedi i Progetti</a>
             </div>
         </div>
         <div class="hero-visual">
@@ -56,33 +69,33 @@
 
                 <button class="hub-dot" data-hub="about" data-x="26" data-y="26">
                     <span class="node-dot"></span>
-                    <span class="dot-label">Chi sono</span>
+                    <span class="dot-label" data-en="About">Chi sono</span>
                 </button>
                 <button class="hub-dot" data-hub="projects" data-x="64" data-y="46">
                     <span class="node-dot"></span>
-                    <span class="dot-label">Progetti</span>
+                    <span class="dot-label" data-en="Projects">Progetti</span>
                 </button>
                 <button class="hub-dot" data-hub="social" data-x="30" data-y="74">
                     <span class="node-dot"></span>
                     <span class="dot-label">Social</span>
                 </button>
 
-                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.">
+                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI." data-detail-en="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents.">
                     <span class="node-dot"></span>
                     <span class="dot-label">AI Enthusiast</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.">
+                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto." data-detail-en="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Music</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
+                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-en="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Gaming</span>
                 </button>
 
-                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero al pannello di dettaglio che stai leggendo ora. Altri progetti in arrivo." data-repo="https://github.com/ottobit/portfolio">
+                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-title-en="This site" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero al pannello di dettaglio che stai leggendo ora. Altri progetti in arrivo." data-detail-en="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to the detail panel you're reading right now. More projects coming." data-repo="https://github.com/ottobit/portfolio">
                     <span class="node-dot"></span>
-                    <span class="dot-label">Questo sito</span>
+                    <span class="dot-label" data-en="This site">Questo sito</span>
                 </button>
 
                 <a class="sub-dot sub-link" data-parent="social" href="https://github.com/ottobit" target="_blank" rel="noopener noreferrer">
@@ -112,17 +125,23 @@
         <div class="detail-body">
             <h3 id="detail-title"></h3>
             <p id="detail-text"></p>
-            <div class="detail-links" id="detail-links" hidden></div>
+            <div class="detail-actions">
+                <button class="detail-speak" id="detail-speak" type="button" hidden>
+                    <span id="detail-speak-icon" aria-hidden="true">🔊</span>
+                    <span id="detail-speak-label">Ascolta</span>
+                </button>
+                <div class="detail-links" id="detail-links" hidden></div>
+            </div>
         </div>
     </div>
 
     <div class="container">
         <!-- Footer -->
         <footer class="footer">
-            <p>&copy; 2026 ottobit — <a href="index.html">torna alla v1</a></p>
+            <p>&copy; 2026 ottobit — <a href="index.html" data-en="back to v1">torna alla v1</a></p>
         </footer>
     </div>
 
-    <script src="script-v2.js?v=4.6"></script>
+    <script src="script-v2.js?v=4.7"></script>
 </body>
 </html>
