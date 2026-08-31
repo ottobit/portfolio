@@ -902,16 +902,26 @@ window.addEventListener('scroll', () => {
         bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, 1500);
     }
 
-    function registerClick() {
+    // Shared streak counter behind the pop threshold — a click and a
+    // page-hit collision both count as one "hit" toward the same 6, so
+    // getting knocked around during a throw wears the mascot down just
+    // like mashing it with clicks does. Returns true if this hit popped it
+    // (caller should skip its own hit-specific reaction in that case).
+    function registerHit() {
         const now = Date.now();
         clickTimes.push(now);
         clickTimes = clickTimes.filter(t => now - t < POP_WINDOW_MS);
         if (clickTimes.length >= POP_THRESHOLD) {
             pop();
-            return;
+            return true;
         }
         updateInflate(clickTimes.length);
         scheduleInflateReset();
+        return false;
+    }
+
+    function registerClick() {
+        if (registerHit()) return;
         restartAnimation('excited', 500);
         playClickSound();
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
@@ -1017,13 +1027,17 @@ window.addEventListener('scroll', () => {
             } else {
                 vy = -vy * HIT_RESTITUTION;
             }
+
+            if (registerHit()) {
+                return { vx, vy, popped: true };
+            }
             squashBounce(1.2, 0.85);
             playHitSound();
             playCrackSound();
             burstParticles();
             break; // one hit per frame is plenty — avoids double-counting overlaps
         }
-        return { vx, vy };
+        return { vx, vy, popped: false };
     }
 
     function throwMascot(vx, vy, dizzy) {
@@ -1084,6 +1098,14 @@ window.addEventListener('scroll', () => {
                 const hit = checkPageHits(hittableRects, nx, ny, vx, vy);
                 vx = hit.vx;
                 vy = hit.vy;
+                if (hit.popped) {
+                    // The streak just crossed the pop threshold — pop()
+                    // takes over positioning/animation on its own timers,
+                    // so the physics loop stops here instead of fighting it.
+                    mascot.classList.remove('thrown');
+                    isThrown = false;
+                    return;
+                }
             }
 
             pos.x = nx;
