@@ -3,157 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ottobit - AI Enthusiast | Music | Gaming</title>
+    <title>ottobit — AI Enthusiast | Music | Gaming</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=1.7">
+    <link rel="stylesheet" href="styles.css?v=2.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Navigation -->
-        <nav class="navbar">
-            <div class="nav-content">
-                <div class="logo">ottobit</div>
-                <ul class="nav-links">
-                    <li><a href="#home" class="active">Home</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#projects">Progetti</a></li>
-                    <li><a href="#social">Social</a></li>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Apri menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="#home">Home</a></li>
+                    <li><span class="nav-menu-soon">CV <small data-en="(soon)">(presto)</small></span></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
                 </ul>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <!-- Hero Section -->
-        <section id="home" class="hero">
-            <div class="hero-content">
-                <h1 class="name">ottobit</h1>
-                <div class="tagline">
-                    <span class="role">AI Enthusiast</span>
-                    <span class="role">Full Stack Developer</span>
-                    <span class="role">Music Lover</span>
-                    <span class="role">Gamer</span>
-                    <span class="role">Film Addicted</span>
-                </div>
-                <div class="description">
-                    <p>Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.</p>
-                    <p>In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.</p>
-                </div>
-                <div class="cta-buttons">
-                    <a href="#projects" class="btn btn-primary">Vedi i Progetti</a>
-                </div>
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-text">
+            <h1 class="name">ottobit<span class="dot">.</span></h1>
+            <div class="tagline">
+                <span class="role">AI Enthusiast</span>
+                <span class="role">Full Stack Developer</span>
+                <span class="role">Music Lover</span>
+                <span class="role">Gamer</span>
+                <span class="role">Film Addicted</span>
             </div>
-        </section>
-
-        <!-- About Section -->
-        <section id="about" class="about">
-            <h2>Chi sono</h2>
-            <div class="about-grid">
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🤖">
-                            <div class="about-icon">🤖</div>
-                            <h3>AI Enthusiast</h3>
-                            <p>Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.</p>
-                        </div>
-                        <div class="flip-card-back">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🎵">
-                            <div class="about-icon">🎵</div>
-                            <h3>Music</h3>
-                            <p>La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.</p>
-                        </div>
-                        <div class="flip-card-back">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flip-card">
-                    <div class="flip-card-inner">
-                        <div class="flip-card-front" data-bg-icon="🎮">
-                            <div class="about-icon">🎮</div>
-                            <h3>Gaming</h3>
-                            <p>Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo.</p>
-                        </div>
-                        <div class="flip-card-back">
-                            <h4>Preferiti</h4>
-                            <ul class="game-list">
-                                <li>Final Fantasy VIII</li>
-                                <li>Expedition 33</li>
-                                <li>Zelda: Breath of the Wild</li>
-                                <li>Zelda: Tears of the Kingdom</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+            <div class="description">
+                <p data-en="Classical high school, then Mathematics and Computer Science in Catania, always alongside a job. The most important part of my education, though, was never the one from books: it's the curiosity that pushes me to learn something new — or something, again.">Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.</p>
+                <p data-en="In a field that reinvents itself every six months, that works out fine: I'm obsessed with what I don't know.">In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.</p>
             </div>
-        </section>
-
-        <!-- Projects Section -->
-        <section id="projects" class="projects">
-            <h2>Progetti</h2>
-            <p class="projects-subtitle">Quello che ho studiato e realizzato</p>
-            
-            <div class="projects-grid">
-                <div class="project-card">
-                    <div class="project-content">
-                        <i class="fas fa-diagram-project project-icon"></i>
-                        <h3>Questo sito</h3>
-                        <p>Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo della v2 a quel pannello, che ora puoi anche ascoltare grazie alla Web Speech API del browser.</p>
-                        <a href="index-v2.html" class="project-link">Guarda la v2 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-
-                <div class="project-card">
-                    <div class="project-content">
-                        <i class="fas fa-brain project-icon"></i>
-                        <h3>Cerebro Engine</h3>
-                        <p>Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Repository privato.</p>
-                    </div>
-                </div>
+            <div class="cta-buttons">
+                <a href="#home" class="btn btn-primary" data-hub="projects" data-en="See my Projects">Vedi i Progetti</a>
             </div>
+        </div>
+        <div class="hero-visual">
+            <canvas id="network-canvas"></canvas>
 
-            <p class="projects-note">Altri progetti in arrivo. Torna presto! 🚀</p>
-        </section>
+            <!-- A little animated node that hops around the canvas on its own,
+                 reacts to hub/node clicks and is clickable itself. Pure fun,
+                 no functional role. -->
+            <button class="mascot" id="mascot" type="button" aria-label="🙂">
+                <span class="mascot-eye mascot-eye-l"></span>
+                <span class="mascot-eye mascot-eye-r"></span>
+            </button>
+            <div class="mascot-bubble" id="mascot-bubble" hidden></div>
 
-        <!-- Social Section -->
-        <section id="social" class="social">
-            <h2>Connettiti con me</h2>
-            <p class="social-subtitle">Trovami su questi canali</p>
-            
-            <div class="social-grid">
-                <a href="https://github.com/ottobit" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
+            <!-- Hub/sub-node chips overlaid directly on the animated canvas, fixed at every breakpoint -->
+            <div class="hub-overlay" id="hub-overlay">
+                <svg class="graph-lines" id="graph-lines"></svg>
+
+                <button class="hub-dot" data-hub="about" data-x="26" data-y="26">
+                    <span class="node-dot"></span>
+                    <span class="dot-label" data-en="About">Chi sono</span>
+                </button>
+                <button class="hub-dot" data-hub="projects" data-x="64" data-y="46">
+                    <span class="node-dot"></span>
+                    <span class="dot-label" data-en="Projects">Progetti</span>
+                </button>
+                <button class="hub-dot" data-hub="social" data-x="30" data-y="74">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Social</span>
+                </button>
+
+                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI." data-detail-en="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents.">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">AI Enthusiast</span>
+                </button>
+                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto." data-detail-en="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound.">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Music</span>
+                </button>
+                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-en="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Gaming</span>
+                </button>
+
+                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-title-en="This site" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla Web Speech API del browser." data-detail-en="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's Web Speech API." data-repo="https://github.com/ottobit/portfolio" data-ref="https://developer.mozilla.org/docs/Web/API/Web_Speech_API">
+                    <span class="node-dot"></span>
+                    <span class="dot-label" data-en="This site">Questo sito</span>
+                </button>
+                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Ogni agente gira su provider e modello configurabili indipendentemente. Repository privato." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. Each agent runs on an independently configurable provider and model. Private repository.">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Cerebro Engine</span>
+                </button>
+
+                <a class="sub-dot sub-link" data-parent="social" href="https://github.com/ottobit" target="_blank" rel="noopener noreferrer">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">GitHub</span>
                 </a>
-                
-                <a href="https://www.linkedin.com/in/giuseppequartarone" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-linkedin"></i>
-                    <span>LinkedIn</span>
+                <a class="sub-dot sub-link" data-parent="social" href="https://www.linkedin.com/in/giuseppequartarone" target="_blank" rel="noopener noreferrer">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">LinkedIn</span>
                 </a>
-                
-                <a href="https://www.instagram.com/skypassenger" class="social-card" target="_blank" rel="noopener noreferrer">
-                    <i class="fab fa-instagram"></i>
-                    <span>Instagram</span>
+                <a class="sub-dot sub-link" data-parent="social" href="https://www.instagram.com/skypassenger" target="_blank" rel="noopener noreferrer">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Instagram</span>
+                </a>
+                <a class="sub-dot sub-link" data-parent="social" href="mailto:giuseppequartarone.work@gmail.com">
+                    <span class="node-dot"></span>
+                    <span class="dot-label">Email</span>
                 </a>
             </div>
+        </div>
+    </section>
 
-            <div class="email-section">
-                <p>O scrivimi direttamente:</p>
-                <a href="mailto:giuseppequartarone.work@gmail.com" class="email-link">giuseppequartarone.work@gmail.com</a>
+    <div class="detail-backdrop" id="detail-backdrop" hidden></div>
+    <div class="detail-panel" id="detail-panel" hidden>
+        <button class="detail-close" id="detail-close" aria-label="Chiudi dettaglio">✕</button>
+        <div class="detail-icon" id="detail-icon"></div>
+        <div class="detail-body">
+            <h3 id="detail-title"></h3>
+            <p id="detail-text"></p>
+            <div class="detail-actions">
+                <button class="detail-speak" id="detail-speak" type="button" hidden>
+                    <span id="detail-speak-icon" aria-hidden="true">🔊</span>
+                    <span id="detail-speak-label">Ascolta</span>
+                </button>
+                <div class="detail-links" id="detail-links" hidden></div>
             </div>
-        </section>
+        </div>
+    </div>
 
+    <div class="container">
         <!-- Footer -->
         <footer class="footer">
-            <p>&copy; 2026 ottobit — <a href="index-v2.html">prova la v2 →</a></p>
+            <p>&copy; 2026 ottobit — <a href="index-v2.html" data-en="see the classic version">guarda la versione classica</a></p>
         </footer>
     </div>
 
-    <script src="script.js?v=1.4"></script>
+    <script src="script.js?v=2.0">
 </body>
 </html>
