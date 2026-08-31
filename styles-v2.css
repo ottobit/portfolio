@@ -454,6 +454,21 @@ body {
     100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
 }
 
+/* Knocked by the mascot mid-throw: spins a whole number of turns (always
+   landing back at its starting orientation) and settles. Uses the
+   standalone `rotate` property rather than `transform` so it composes
+   safely with whatever transform the element already has for its own
+   positioning (e.g. .hub-dot/.sub-dot's translate(-50%, -50%)) instead of
+   overwriting it. Purely visual — content/handlers are untouched. */
+.page-hit {
+    animation: page-hit-spin 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes page-hit-spin {
+    0% { rotate: 0deg; }
+    100% { rotate: var(--impact-turns, 360deg); }
+}
+
 .mascot-bubble {
     position: fixed;
     transform: translate(-50%, -160%);

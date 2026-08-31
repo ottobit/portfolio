@@ -662,6 +662,7 @@ window.addEventListener('scroll', () => {
     let isDizzy = false;
     let shakeReversalTimes = [];
     let lastShakeDxSign = 0;
+    let currentInflateScale = 1;
 
     // A little synthesized "creature" voice — no audio files, just Web
     // Audio oscillators/noise, so there's nothing to load or license. Silent
@@ -735,6 +736,11 @@ window.addEventListener('scroll', () => {
     }
     function playRecoverSound() {
         chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
+    }
+    // A short, punchy knock — for when the mascot collides with a page
+    // element mid-throw (distinct from the softer floor/wall bounce sound).
+    function playHitSound() {
+        chirp({ freqStart: 700, freqEnd: 180, duration: 0.09, type: 'triangle', gain: 0.05 });
     }
     // A woozy, wavering tone (vibrato via an LFO on the oscillator's own
     // frequency) for when the mascot gets shaken around too much — sounds
@@ -842,12 +848,14 @@ window.addEventListener('scroll', () => {
         // A fixed, generous jump per tap (not a fraction of the streak) so
         // the growth is obvious immediately, not just once you're a few
         // clicks in.
-        mascot.style.setProperty('--mascot-scale', (1 + count * 0.4).toFixed(3));
+        currentInflateScale = 1 + count * 0.4;
+        mascot.style.setProperty('--mascot-scale', currentInflateScale.toFixed(3));
     }
 
     function resetInflate() {
         window.clearTimeout(inflateResetTimer);
         inflateResetTimer = null;
+        currentInflateScale = 1;
         mascot.style.setProperty('--mascot-scale', 1);
     }
 
@@ -955,10 +963,71 @@ window.addEventListener('scroll', () => {
         requestAnimationFrame(step);
     }
 
+    // Page-hit reactions: while airborne mid-throw, the mascot can collide
+    // with pills/buttons/links elsewhere on the page. It's a pure visual
+    // knock — the element spins a whole number of turns (always landing
+    // back at its original orientation) and the mascot bounces off it —
+    // nothing is ever removed or altered in the DOM, so the site stays
+    // fully usable during and after.
+    const HITTABLE_SELECTOR = '.role, .btn, .logo, .nav-menu a, .footer a, .hub-dot, .sub-dot';
+    const MASCOT_BASE_RADIUS = 11; // half of --mascot-base
+    const HIT_COOLDOWN_MS = 500;
+    const HIT_RESTITUTION = 0.4; // weaker than a wall — the element isn't rigid
+    const hitCooldowns = new Map();
+
+    function nearestPointDelta(cx, cy, rect) {
+        const nx = Math.max(rect.left, Math.min(cx, rect.right));
+        const ny = Math.max(rect.top, Math.min(cy, rect.bottom));
+        return { dx: cx - nx, dy: cy - ny };
+    }
+
+    function spinElement(el, vx) {
+        const now = performance.now();
+        const last = hitCooldowns.get(el) || 0;
+        if (now - last < HIT_COOLDOWN_MS) return false;
+        hitCooldowns.set(el, now);
+
+        const speed = Math.hypot(vx, 400);
+        const turns = Math.max(1, Math.min(3, Math.round(1 + speed / 900)));
+        const deg = (vx >= 0 ? 1 : -1) * turns * 360;
+        el.style.setProperty('--impact-turns', deg + 'deg');
+        el.classList.remove('page-hit');
+        void el.offsetWidth; // force reflow so the animation can replay
+        el.classList.add('page-hit');
+        window.setTimeout(() => el.classList.remove('page-hit'), 600);
+        return true;
+    }
+
+    function checkPageHits(hittableRects, cx, cy, vx, vy) {
+        const r = MASCOT_BASE_RADIUS * currentInflateScale;
+        for (const { el, rect } of hittableRects) {
+            const { dx, dy } = nearestPointDelta(cx, cy, rect);
+            if (dx * dx + dy * dy > r * r) continue;
+            if (!spinElement(el, vx)) continue;
+
+            // Bounce off whichever axis the impact mostly came from.
+            if (Math.abs(dx) >= Math.abs(dy)) {
+                vx = -vx * HIT_RESTITUTION;
+            } else {
+                vy = -vy * HIT_RESTITUTION;
+            }
+            squashBounce(1.2, 0.85);
+            playHitSound();
+            break; // one hit per frame is plenty — avoids double-counting overlaps
+        }
+        return { vx, vy };
+    }
+
     function throwMascot(vx, vy, dizzy) {
         isThrown = true;
         mascot.classList.add('thrown');
         let lastT = performance.now();
+
+        // Snapshot hittable elements once per throw (layout doesn't change
+        // mid-flight) instead of querying/measuring the DOM every frame.
+        const hittableRects = reduceMotion ? [] : Array.from(document.querySelectorAll(HITTABLE_SELECTOR))
+            .map(el => ({ el, rect: el.getBoundingClientRect() }))
+            .filter(({ rect }) => rect.width > 0 && rect.height > 0);
 
         function step(now) {
             const dt = Math.min(0.032, (now - lastT) / 1000);
@@ -1001,6 +1070,12 @@ window.addEventListener('scroll', () => {
                     vx *= FRICTION;
                     settled = Math.abs(vx) < 12;
                 }
+            }
+
+            if (hittableRects.length) {
+                const hit = checkPageHits(hittableRects, nx, ny, vx, vy);
+                vx = hit.vx;
+                vy = hit.vy;
             }
 
             pos.x = nx;
