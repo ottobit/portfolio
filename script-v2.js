@@ -162,6 +162,7 @@ window.addEventListener('scroll', () => {
     const detailIcon = document.getElementById('detail-icon');
     const detailTitle = document.getElementById('detail-title');
     const detailText = document.getElementById('detail-text');
+    const detailLinks = document.getElementById('detail-links');
     const detailClose = document.getElementById('detail-close');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -178,6 +179,28 @@ window.addEventListener('scroll', () => {
         detailIcon.textContent = el.dataset.icon || '';
         detailTitle.textContent = el.dataset.title || '';
         detailText.textContent = el.dataset.detail || '';
+
+        // Optional repo/live-demo links — only shown when a node provides them,
+        // so lightweight entries (like most About/Social nodes) stay text-only.
+        if (detailLinks) {
+            detailLinks.innerHTML = '';
+            const links = [
+                { url: el.dataset.repo, label: 'Codice', icon: '↗' },
+                { url: el.dataset.link, label: 'Vedi live', icon: '↗' }
+            ].filter(l => l.url);
+
+            links.forEach(({ url, label, icon }) => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.className = 'detail-link';
+                a.textContent = `${label} ${icon}`;
+                detailLinks.appendChild(a);
+            });
+            detailLinks.hidden = links.length === 0;
+        }
+
         detailPanel.hidden = false;
         if (detailBackdrop) detailBackdrop.hidden = false;
         requestAnimationFrame(() => {
