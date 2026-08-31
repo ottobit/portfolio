@@ -290,12 +290,11 @@ body {
     background-color: var(--bg);
     color: var(--text);
     gap: 1rem;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.6s, visibility 0s linear 0s;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flip-card.flipped .flip-card-front {
     visibility: hidden;
-    transition-delay: 0s, 0s, 0s, 0.6s;
 }
 
 .flip-card-front::before {
@@ -320,12 +319,11 @@ body {
     color: var(--text);
     transform: rotateY(180deg);
     visibility: hidden;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.6s, visibility 0s linear 0.6s;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .flip-card.flipped .flip-card-back {
     visibility: visible;
-    transition-delay: 0s, 0s, 0s, 0s;
 }
 
 .flip-card:hover .flip-card-front,
@@ -411,13 +409,6 @@ body {
 }
 
 /* Social Section */
-.social-subtitle {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 1rem;
-    margin-bottom: 2rem;
-}
-
 .social-grid {
     display: flex;
     flex-wrap: wrap;
@@ -455,32 +446,6 @@ body {
 .social-card span {
     font-size: 0.95rem;
     font-weight: 600;
-}
-
-.email-section {
-    text-align: center;
-    padding: 2rem;
-    background: var(--accent-soft);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-}
-
-.email-section p {
-    color: var(--text-muted);
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
-}
-
-.email-link {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--accent);
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.email-link:hover {
-    text-decoration: underline;
 }
 
 /* Footer */
