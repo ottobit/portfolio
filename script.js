@@ -739,7 +739,7 @@ async function fetchGithubNews() {
                     const msg = (c.message || '').split('\n')[0].trim();
                     if (msg && !/^merge /i.test(msg) && !seenText.has(msg)) {
                         seenText.add(msg);
-                        items.push({ text: msg, url: `https://github.com/${e.repo.name}/commit/${c.sha}` });
+                        items.push({ text: msg, url: `https://github.com/${e.repo.name}/commit/${c.sha}`, icon: '📰' });
                     }
                 }
             } else if (e.type === 'PullRequestEvent' && e.payload.action === 'closed' && e.payload.pull_request && e.payload.pull_request.merged) {
@@ -748,7 +748,7 @@ async function fetchGithubNews() {
                 // up twice in the raw event list — keep the first one seen.
                 if (title && !seenText.has(title)) {
                     seenText.add(title);
-                    items.push({ text: title, url: e.payload.pull_request.html_url });
+                    items.push({ text: title, url: e.payload.pull_request.html_url, icon: '📰' });
                 }
             }
             if (items.length >= 8) break;
@@ -777,7 +777,7 @@ async function fetchAiNews() {
         const models = await res.json();
         aiNewsItems = models
             .filter(m => m.id)
-            .map(m => ({ text: `popular on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}` }));
+            .map(m => ({ text: `popular on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}`, icon: '🤖' }));
     } catch (err) {
         // Same silent fallback as the GitHub feed — offline/blocked/CORS
         // just means this dot sticks to its usual random one-liners.
@@ -806,7 +806,7 @@ async function fetchWorldNews() {
             .map(e => {
                 const page = e.pages && e.pages[0];
                 const url = page && page.content_urls && page.content_urls.desktop && page.content_urls.desktop.page;
-                return { text: `${e.year}: ${e.text}`, url: url || null };
+                return { text: `${e.year}: ${e.text}`, url: url || null, icon: '🌍' };
             });
     } catch (err) {
         // Silent fallback, same as the other two feeds.
@@ -814,20 +814,29 @@ async function fetchWorldNews() {
 }
 const worldNewsPromise = fetchWorldNews();
 
-// Each dot instance (the original and every split-off clone) gets one of
-// these three themes, assigned round-robin by creation order — so
-// splitting doesn't just multiply the same GitHub updates, each clone
-// becomes its own little "listening" specialty.
-const NEWS_TOPICS = [
-    { icon: '📰', items: () => githubNewsItems, refetch: fetchGithubNews, lastRefetchAt: 0 },
-    { icon: '🤖', items: () => aiNewsItems, refetch: fetchAiNews, lastRefetchAt: 0 },
-    { icon: '🌍', items: () => worldNewsItems, refetch: fetchWorldNews, lastRefetchAt: 0 }
-];
-// Floor between clicked-triggered live refetches of the same topic —
-// several dots can share a topic, and mashing clicks shouldn't hammer a
-// public API that's rate-limited per visitor IP.
+// All three feeds pooled together, not split one-per-dot — every dot
+// pulls from the same combined pool, so nobody has to wait for "the right
+// one" to see a specific source. Round-robin interleaved (not GitHub
+// items exhausted before AI's, before World's) so consecutive reveals
+// naturally rotate between sources.
+function getAllNewsItems() {
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems];
+    const combined = [];
+    const maxLen = Math.max(0, ...lists.map(l => l.length));
+    for (let i = 0; i < maxLen; i++) {
+        for (const list of lists) {
+            if (list[i]) combined.push(list[i]);
+        }
+    }
+    return combined;
+}
+async function refetchAllNews() {
+    await Promise.all([fetchGithubNews(), fetchAiNews(), fetchWorldNews()]);
+}
+// Floor between click-triggered live refetches — mashing clicks shouldn't
+// hammer three rate-limited public APIs at once.
 const NEWS_REFETCH_COOLDOWN_MS = 20000;
-let mascotCreationCount = 0;
+let lastNewsRefetchAt = 0;
 
 // Where "dot" is born: the dot right after "ottobit." in the big hero
 // heading (.name), not the small one in the sticky header logo. Falls back
@@ -866,8 +875,6 @@ function createMascotController(mascot, bubble, options = {}) {
         return;
     }
     mascotInstanceCount++;
-    const newsTopic = NEWS_TOPICS[mascotCreationCount % NEWS_TOPICS.length];
-    mascotCreationCount++;
 
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
@@ -1146,30 +1153,27 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 1800);
     }
 
-    // Occasionally surfaces this project's own GitHub activity in the
-    // bubble — every dot instance, original and clones alike, each with
-    // its own topic (see NEWS_TOPICS): splitting doesn't just multiply the
-    // same GitHub updates, each clone becomes its own little "listening"
-    // specialty. Longer display duration than a regular one-liner: a news
-    // item needs more than a glance to read. A small badge appears on dot
-    // a few seconds before the bubble shows itself, so a visitor who
-    // notices it can click dot to reveal the news right away instead of
-    // waiting.
+    // Occasionally surfaces news from the shared pool (GitHub/AI/World, all
+    // mixed together — no dot is dedicated to just one) in the bubble.
+    // Longer display duration than a regular one-liner: a news item needs
+    // more than a glance to read. A small badge appears on dot a few
+    // seconds before the bubble shows itself, so a visitor who notices it
+    // can click dot to reveal the news right away instead of waiting.
     const newsBadge = mascot.querySelector('.mascot-news-badge');
     let newsIndex = 0;
 
     function showNextNews() {
-        const items = newsTopic.items();
+        const items = getAllNewsItems();
         if (!items.length) return;
         const item = items[newsIndex % items.length];
-        showBubble(newsTopic.icon + ' ' + item.text, 4000, item.url);
+        showBubble(item.icon + ' ' + item.text, 4000, item.url);
         newsIndex++;
         if (newsBadge) newsBadge.hidden = true;
     }
 
     function scheduleNews() {
         window.setTimeout(() => {
-            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsTopic.items().length) {
+            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && getAllNewsItems().length) {
                 if (newsBadge) newsBadge.hidden = false;
                 window.setTimeout(() => {
                     if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsBadge && !newsBadge.hidden) {
@@ -1368,20 +1372,20 @@ function createMascotController(mascot, bubble, options = {}) {
             showNextNews();
             return;
         }
-        // Otherwise a click asks dot to go check its feed live, instead of
-        // waiting for the next scheduled cycle — capped per topic so
-        // mashing clicks doesn't hammer a rate-limited public API. Falls
+        // Otherwise a click asks dot to go check the feeds live, instead of
+        // waiting for the next scheduled cycle — capped so mashing clicks
+        // doesn't hammer three rate-limited public APIs at once. Falls
         // back to the usual random one-liner while on cooldown, so rapid
         // clicking still feels alive instead of doing nothing.
         const now = Date.now();
-        if (now - newsTopic.lastRefetchAt > NEWS_REFETCH_COOLDOWN_MS) {
-            newsTopic.lastRefetchAt = now;
+        if (now - lastNewsRefetchAt > NEWS_REFETCH_COOLDOWN_MS) {
+            lastNewsRefetchAt = now;
             isFetchingNews = true;
-            showBubble(newsTopic.icon + ' …', 8000);
-            newsTopic.refetch()
+            showBubble('🔄 …', 8000);
+            refetchAllNews()
                 .then(() => {
                     if (instanceRemoved) return;
-                    if (newsTopic.items().length) {
+                    if (getAllNewsItems().length) {
                         newsIndex = 0; // show the freshest item first, not wherever the old cycle left off
                         showNextNews();
                     } else {
@@ -1390,7 +1394,7 @@ function createMascotController(mascot, bubble, options = {}) {
                         // only signal we get, so surface it instead of leaving
                         // the "…" to just quietly expire with no explanation.
                         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
-                        showBubble(newsTopic.icon + ' ' + (NEWS_FETCH_FAILED[lang] || NEWS_FETCH_FAILED.it), 3000);
+                        showBubble('🔄 ' + (NEWS_FETCH_FAILED[lang] || NEWS_FETCH_FAILED.it), 3000);
                     }
                 })
                 .finally(() => { isFetchingNews = false; });
