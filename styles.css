@@ -354,6 +354,7 @@ body {
     width: calc(var(--mascot-base) * var(--mascot-scale, 1));
     height: calc(var(--mascot-base) * var(--mascot-scale, 1));
     transform: translate(-50%, -50%)
+        translateY(var(--mascot-rest-bounce, 0px))
         rotate(var(--mascot-rotate, 0deg))
         scale(var(--mascot-squash-x, 1), var(--mascot-squash-y, 1));
     display: flex;

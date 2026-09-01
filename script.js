@@ -1120,18 +1120,84 @@ function createMascotController(mascot, bubble, options = {}) {
         // (or the "couldn't reach it" fallback) popping up somewhere the
         // visitor isn't looking anymore.
         if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
+        stopRestBounce();
+
         // Idle wandering stays confined to a bottom-left zone instead of
         // the whole viewport — still feels alive without turning into
         // chaos scattered across the page. Dragging/throwing dot is
         // unrestricted; this only tames the automatic hop.
         const zoneW = Math.min(340, window.innerWidth * 0.4);
         const zoneH = Math.min(260, window.innerHeight * 0.35);
-        place(
-            MARGIN + Math.random() * (zoneW - MARGIN),
-            window.innerHeight - MARGIN - Math.random() * (zoneH - MARGIN)
-        );
-        restartAnimation('hopping', 600);
+        const zoneLeft = MARGIN;
+        const zoneRight = MARGIN + zoneW;
+        const floor = window.innerHeight - MARGIN;
+
+        if (reduceMotion) {
+            place(
+                zoneLeft + Math.random() * (zoneRight - zoneLeft),
+                floor - Math.random() * zoneH
+            );
+            return;
+        }
+
+        // A real gravity arc within that zone — same physics as a throw —
+        // instead of a teleport: dot leaps like an actual bouncing ball,
+        // bounces off the zone's own walls a couple of times if it
+        // overshoots, then settles into its resting bounce pose.
+        const targetX = zoneLeft + Math.random() * (zoneRight - zoneLeft);
+        const peakHeight = 30 + Math.random() * (zoneH * 0.5);
+        const vy0 = -Math.sqrt(2 * GRAVITY * peakHeight);
+        const airTime = Math.max(0.18, (-vy0 / GRAVITY) * 2);
+        let vx = (targetX - pos.x) / airTime;
+        let vy = vy0;
+
+        isThrown = true;
+        mascot.classList.add('thrown');
+        let lastT = performance.now();
         playHopSound();
+
+        function step(now) {
+            const dt = Math.min(0.032, (now - lastT) / 1000);
+            lastT = now;
+            vy += GRAVITY * dt;
+            vx *= Math.exp(-AIR_DRAG * dt);
+
+            let nx = pos.x + vx * dt;
+            let ny = pos.y + vy * dt;
+
+            if (nx < zoneLeft) {
+                nx = zoneLeft;
+                vx = -vx * RESTITUTION;
+            } else if (nx > zoneRight) {
+                nx = zoneRight;
+                vx = -vx * RESTITUTION;
+            }
+
+            let settled = false;
+            if (ny >= floor) {
+                ny = floor;
+                if (Math.abs(vy) > REST_VEL) {
+                    vy = -vy * RESTITUTION;
+                    vx *= FRICTION;
+                } else {
+                    vy = 0;
+                    vx *= FRICTION;
+                    settled = Math.abs(vx) < 12;
+                }
+            }
+
+            place(nx, ny);
+            if (instanceRemoved || selfHandle.removed) return;
+
+            if (!settled) {
+                requestAnimationFrame(step);
+            } else {
+                mascot.classList.remove('thrown');
+                isThrown = false;
+                startRestBounce();
+            }
+        }
+        requestAnimationFrame(step);
     }
 
     place(pos.x, pos.y);
@@ -1302,6 +1368,7 @@ function createMascotController(mascot, bubble, options = {}) {
     function pop() {
         if (isPopped) return;
         isPopped = true;
+        stopRestBounce();
         clickTimes = [];
         resetInflate();
         bubble.hidden = true;
@@ -1453,6 +1520,41 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 90);
     }
 
+    // Idle "resting" pose: wherever dot lands — from an idle hop or a real
+    // throw — it doesn't go dead still, it keeps doing a small bouncing-ball
+    // wobble in place, like a real ball that never quite settles. Purely
+    // decorative (a translateY offset, never touches pos.x/pos.y), and
+    // self-terminates the moment something else takes over.
+    const REST_BOUNCE_AMPLITUDE = 6; // px
+    const REST_BOUNCE_PERIOD_MS = 850;
+    let restBounceId = null;
+
+    function stopRestBounce() {
+        if (restBounceId !== null) {
+            cancelAnimationFrame(restBounceId);
+            restBounceId = null;
+        }
+        mascot.style.setProperty('--mascot-rest-bounce', '0px');
+    }
+
+    function startRestBounce() {
+        if (reduceMotion) return;
+        stopRestBounce();
+        const start = performance.now();
+        function step(now) {
+            if (isDragging || isThrown || isPopped || instanceRemoved) {
+                restBounceId = null;
+                return;
+            }
+            const t = ((now - start) % REST_BOUNCE_PERIOD_MS) / REST_BOUNCE_PERIOD_MS;
+            // |sin| traces a bouncing-ball cadence: quick landing, soft apex.
+            const offset = -Math.abs(Math.sin(t * Math.PI)) * REST_BOUNCE_AMPLITUDE;
+            mascot.style.setProperty('--mascot-rest-bounce', offset.toFixed(2) + 'px');
+            restBounceId = requestAnimationFrame(step);
+        }
+        restBounceId = requestAnimationFrame(step);
+    }
+
     // A dazed stagger: a decaying side-to-side sway (with a matching gentle
     // rotation) instead of a clean stop — played only when the mascot was
     // shaken around mid-drag, so it looks visibly woozy when set down.
@@ -1469,6 +1571,7 @@ function createMascotController(mascot, bubble, options = {}) {
                 mascot.style.setProperty('--mascot-rotate', '0deg');
                 mascot.classList.remove('thrown');
                 isThrown = false;
+                startRestBounce();
                 return;
             }
             const t = elapsed / 1000;
@@ -1544,6 +1647,7 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     function throwMascot(vx, vy, dizzy) {
+        stopRestBounce();
         isThrown = true;
         mascot.classList.add('thrown');
         let lastT = performance.now();
@@ -1626,6 +1730,7 @@ function createMascotController(mascot, bubble, options = {}) {
             } else {
                 mascot.classList.remove('thrown');
                 isThrown = false;
+                startRestBounce();
             }
         }
 
@@ -1640,6 +1745,7 @@ function createMascotController(mascot, bubble, options = {}) {
 
     mascot.addEventListener('pointerdown', (e) => {
         if (isPopped || isThrown) return;
+        stopRestBounce();
         dragStart = { x: e.clientX, y: e.clientY, mascotX: pos.x, mascotY: pos.y };
         dragMoved = 0;
         moveHistory = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
