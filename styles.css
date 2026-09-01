@@ -1038,6 +1038,25 @@ body {
     }
 }
 
+/* Phone in landscape: often wider than the 768px breakpoint above (so the
+   navbar keeps its bulky desktop padding) while the viewport height is just
+   as short as portrait mobile — compress it the same way, keyed off height
+   instead of width. */
+@media (max-height: 480px) and (orientation: landscape) {
+    .navbar {
+        padding: 0.6rem 0;
+    }
+
+    .logo {
+        font-size: 1.1rem;
+    }
+
+    .nav-toggle {
+        width: 32px;
+        height: 32px;
+    }
+}
+
 /* Evolution timeline page (evolution.html) — a standalone vertical history
    of every merged PR, grouped into eras. Reuses the same theme tokens as
    the rest of the site so light/dark just works. Dynamic on purpose: each
