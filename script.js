@@ -817,13 +817,99 @@ async function fetchWorldNews() {
 }
 const worldNewsPromise = fetchWorldNews();
 
-// All three feeds pooled together, not split one-per-dot — every dot
-// pulls from the same combined pool, so nobody has to wait for "the right
-// one" to see a specific source. Round-robin interleaved (not GitHub
-// items exhausted before AI's, before World's) so consecutive reveals
-// naturally rotate between sources.
+// Weather theme: Open-Meteo's public forecast API — no key, no signup,
+// CORS-open. A handful of fixed cities around the world rather than the
+// visitor's own location (no geolocation prompt needed for a mascot's
+// speech bubble).
+const WEATHER_CITIES = [
+    { name: 'Rome', it: 'Roma', lat: 41.9028, lon: 12.4964 },
+    { name: 'New York', it: 'New York', lat: 40.7128, lon: -74.006 },
+    { name: 'Tokyo', it: 'Tokyo', lat: 35.6762, lon: 139.6503 },
+    { name: 'London', it: 'Londra', lat: 51.5074, lon: -0.1278 },
+    { name: 'Sydney', it: 'Sydney', lat: -33.8688, lon: 151.2093 }
+];
+let weatherNewsItems = [];
+async function fetchWeatherNews() {
+    try {
+        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
+        const results = await Promise.all(WEATHER_CITIES.map(async city => {
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            const temp = data.current && data.current.temperature_2m;
+            if (temp === undefined) return null;
+            const cityName = lang === 'it' ? city.it : city.name;
+            const text = lang === 'it' ? `${Math.round(temp)}°C a ${cityName} in questo momento` : `${Math.round(temp)}°C in ${cityName} right now`;
+            return { text, url: null, icon: '🌤️' };
+        }));
+        weatherNewsItems = results.filter(Boolean);
+    } catch (err) {
+        // Silent fallback, same as the other feeds.
+    }
+}
+const weatherNewsPromise = fetchWeatherNews();
+
+// Space theme: NASA's Astronomy Picture of the Day. Uses NASA's public
+// DEMO_KEY — documented, rate-limited but usable without any signup of our
+// own (https://api.nasa.gov). Only one item per day, that's fine: the pool
+// below handles feeds of any length.
+let spaceNewsItems = [];
+async function fetchSpaceNews() {
+    try {
+        const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.title) return;
+        spaceNewsItems = [{
+            text: `NASA APOD: ${data.title}`,
+            url: data.url || 'https://apod.nasa.gov/apod/astropix.html',
+            icon: '🔭'
+        }];
+    } catch (err) {
+        // Silent fallback, same as the other feeds.
+    }
+}
+const spaceNewsPromise = fetchSpaceNews();
+
+// Trending theme: Wikipedia's official pageviews-top API — what the world
+// is actually reading right now, not "on this day in history". No key,
+// CORS-open. Pageview data has a ~2 day processing lag, so "today" is never
+// populated yet — go back 2 days to reliably land on a ready one.
+let trendingNewsItems = [];
+async function fetchTrendingNews() {
+    try {
+        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
+        const wikiLang = lang === 'it' ? 'it' : 'en';
+        const d = new Date();
+        d.setDate(d.getDate() - 2);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/${wikiLang}.wikipedia/all-access/${yyyy}/${mm}/${dd}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const articles = (data.items && data.items[0] && data.items[0].articles) || [];
+        trendingNewsItems = articles
+            .filter(a => a.article && !/^(Special:|Wikipedia:|Main_Page|Portale:|Speciale:|Pagina_principale)/.test(a.article))
+            .slice(0, 8)
+            .map(a => ({
+                text: `trending on Wikipedia: ${a.article.replace(/_/g, ' ')}`,
+                url: `https://${wikiLang}.wikipedia.org/wiki/${a.article}`,
+                icon: '📈'
+            }));
+    } catch (err) {
+        // Silent fallback, same as the other feeds.
+    }
+}
+const trendingNewsPromise = fetchTrendingNews();
+
+// All feeds pooled together, not split one-per-dot — every dot pulls from
+// the same combined pool, so nobody has to wait for "the right one" to see
+// a specific source. Round-robin interleaved (not one feed's items
+// exhausted before the next's) so consecutive reveals naturally rotate
+// between sources.
 function getAllNewsItems() {
-    const lists = [githubNewsItems, aiNewsItems, worldNewsItems];
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems];
     const combined = [];
     const maxLen = Math.max(0, ...lists.map(l => l.length));
     for (let i = 0; i < maxLen; i++) {
@@ -834,7 +920,14 @@ function getAllNewsItems() {
     return combined;
 }
 async function refetchAllNews() {
-    await Promise.all([fetchGithubNews(), fetchAiNews(), fetchWorldNews()]);
+    await Promise.all([
+        fetchGithubNews(),
+        fetchAiNews(),
+        fetchWorldNews(),
+        fetchWeatherNews(),
+        fetchSpaceNews(),
+        fetchTrendingNews()
+    ]);
 }
 // Floor between click-triggered live refetches — mashing clicks shouldn't
 // hammer three rate-limited public APIs at once.
@@ -888,8 +981,8 @@ function createMascotController(mascot, bubble, options = {}) {
     let instanceRemoved = false;
 
     const LINES = {
-        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!'],
-        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!']
+        it: ['Ciao! 👋'],
+        en: ['Hi there! 👋']
     };
     const INTRO_LINE = { it: 'Ciao, sono dot! Prova a trascinarmi 👋', en: "Hi, I'm dot! Try dragging me 👋" };
     const NEWS_FETCH_FAILED = { it: 'non ci sono riuscito, riprova tra un po\'', en: "couldn't reach it, try again in a bit" };
@@ -1133,20 +1226,28 @@ function createMascotController(mascot, bubble, options = {}) {
         // Also holds still while a manually-triggered feed refetch is in
         // flight — wandering off mid-"…" would leave the eventual answer
         // (or the "couldn't reach it" fallback) popping up somewhere the
-        // visitor isn't looking anymore. And never sweeps dot away from a
-        // spot the visitor deliberately threw it to (see userPlaced above).
-        if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved || userPlaced) return;
+        // visitor isn't looking anymore.
+        if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
         stopRestBounce();
 
-        // Idle wandering stays confined to a bottom-left zone instead of
-        // the whole viewport — still feels alive without turning into
-        // chaos scattered across the page. Dragging/throwing dot is
-        // unrestricted; this only tames the automatic hop.
+        // Before anyone has touched dot, idle wandering stays confined to a
+        // bottom-left zone — still feels alive without scattering across the
+        // whole page on first load. But once a visitor has thrown it
+        // somewhere (userPlaced), that confinement would fight the very
+        // thing they just did — instead it keeps hopping like a bouncy ball
+        // in the neighborhood of wherever it currently is.
         const zoneW = Math.min(340, window.innerWidth * 0.4);
         const zoneH = Math.min(260, window.innerHeight * 0.35);
-        const zoneLeft = MARGIN;
-        const zoneRight = MARGIN + zoneW;
         const floor = window.innerHeight - MARGIN;
+        let zoneLeft, zoneRight;
+        if (userPlaced) {
+            const localRange = zoneW / 2;
+            zoneLeft = Math.max(MARGIN, pos.x - localRange);
+            zoneRight = Math.min(window.innerWidth - MARGIN, pos.x + localRange);
+        } else {
+            zoneLeft = MARGIN;
+            zoneRight = MARGIN + zoneW;
+        }
 
         if (reduceMotion) {
             place(
