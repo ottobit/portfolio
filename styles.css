@@ -552,7 +552,10 @@ body {
 
 .mascot-bubble {
     position: fixed;
-    transform: translate(-50%, -160%);
+    /* Base "float centered above dot" placement, plus a small pixel
+       correction (JS, via showBubble) that pulls it back on-screen when
+       dot is near an edge/corner — never half clipped off the viewport. */
+    transform: translate(calc(-50% + var(--bubble-nudge-x, 0px)), calc(-160% + var(--bubble-nudge-y, 0px)));
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;

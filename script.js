@@ -1337,9 +1337,27 @@ function createMascotController(mascot, bubble, options = {}) {
         bubble.textContent = text;
         bubble.style.left = pos.x + 'px';
         bubble.style.top = pos.y + 'px';
+        bubble.style.setProperty('--bubble-nudge-x', '0px');
+        bubble.style.setProperty('--bubble-nudge-y', '0px');
         bubble.hidden = false;
         bubbleUrl = url;
         bubble.classList.toggle('clickable', !!url);
+
+        // Keep the bubble fully on-screen — near an edge (dot can idle-hop
+        // into a corner, or just be dragged there) it would otherwise clip
+        // half off the viewport. Measure after actual layout, then nudge
+        // it back in with a small pixel correction on top of the usual
+        // "float above dot" placement.
+        const EDGE_MARGIN = 10;
+        const rect = bubble.getBoundingClientRect();
+        let nudgeX = 0, nudgeY = 0;
+        if (rect.left < EDGE_MARGIN) nudgeX = EDGE_MARGIN - rect.left;
+        else if (rect.right > window.innerWidth - EDGE_MARGIN) nudgeX = (window.innerWidth - EDGE_MARGIN) - rect.right;
+        if (rect.top < EDGE_MARGIN) nudgeY = EDGE_MARGIN - rect.top;
+        else if (rect.bottom > window.innerHeight - EDGE_MARGIN) nudgeY = (window.innerHeight - EDGE_MARGIN) - rect.bottom;
+        if (nudgeX) bubble.style.setProperty('--bubble-nudge-x', nudgeX + 'px');
+        if (nudgeY) bubble.style.setProperty('--bubble-nudge-y', nudgeY + 'px');
+
         window.clearTimeout(bubble._timer);
         bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, duration);
     }
