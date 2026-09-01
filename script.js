@@ -323,8 +323,8 @@ window.addEventListener('scroll', () => {
     }
 
     const LINK_TEXT = {
-        it: { repo: 'Codice', link: 'Vedi live', ref: 'Scopri di più', listen: 'Ascolta', stop: 'Ferma' },
-        en: { repo: 'Code', link: 'Live demo', ref: 'Learn more', listen: 'Listen', stop: 'Stop' }
+        it: { repo: 'Codice', link: 'Vedi live', ref: 'Web Speech API', listen: 'Ascolta', stop: 'Ferma' },
+        en: { repo: 'Code', link: 'Live demo', ref: 'Web Speech API', listen: 'Listen', stop: 'Stop' }
     };
 
     let currentEl = null;
@@ -739,7 +739,7 @@ function createMascotController(mascot, bubble, options = {}) {
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
-    const hueDeg = options.hueDeg || 0;
+    let hueDeg = options.hueDeg || 0;
     if (hueDeg) mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
     let instanceRemoved = false;
 
@@ -769,9 +769,21 @@ function createMascotController(mascot, bubble, options = {}) {
         removed: false,
         merging: false,
         getPos: () => pos,
+        getHueDeg: () => hueDeg,
         absorb(otherHandle) {
             if (otherHandle.removed) return;
             const combinedCount = Math.min(POP_THRESHOLD - 1, clickTimes.length + otherHandle.streak() + 1);
+            // Whichever of the two happened to be moving is the one that
+            // "wins" the merge (self) — often the plain default "dot", since
+            // it's the one visitors instinctively drag around to gather up
+            // its colored clones. Without this, every fusion would erase
+            // color back to the site's default, no matter how many colorful
+            // clones went into it. Keep a color if either side had one.
+            const otherHue = otherHandle.getHueDeg ? otherHandle.getHueDeg() : 0;
+            if (!hueDeg && otherHue) {
+                hueDeg = otherHue;
+                mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
+            }
             otherHandle.remove();
             clickTimes = new Array(combinedCount).fill(Date.now());
             updateInflate(combinedCount);
