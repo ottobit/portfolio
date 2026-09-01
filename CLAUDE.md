@@ -1,22 +1,23 @@
 # Istruzioni per Claude
 
-## Pull request: fai tutto tu, fino alla fine
+## Pull request: piano per le cose difficili, push per quelle facili, merge MAI di iniziativa
 
-Quando lavori su una modifica in questo repo, non fermarti alla PR aperta in
-draft. Il flusso completo, senza bisogno che venga richiesto ogni volta:
+Regola permanente, esplicitamente ribadita dall'utente — non va mai
+dimenticata:
 
-1. Implementa la modifica, verificala (Playwright quando è UI, `node --check`
-   sui file JS coinvolti, nessun errore console).
-2. Commit + push sul branch designato.
-3. Apri la PR (in draft va bene come primo passo).
-4. Se la modifica è verificata e non richiede una decisione dell'utente
-   (scelta di design ambigua, cosa da chiarire, rischio concreto), segna la
-   PR come pronta per la review e mergiala tu stesso — non aspettare che
-   l'utente lo chieda esplicitamente ogni volta.
-5. Disiscriviti dalla PR una volta mergiata.
-
-In sintesi: apri, verifica, pronta per review, merge — è un flusso unico che
-porti a termine tu, non tre richieste separate da parte dell'utente.
+- Per le modifiche difficili/ambigue (scelta di design, architettura,
+  qualcosa da chiarire): passa prima da un piano (Plan mode) e fatti
+  approvare l'approccio prima di implementare.
+- Per le modifiche facili/dirette: implementa, verifica (Playwright quando è
+  UI, `node --check` sui file JS coinvolti, nessun errore console), poi
+  commit + push sul branch designato senza bisogno di chiedere il permesso
+  ogni volta.
+- In entrambi i casi, apri (o aggiorna) la PR **in draft**.
+- La PR resta in draft. Non marcarla mai pronta per la review, non mergiarla
+  mai di tua iniziativa — quella decisione è ESCLUSIVAMENTE dell'utente,
+  qualunque sia lo stato della verifica. Aspetta che sia l'utente a dire
+  esplicitamente di procedere con merge/ready-for-review.
+- Disiscriviti dalla PR solo dopo che è stata mergiata o chiusa (dall'utente).
 
 ## Dopo il merge: conferma il deploy, non solo il merge
 
