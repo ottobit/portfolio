@@ -705,6 +705,28 @@ function updateTextParting(cx, cy) {
 let mascotInstanceCount = 0;
 const MAX_MASCOTS = 6;
 
+// Registry of every currently-active mascot instance ("dot" and any of its
+// split-off clones), so each one can notice when another gets close enough
+// to merge back into it — the reverse of splitting.
+const activeMascots = [];
+const MERGE_DISTANCE = 45; // px between centers
+
+function checkMascotMerge(self) {
+    if (self.removed || self.merging) return;
+    for (const other of activeMascots) {
+        if (other === self || other.removed || other.merging) continue;
+        const a = self.getPos();
+        const b = other.getPos();
+        if (Math.hypot(a.x - b.x, a.y - b.y) < MERGE_DISTANCE) {
+            self.merging = true;
+            other.merging = true;
+            self.absorb(other);
+            self.merging = false;
+            return;
+        }
+    }
+}
+
 function createMascotController(mascot, bubble, options = {}) {
     if (!mascot || !bubble) return;
     if (mascotInstanceCount >= MAX_MASCOTS) {
@@ -717,11 +739,15 @@ function createMascotController(mascot, bubble, options = {}) {
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
+    const hueDeg = options.hueDeg || 0;
+    if (hueDeg) mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
+    let instanceRemoved = false;
 
     const LINES = {
         it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!', '✨', 'Ehi, piano!', 'Ahia!'],
         en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨', 'Hey, easy!', 'Ouch!']
     };
+    const INTRO_LINE = { it: 'Ciao, sono dot! Prova a trascinarmi 👋', en: "Hi, I'm dot! Try dragging me 👋" };
 
     let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
     let isDragging = false;
@@ -735,6 +761,38 @@ function createMascotController(mascot, bubble, options = {}) {
     let shakeReversalTimes = [];
     let lastShakeDxSign = 0;
     let currentInflateScale = 1;
+    let inflateResetTimer = null;
+
+    // This instance's entry in the shared registry — lets other mascots
+    // find it for proximity merging, and lets this one absorb others.
+    const selfHandle = {
+        removed: false,
+        merging: false,
+        getPos: () => pos,
+        absorb(otherHandle) {
+            if (otherHandle.removed) return;
+            const combinedCount = Math.min(POP_THRESHOLD - 1, clickTimes.length + otherHandle.streak() + 1);
+            otherHandle.remove();
+            clickTimes = new Array(combinedCount).fill(Date.now());
+            updateInflate(combinedCount);
+            scheduleInflateReset();
+            burstParticles({ count: 10, distance: 30, size: 6 });
+            playRecoverSound();
+            restartAnimation('excited', 400);
+        },
+        streak: () => clickTimes.length,
+        remove() {
+            if (this.removed) return;
+            this.removed = true;
+            instanceRemoved = true;
+            mascot.remove();
+            bubble.remove();
+            const idx = activeMascots.indexOf(this);
+            if (idx >= 0) activeMascots.splice(idx, 1);
+            mascotInstanceCount = Math.max(0, mascotInstanceCount - 1);
+        }
+    };
+    activeMascots.push(selfHandle);
 
     // A little synthesized "creature" voice — no audio files, just Web
     // Audio oscillators/noise, so there's nothing to load or license. Silent
@@ -856,10 +914,12 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     function place(x, y) {
+        if (instanceRemoved) return;
         pos = clamp(x, y);
         mascot.style.left = pos.x + 'px';
         mascot.style.top = pos.y + 'px';
         if (wordRects.length) updateTextParting(pos.x, pos.y);
+        checkMascotMerge(selfHandle);
     }
 
     function restartAnimation(className, autoRemoveMs) {
@@ -871,7 +931,7 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     function randomHop() {
-        if (isDragging || isThrown || isPopped) return;
+        if (isDragging || isThrown || isPopped || instanceRemoved) return;
         place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
         restartAnimation('hopping', 600);
         playHopSound();
@@ -886,6 +946,16 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 4000 + Math.random() * 2000);
     }
     if (!reduceMotion) scheduleHop();
+
+    // A one-time invitation to interact — only for the original "dot", not
+    // for split-off clones (those are already the result of interacting).
+    if (!options.pos) {
+        window.setTimeout(() => {
+            if (isDragging || isThrown || isPopped || instanceRemoved) return;
+            const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
+            showBubble(INTRO_LINE[lang] || INTRO_LINE.it);
+        }, 1800);
+    }
 
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
     document.addEventListener('mousemove', (e) => {
@@ -920,6 +990,7 @@ function createMascotController(mascot, bubble, options = {}) {
             p.style.height = size + 'px';
             p.style.left = cx + 'px';
             p.style.top = cy + 'px';
+            if (hueDeg) p.style.filter = `hue-rotate(${hueDeg}deg)`;
             document.body.appendChild(p);
             p.addEventListener('animationend', () => p.remove());
         }
@@ -934,6 +1005,7 @@ function createMascotController(mascot, bubble, options = {}) {
         ring.className = 'mascot-shockwave';
         ring.style.left = (rect.left + rect.width / 2) + 'px';
         ring.style.top = (rect.top + rect.height / 2) + 'px';
+        if (hueDeg) ring.style.filter = `hue-rotate(${hueDeg}deg)`;
         document.body.appendChild(ring);
         ring.addEventListener('animationend', () => ring.remove());
     }
@@ -964,8 +1036,6 @@ function createMascotController(mascot, bubble, options = {}) {
             window.setTimeout(() => el.classList.remove('page-tipped'), 1150);
         });
     }
-
-    let inflateResetTimer = null;
 
     // Grows the mascot a little more with each click in the current streak,
     // so it visibly "puffs up" as it approaches the pop threshold — and
@@ -1237,6 +1307,8 @@ function createMascotController(mascot, bubble, options = {}) {
             mascot.style.left = pos.x + 'px';
             mascot.style.top = pos.y + 'px';
             if (wordRects.length) updateTextParting(pos.x, pos.y);
+            checkMascotMerge(selfHandle);
+            if (selfHandle.removed) return;
 
             if (!settled) {
                 requestAnimationFrame(step);
@@ -1376,6 +1448,10 @@ function createMascotController(mascot, bubble, options = {}) {
         clone.style.setProperty('--mascot-squash-x', 1);
         clone.style.setProperty('--mascot-squash-y', 1);
         clone.style.setProperty('--mascot-rotate', '0deg');
+        // A fresh, on-theme hue rotation off the same accent teal — a
+        // moderate offset so clones read as siblings, not clashing colors.
+        const cloneHueDeg = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 70);
+        clone.style.setProperty('--mascot-hue', cloneHueDeg + 'deg');
 
         const bubbleClone = bubble.cloneNode(true);
         bubbleClone.removeAttribute('id');
@@ -1385,8 +1461,10 @@ function createMascotController(mascot, bubble, options = {}) {
         document.body.appendChild(clone);
 
         const angle = Math.random() * Math.PI * 2;
-        const startX = pos.x + Math.cos(angle) * 30;
-        const startY = pos.y + Math.sin(angle) * 30;
+        // Well outside MERGE_DISTANCE, or the clone would immediately
+        // re-merge into its parent the instant it's placed.
+        const startX = pos.x + Math.cos(angle) * 80;
+        const startY = pos.y + Math.sin(angle) * 80;
         clone.style.left = startX + 'px';
         clone.style.top = startY + 'px';
 
@@ -1395,7 +1473,8 @@ function createMascotController(mascot, bubble, options = {}) {
 
         createMascotController(clone, bubbleClone, {
             pos: { x: startX, y: startY },
-            throwVelocity: { vx: Math.cos(angle) * 500, vy: Math.sin(angle) * 500 - 200 }
+            throwVelocity: { vx: Math.cos(angle) * 500, vy: Math.sin(angle) * 500 - 200 },
+            hueDeg: cloneHueDeg
         });
     }
 
