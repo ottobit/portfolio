@@ -4,6 +4,16 @@
     box-sizing: border-box;
 }
 
+/* The browser's default [hidden] { display: none } lives in the
+   user-agent stylesheet, which always loses to an author rule that sets
+   display — even one with lower specificity, like `.detail-speak {
+   display: inline-flex }`. Without this, toggling the `hidden` attribute
+   on an element that also has its own display value does nothing
+   visible. */
+[hidden] {
+    display: none !important;
+}
+
 :root {
     --primary: #000;
     --accent: #115e59;
