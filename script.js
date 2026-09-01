@@ -715,6 +715,12 @@ const MAX_MASCOTS = 6;
 // to merge back into it — the reverse of splitting.
 const activeMascots = [];
 const MERGE_DISTANCE = 45; // px between centers
+// A clone is born right next to the original and often gets thrown/hops
+// straight back into merge range within moments — it would visibly hop
+// once or twice, then quietly vanish, reading as "it doesn't hop" rather
+// than "it just got reabsorbed". A short immunity window after birth lets
+// it actually be seen bouncing around on its own first.
+const MERGE_GRACE_MS = 2500;
 
 // A lightweight, read-only feed of this project's own GitHub activity —
 // shown occasionally in dot's speech bubble alongside its usual random
@@ -834,7 +840,10 @@ async function fetchWeatherNews() {
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
         const results = await Promise.all(WEATHER_CITIES.map(async city => {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m`);
-            if (!res.ok) return null;
+            if (!res.ok) {
+                console.warn(`[dot] weather feed: ${city.name} responded ${res.status}`);
+                return null;
+            }
             const data = await res.json();
             const temp = data.current && data.current.temperature_2m;
             if (temp === undefined) return null;
@@ -844,7 +853,11 @@ async function fetchWeatherNews() {
         }));
         weatherNewsItems = results.filter(Boolean);
     } catch (err) {
-        // Silent fallback, same as the other feeds.
+        // Kept visible (unlike the other feeds' fully silent fallback) while
+        // this one's still fresh — helps tell a real outage/CORS block apart
+        // from "just hasn't cycled into view yet" without digging through
+        // the network tab.
+        console.warn('[dot] weather feed failed:', err);
     }
 }
 const weatherNewsPromise = fetchWeatherNews();
@@ -857,7 +870,13 @@ let spaceNewsItems = [];
 async function fetchSpaceNews() {
     try {
         const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
-        if (!res.ok) return;
+        if (!res.ok) {
+            // The shared DEMO_KEY is rate-limited (30/hour, 50/day per IP) —
+            // a 429 here means someone on this network already used it up
+            // for the day, not that the feed is broken.
+            console.warn(`[dot] space feed: NASA APOD responded ${res.status}`);
+            return;
+        }
         const data = await res.json();
         if (!data.title) return;
         spaceNewsItems = [{
@@ -866,7 +885,7 @@ async function fetchSpaceNews() {
             icon: '🔭'
         }];
     } catch (err) {
-        // Silent fallback, same as the other feeds.
+        console.warn('[dot] space feed failed:', err);
     }
 }
 const spaceNewsPromise = fetchSpaceNews();
@@ -886,7 +905,10 @@ async function fetchTrendingNews() {
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/${wikiLang}.wikipedia/all-access/${yyyy}/${mm}/${dd}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+            console.warn(`[dot] trending feed: Wikimedia pageviews responded ${res.status}`);
+            return;
+        }
         const data = await res.json();
         const articles = (data.items && data.items[0] && data.items[0].articles) || [];
         trendingNewsItems = articles
@@ -898,7 +920,7 @@ async function fetchTrendingNews() {
                 icon: '📈'
             }));
     } catch (err) {
-        // Silent fallback, same as the other feeds.
+        console.warn('[dot] trending feed failed:', err);
     }
 }
 const trendingNewsPromise = fetchTrendingNews();
@@ -949,8 +971,11 @@ function getLogoDotPos() {
 
 function checkMascotMerge(self) {
     if (self.removed || self.merging) return;
+    const now = performance.now();
+    if (now - self.bornAt < MERGE_GRACE_MS) return;
     for (const other of activeMascots) {
         if (other === self || other.removed || other.merging) continue;
+        if (now - other.bornAt < MERGE_GRACE_MS) continue;
         const a = self.getPos();
         const b = other.getPos();
         if (Math.hypot(a.x - b.x, a.y - b.y) < MERGE_DISTANCE) {
@@ -1013,6 +1038,7 @@ function createMascotController(mascot, bubble, options = {}) {
     const selfHandle = {
         removed: false,
         merging: false,
+        bornAt: performance.now(),
         getPos: () => pos,
         getHueDeg: () => hueDeg,
         absorb(otherHandle) {
@@ -1609,8 +1635,14 @@ function createMascotController(mascot, bubble, options = {}) {
             refetchAllNews()
                 .then(() => {
                     if (instanceRemoved) return;
-                    if (getAllNewsItems().length) {
-                        newsIndex = 0; // show the freshest item first, not wherever the old cycle left off
+                    const freshCount = getAllNewsItems().length;
+                    if (freshCount) {
+                        // Always resetting to 0 here meant every click showed
+                        // the same first-source item (GitHub) and could never
+                        // reach the others — a visitor clicking dot to check
+                        // for news would never see weather/space/trending at
+                        // all. A random pick surfaces the full mix instead.
+                        newsIndex = Math.floor(Math.random() * freshCount);
                         showNextNews();
                     } else {
                         // fetchXNews() already swallows its own errors (offline,
