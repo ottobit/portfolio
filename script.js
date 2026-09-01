@@ -716,6 +716,43 @@ const MAX_MASCOTS = 6;
 const activeMascots = [];
 const MERGE_DISTANCE = 45; // px between centers
 
+// A lightweight, read-only feed of this project's own GitHub activity —
+// shown occasionally in dot's speech bubble alongside its usual random
+// one-liners. GitHub's public events API is CORS-open and needs no
+// auth/key for public data (verified: Access-Control-Allow-Origin: *),
+// so this stays a plain client-side fetch — no backend, matching the
+// same constraint that ruled out Deepgram/an LLM chatbot earlier.
+// Unauthenticated requests are capped at 60/hour per visitor IP; one
+// fetch per page load is nowhere close.
+const GITHUB_NEWS_REPO = 'ottobit/portfolio';
+let githubNewsItems = [];
+async function fetchGithubNews() {
+    try {
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_NEWS_REPO}/events?per_page=30`);
+        if (!res.ok) return;
+        const events = await res.json();
+        const items = [];
+        for (const e of events) {
+            if (e.type === 'PushEvent') {
+                for (const c of (e.payload.commits || [])) {
+                    const msg = (c.message || '').split('\n')[0].trim();
+                    if (msg && !/^merge /i.test(msg)) items.push(msg);
+                }
+            } else if (e.type === 'PullRequestEvent' && e.payload.action === 'closed' && e.payload.pull_request && e.payload.pull_request.merged) {
+                items.push(e.payload.pull_request.title);
+            }
+            if (items.length >= 8) break;
+        }
+        // De-dupe while keeping order — a PR's squash commit often repeats
+        // its own title, showing up twice in the raw event list.
+        githubNewsItems = [...new Set(items)];
+    } catch (err) {
+        // Offline, rate-limited, or blocked — dot's normal random lines
+        // are a perfectly fine fallback, so this fails silently.
+    }
+}
+fetchGithubNews();
+
 // Where "dot" is born: the dot right after "ottobit." in the big hero
 // heading (.name), not the small one in the sticky header logo. Falls back
 // to the old hero-center spot if it isn't there for some reason, so a
@@ -1014,6 +1051,23 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 1800);
     }
 
+    // Occasionally surfaces this project's own GitHub activity in the
+    // bubble — only the original "dot", not its clones, and only once
+    // fetchGithubNews() has actually found something to show. Longer
+    // display duration than a regular one-liner: a commit message needs
+    // more than a glance to read.
+    let newsIndex = 0;
+    function scheduleNews() {
+        window.setTimeout(() => {
+            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && githubNewsItems.length) {
+                showBubble('📰 ' + githubNewsItems[newsIndex % githubNewsItems.length], 4000);
+                newsIndex++;
+            }
+            scheduleNews();
+        }, 25000 + Math.random() * 15000);
+    }
+    if (!options.pos) scheduleNews();
+
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
     document.addEventListener('mousemove', (e) => {
         if (isDragging || isThrown || isPopped) return;
@@ -1150,13 +1204,13 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 380);
     }
 
-    function showBubble(text) {
+    function showBubble(text, duration = 1500) {
         bubble.textContent = text;
         bubble.style.left = pos.x + 'px';
         bubble.style.top = pos.y + 'px';
         bubble.hidden = false;
         window.clearTimeout(bubble._timer);
-        bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, 1500);
+        bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, duration);
     }
 
     // Shared streak counter behind the pop threshold — a click and a
