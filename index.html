@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — AI Enthusiast | Music | Gaming</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=3.6">
+    <link rel="stylesheet" href="styles.css?v=3.7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <a href="#home" class="skip-link" data-en="Skip to content">Vai al contenuto</a>
+
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
@@ -59,7 +61,7 @@
             </div>
         </div>
         <div class="hero-visual">
-            <canvas id="network-canvas"></canvas>
+            <canvas id="network-canvas" aria-hidden="true"></canvas>
 
             <!-- A little animated node that hops around the canvas on its own,
                  reacts to hub/node clicks and is clickable itself. Pure fun,
@@ -75,15 +77,15 @@
             <div class="hub-overlay" id="hub-overlay">
                 <svg class="graph-lines" id="graph-lines"></svg>
 
-                <button class="hub-dot" data-hub="about" data-x="26" data-y="26">
+                <button class="hub-dot" data-hub="about" data-x="26" data-y="26" aria-expanded="false">
                     <span class="node-dot"></span>
                     <span class="dot-label" data-en="About">Chi sono</span>
                 </button>
-                <button class="hub-dot" data-hub="projects" data-x="64" data-y="46">
+                <button class="hub-dot" data-hub="projects" data-x="64" data-y="46" aria-expanded="false">
                     <span class="node-dot"></span>
                     <span class="dot-label" data-en="Projects">Progetti</span>
                 </button>
-                <button class="hub-dot" data-hub="social" data-x="30" data-y="74">
+                <button class="hub-dot" data-hub="social" data-x="30" data-y="74" aria-expanded="false">
                     <span class="node-dot"></span>
                     <span class="dot-label">Social</span>
                 </button>
@@ -143,11 +145,11 @@
     </section>
 
     <div class="detail-backdrop" id="detail-backdrop" hidden></div>
-    <div class="detail-panel" id="detail-panel" hidden>
-        <button class="detail-close" id="detail-close" aria-label="Chiudi dettaglio">✕</button>
+    <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+        <button class="detail-close" id="detail-close" type="button" aria-label="Chiudi dettaglio">✕</button>
         <div class="detail-icon" id="detail-icon"></div>
         <div class="detail-body">
-            <h3 id="detail-title"></h3>
+            <h2 id="detail-title"></h2>
             <p id="detail-text"></p>
             <div class="detail-actions">
                 <button class="detail-speak" id="detail-speak" type="button" hidden>
@@ -170,6 +172,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=5.7"></script>
+    <script src="script.js?v=5.8"></script>
 </body>
 </html>

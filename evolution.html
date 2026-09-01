@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — Evoluzione del sito</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=3.6">
+    <link rel="stylesheet" href="styles.css?v=3.7">
 </head>
 <body>
+    <a href="#main" class="skip-link" data-en="Skip to content">Vai al contenuto</a>
+
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
@@ -38,7 +40,7 @@
         </div>
     </nav>
 
-    <main class="timeline-page container">
+    <main class="timeline-page container" id="main">
         <header class="timeline-intro">
             <h1 data-en="The evolution of this site">L'evoluzione di questo sito</h1>
             <p data-en="This site started from zero — a literally blank page — and grew one iteration at a time, through ideas tried, changed, thrown away and picked back up again: more than 80 real pull requests, each one a small creative experiment rather than a plan fixed in advance.">Questo sito è partito da zero — letteralmente una pagina vuota — ed è cresciuto un'iterazione alla volta, a suon di idee provate, cambiate, buttate via e riprese: più di 80 pull request reali, ognuna un piccolo esperimento creativo invece che un piano fissato in anticipo.</p>
@@ -178,6 +180,7 @@
 
         var lang = localStorage.getItem('lang') || 'en';
         var theme = localStorage.getItem('theme') || 'light';
+        var updateNavToggleLabel = function () {};
 
         function applyThemeUI() {
             var isDark = theme === 'dark';
@@ -195,6 +198,7 @@
                 if (!el.dataset.it) el.dataset.it = el.textContent;
                 el.textContent = lang === 'en' ? el.dataset.en : el.dataset.it;
             });
+            updateNavToggleLabel();
         }
 
         if (themeToggle) {
@@ -214,21 +218,29 @@
             });
         }
 
-        applyThemeUI();
-        applyLangUI();
-
         // Hamburger menu — same behavior as script.js's copy on index.html.
         var navToggle = document.getElementById('nav-toggle');
         var navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {
+            var NAV_TOGGLE_TEXT = {
+                it: { open: 'Apri menu', close: 'Chiudi menu' },
+                en: { open: 'Open menu', close: 'Close menu' }
+            };
+            function updateToggleLabel() {
+                var isOpen = navMenu.classList.contains('open');
+                navToggle.setAttribute('aria-label', isOpen ? NAV_TOGGLE_TEXT[lang].close : NAV_TOGGLE_TEXT[lang].open);
+            }
+            updateNavToggleLabel = updateToggleLabel;
             function closeMenu() {
                 navMenu.classList.remove('open');
                 navToggle.setAttribute('aria-expanded', 'false');
+                updateToggleLabel();
             }
             navToggle.addEventListener('click', function (e) {
                 e.stopPropagation();
                 var open = navMenu.classList.toggle('open');
                 navToggle.setAttribute('aria-expanded', String(open));
+                updateToggleLabel();
             });
             navMenu.addEventListener('click', function (e) {
                 if (e.target.closest('a')) closeMenu();
@@ -240,6 +252,9 @@
                 if (e.key === 'Escape') closeMenu();
             });
         }
+
+        applyThemeUI();
+        applyLangUI();
 
         // Dynamic scroll reveal: each era pops/fades into place the first
         // time it scrolls into view, and the vertical line fills in behind
