@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ottobit — Evoluzione del sito</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css?v=3.2">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="index.html#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Apri menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="index.html#home">Home</a></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="timeline-page container">
+        <header class="timeline-intro">
+            <h1 data-en="The evolution of this site">L'evoluzione di questo sito</h1>
+            <p data-en="This site started from zero — a literally blank page — and grew one iteration at a time, through ideas tried, changed, thrown away and picked back up again: more than 80 real pull requests, each one a small creative experiment rather than a plan fixed in advance.">Questo sito è partito da zero — letteralmente una pagina vuota — ed è cresciuto un'iterazione alla volta, a suon di idee provate, cambiate, buttate via e riprese: più di 80 pull request reali, ognuna un piccolo esperimento creativo invece che un piano fissato in anticipo.</p>
+        </header>
+
+        <ol class="timeline">
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">🌱</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="v1: the origins">v1: le origini</h2>
+                    <p class="timeline-era-desc" data-en="Starting from zero: a bio, a few cards, tap-to-flip.">Si parte da zero: una bio, qualche card, il flip al tocco.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="Bio, role chips, and tap-to-flip cards instead of hover">Bio, chip dei ruoli, e card che si girano al tocco invece che al passaggio del mouse</li>
+                        <li data-en="Rewritten Music/AI/Gaming copy, and the README's first link to the site">Riscrittura dei testi Music/AI/Gaming, e il primo link dal README al sito</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">🕸️</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="v2: the interactive graph is born">v2: nasce il grafo interattivo</h2>
+                    <p class="timeline-era-desc" data-en="A second version of the site takes shape around a draggable node graph, with themes and translation.">Una seconda versione del sito prende forma attorno a un grafo di nodi trascinabile, con temi e traduzione.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="A second version of the site, with a draggable node graph replacing the classic sections">Una seconda versione del sito, con un grafo di nodi trascinabile al posto delle sezioni classiche</li>
+                        <li data-en="Detail panel as a fixed overlay, hamburger navbar, light/dark theme and IT/EN translation">Pannello di dettaglio come overlay fisso, navbar a hamburger, temi chiaro/scuro e traduzione IT/EN</li>
+                        <li data-en="Plenty of stability fixes along the way — flip cards, caching, overlapping nodes">Tanti fix di stabilità lungo il percorso — flip card, cache, sovrapposizioni tra nodi</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">🎨</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="The graph takes over">Il grafo prende il sopravvento</h2>
+                    <p class="timeline-era-desc" data-en="The interactive graph gets more polish: themes, voice, a second project.">Il grafo interattivo diventa più curato: temi, voce, un secondo progetto.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="Light theme and English as the default, and a second project (Cerebro Engine)">Tema chiaro e inglese come default, e un secondo progetto (Cerebro Engine)</li>
+                        <li data-en="Sub-nodes arranged in a star, a more natural read-aloud voice, a new accent color">Sotto-nodi disposti a stella, voce di lettura più naturale, nuovo colore d'accento</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">🫧</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="dot is born">Nasce dot</h2>
+                    <p class="timeline-era-desc" data-en="A mascot starts hopping around in the hero — then takes over the whole page, merging the site's two versions into one.">Una mascotte comincia a saltellare nell'hero — e poi prende il controllo di tutta la pagina, fondendo le due versioni del sito in una sola.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="A mascot starts hopping in the hero, then roams freely across the whole page">Una mascotte comincia a saltellare nell'hero, poi diventa libera di muoversi su tutta la pagina</li>
+                        <li data-en="Gains real throw physics, its own sound, and grows a little on every tap">Riceve una vera fisica di lancio, un suono tutto suo, e cresce un po' a ogni tocco</li>
+                        <li data-en="v1 and v2 merge: the interactive graph becomes the site's only version">v1 e v2 si fondono: il grafo interattivo diventa l'unica versione del sito</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">💥</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="dot comes alive">dot prende vita</h2>
+                    <p class="timeline-era-desc" data-en="Physics, impacts, clones that split and merge back together: dot becomes a little creature with a personality of its own.">Fisica, impatti, cloni che si sdoppiano e si fondono: dot diventa una piccola creatura con un comportamento tutto suo.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="Popping, page-element impacts, and a double-click that splits dot into colored clones">Scoppio, impatti sugli elementi della pagina, e un doppio click che sdoppia dot in cloni colorati</li>
+                        <li data-en="Clones merge back together on approach; dot is born and reborn from the logo's own dot">I cloni si fondono tornando vicini; dot nasce e rinasce dal puntino del logo</li>
+                        <li data-en="A handful of fixes along the way — color, drag feel, mobile behavior">Una serie di fix lungo il percorso — colore, sensazione del drag, comportamento su mobile</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">📰</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="dot reads the news">dot legge le notizie</h2>
+                    <p class="timeline-era-desc" data-en="dot starts reporting what's going on — first just GitHub, then a shared pool of public feeds.">dot comincia a raccontare cosa succede — prima solo su GitHub, poi con un pool di feed pubblici condiviso da tutti.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="dot starts showing GitHub project updates in its speech bubble, then a badge for when there's something new">dot inizia a mostrare le novità del progetto da GitHub nel fumetto, poi un badge per segnalare quando c'è qualcosa</li>
+                        <li data-en="Each dot had its own dedicated feed at first — later, all of them share one interleaved pool">All'inizio ogni dot ha un feed dedicato — poi tutti condividono lo stesso pool intrecciato</li>
+                        <li data-en="The bubble grows and becomes clickable, opening the source of whatever it just read">Il fumetto cresce e diventa cliccabile, aprendo la fonte di quello che ha appena letto</li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="timeline-era">
+                <div class="timeline-era-marker" aria-hidden="true">✨</div>
+                <div class="timeline-era-content">
+                    <h2 data-en="Ongoing polish">Rifiniture continue</h2>
+                    <p class="timeline-era-desc" data-en="More realistic physics, fresher feeds, and a string of bugs found (and fixed) by watching dot closely.">Fisica più realistica, feed più freschi, e una serie di bug scovati (e risolti) osservando dot da vicino.</p>
+                    <ul class="timeline-entries">
+                        <li data-en="Realistic hop and throw physics; the speech bubble always stays fully on screen">Fisica del salto e del lancio più realistica; il fumetto resta sempre interamente sullo schermo</li>
+                        <li data-en="Fresher feeds — weather, NASA, Wikipedia trending — instead of old, stale news">Feed più freschi — meteo, NASA, Wikipedia trending — al posto di notizie vecchie</li>
+                        <li data-en="A string of real bugs found and fixed by watching dot closely: a memory leak, a stuck news cycle, and more">Una serie di bug veri scovati osservando dot da vicino: un memory leak, un ciclo di notizie bloccato, e altro</li>
+                    </ul>
+                </div>
+            </li>
+        </ol>
+    </main>
+
+    <div class="container">
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 ottobit</p>
+        </footer>
+    </div>
+
+    <script>
+    // Minimal, self-contained theme/language bootstrap — shares the same
+    // localStorage keys ('theme'/'lang') as script.js on the main page, so
+    // toggling here or there stays in sync, but deliberately does NOT load
+    // script.js itself: that file's hero-canvas/graph/mascot/news-feed code
+    // has nothing to do with this page and would fire six unnecessary
+    // public-API calls on every visit here.
+    (function () {
+        var root = document.documentElement;
+        var themeToggle = document.getElementById('theme-toggle');
+        var themeIcon = document.getElementById('theme-toggle-icon');
+        var themeLabel = document.getElementById('theme-toggle-label');
+        var langToggle = document.getElementById('lang-toggle');
+        var langLabel = document.getElementById('lang-toggle-label');
+
+        var THEME_TEXT = {
+            it: { toDark: 'Tema scuro', toLight: 'Tema chiaro' },
+            en: { toDark: 'Dark theme', toLight: 'Light theme' }
+        };
+
+        var lang = localStorage.getItem('lang') || 'en';
+        var theme = localStorage.getItem('theme') || 'light';
+
+        function applyThemeUI() {
+            var isDark = theme === 'dark';
+            root.setAttribute('data-theme', theme);
+            if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+            if (themeLabel) themeLabel.textContent = isDark ? THEME_TEXT[lang].toLight : THEME_TEXT[lang].toDark;
+            if (themeToggle) themeToggle.setAttribute('aria-pressed', String(isDark));
+        }
+
+        function applyLangUI() {
+            root.lang = lang;
+            if (langLabel) langLabel.textContent = lang === 'it' ? 'English' : 'Italiano';
+            if (langToggle) langToggle.setAttribute('aria-pressed', String(lang === 'en'));
+            document.querySelectorAll('[data-en]').forEach(function (el) {
+                if (!el.dataset.it) el.dataset.it = el.textContent;
+                el.textContent = lang === 'en' ? el.dataset.en : el.dataset.it;
+            });
+        }
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                theme = theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', theme);
+                applyThemeUI();
+            });
+        }
+
+        if (langToggle) {
+            langToggle.addEventListener('click', function () {
+                lang = lang === 'en' ? 'it' : 'en';
+                localStorage.setItem('lang', lang);
+                applyLangUI();
+                applyThemeUI();
+            });
+        }
+
+        applyThemeUI();
+        applyLangUI();
+
+        // Hamburger menu — same behavior as script.js's copy on index.html.
+        var navToggle = document.getElementById('nav-toggle');
+        var navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            function closeMenu() {
+                navMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+            }
+            navToggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = navMenu.classList.toggle('open');
+                navToggle.setAttribute('aria-expanded', String(open));
+            });
+            navMenu.addEventListener('click', function (e) {
+                if (e.target.closest('a')) closeMenu();
+            });
+            document.addEventListener('click', function (e) {
+                if (!navMenu.contains(e.target) && e.target !== navToggle) closeMenu();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMenu();
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
