@@ -24,6 +24,14 @@ dimenticata:
   aprirla in draft. È il segnale che il lavoro è finito: marcarla pronta per
   la review e mergiarla, poi seguire comunque la procedura di conferma del
   deploy qui sotto.
+- **Eccezione per i piani**: quando il lavoro è passato da Plan mode e
+  l'utente ha approvato il piano (via ExitPlanMode), quell'approvazione vale
+  anche come via libera al merge — l'approvazione del piano è già la
+  conclusione. Niente bisogno di un "Concludi" separato dopo: implementa,
+  verifica, commit + push, apri la PR e mergiala direttamente, poi segui la
+  procedura di conferma del deploy qui sotto. Questa eccezione vale solo per
+  il lavoro nato da un piano approvato — le modifiche facili dirette restano
+  comunque in draft finché l'utente non dice "Concludi"/"commit push PR".
 
 ## Dopo il merge: conferma il deploy, non solo il merge
 
