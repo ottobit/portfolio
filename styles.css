@@ -366,6 +366,9 @@ body {
     background: var(--accent);
     box-shadow: 0 4px 10px var(--glow);
     cursor: grab;
+    /* Split-off clones get a different, on-theme hue rotation of the same
+       accent color — 0deg for the original "dot". */
+    filter: hue-rotate(var(--mascot-hue, 0deg));
     /* Above the sticky navbar and the detail panel/backdrop, always. */
     z-index: 1200;
     touch-action: none;
