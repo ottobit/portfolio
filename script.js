@@ -412,11 +412,12 @@ window.addEventListener('scroll', () => {
     if (detailClose) detailClose.addEventListener('click', closeDetail);
     if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
 
-    // Evolution timeline drawer — slides down from the top of the viewport.
-    // Opened either via the "Evoluzione" button (next to "Ascolta" on the
-    // "Questo sito" panel) or by pulling/scrolling up while already at the
-    // very top of the page, mimicking a pull-to-reveal gesture rather than
-    // popping open on every upward scroll mid-page.
+    // Evolution timeline drawer — a quick, light sheet that rises from the
+    // bottom of the viewport. Opened either via the "Evoluzione" button
+    // (next to "Ascolta" on the "Questo sito" panel) or by pulling/scrolling
+    // up while already at the very top of the page, mimicking a
+    // pull-to-reveal gesture rather than popping open on every upward
+    // scroll mid-page.
     let timelineDismissedUntil = 0;
 
     function closeTimelineDrawer() {
@@ -427,17 +428,44 @@ window.addEventListener('scroll', () => {
         window.setTimeout(() => {
             timelineDrawer.hidden = true;
             if (timelineBackdrop) timelineBackdrop.hidden = true;
-        }, reduceMotion ? 0 : 350);
+        }, reduceMotion ? 0 : 220);
+    }
+
+    // Each era fades/slides into place the first time it scrolls into view
+    // inside the sheet, instead of the whole list appearing at once.
+    let timelineEraObserver = null;
+    function observeTimelineEras() {
+        if (!timelineDrawer || reduceMotion) return;
+        const eras = timelineDrawer.querySelectorAll('.timeline-era');
+        if (!timelineEraObserver) {
+            if (!('IntersectionObserver' in window)) {
+                eras.forEach(era => era.classList.add('in-view'));
+                return;
+            }
+            timelineEraObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        timelineEraObserver.unobserve(entry.target);
+                    }
+                });
+            }, { root: timelineDrawer, threshold: 0.15 });
+        }
+        eras.forEach(era => timelineEraObserver.observe(era));
     }
 
     function openTimelineDrawer() {
         if (!timelineDrawer || (!timelineDrawer.hidden && timelineDrawer.classList.contains('visible'))) return;
         closeDetail();
+        if (reduceMotion) {
+            timelineDrawer.querySelectorAll('.timeline-era').forEach(era => era.classList.add('in-view'));
+        }
         timelineDrawer.hidden = false;
         if (timelineBackdrop) timelineBackdrop.hidden = false;
         requestAnimationFrame(() => {
             timelineDrawer.classList.add('visible');
             if (timelineBackdrop) timelineBackdrop.classList.add('visible');
+            observeTimelineEras();
         });
     }
 
