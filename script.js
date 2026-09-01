@@ -636,12 +636,84 @@ window.addEventListener('scroll', () => {
 // gets excited on graph interaction, can be picked up and dragged around,
 // and "pops" if you mash clicks on it — then recovers a moment later.
 // Pure fun, no functional role — safe to fail silently if missing.
-(() => {
-    const mascot = document.getElementById('mascot');
-    const bubble = document.getElementById('mascot-bubble');
-    if (!mascot || !bubble) return;
+// Shared across every mascot instance (original + any split-off clones):
+// one page-wide reduced-motion check, and the word-parting system, which
+// touches shared DOM (.description p) and would corrupt itself if it ran
+// once per mascot instead of once for the page.
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Moses effect: the bio text doesn't block a mascot — it parts around it
+// as it passes, then closes back up. Each word is wrapped in its own span
+// so it can be nudged sideways independently, purely via transform
+// (content/layout untouched, nothing to ever "fix" back). Page-wide, not
+// per-mascot: wrapping the same paragraph twice would nest spans inside
+// spans and corrupt it.
+const PART_TEXT_SELECTOR = '.description p';
+const PART_INFLUENCE = 70; // px, horizontal reach of the effect
+const PART_MAX_PUSH = 26; // px, shove on the word right next to the ball
+let wordRects = [];
+
+function wrapWords(el) {
+    const text = el.textContent;
+    el.innerHTML = text.split(/(\s+)/).map(chunk =>
+        /^\s+$/.test(chunk) || !chunk ? chunk : `<span class="word">${chunk}</span>`
+    ).join('');
+}
+
+function refreshWordRects() {
+    wordRects = [];
+    if (reduceMotion) return;
+    document.querySelectorAll(`${PART_TEXT_SELECTOR} .word`).forEach(w => {
+        const r = w.getBoundingClientRect();
+        wordRects.push({ el: w, top: r.top, bottom: r.bottom, centerX: (r.left + r.right) / 2, pushed: false });
+    });
+}
+
+function initTextParting() {
+    if (reduceMotion) return;
+    document.querySelectorAll(PART_TEXT_SELECTOR).forEach(wrapWords);
+    refreshWordRects();
+}
+initTextParting();
+// The language toggle replaces each paragraph's textContent wholesale
+// (see applyLangUI), which wipes the word-wrapping — redo it after.
+document.addEventListener('langchange', initTextParting);
+
+function updateTextParting(cx, cy) {
+    wordRects.forEach(w => {
+        const inLine = cy >= w.top - 14 && cy <= w.bottom + 14;
+        const dist = Math.abs(w.centerX - cx);
+        if (!inLine || dist > PART_INFLUENCE) {
+            if (w.pushed) {
+                w.el.style.transform = '';
+                w.pushed = false;
+            }
+            return;
+        }
+        const strength = 1 - dist / PART_INFLUENCE;
+        const push = Math.sign(w.centerX - cx || 1) * strength * PART_MAX_PUSH;
+        w.el.style.transform = `translateX(${push.toFixed(1)}px)`;
+        w.pushed = true;
+    });
+}
+
+// A little animated node that gets excited on graph interaction, can be
+// picked up and dragged around, and "pops" if you mash clicks on it —
+// then recovers a moment later. Double-click/tap splits it into a second,
+// fully independent one (up to MAX_MASCOTS total). Pure fun, no
+// functional role — safe to fail silently if missing.
+let mascotInstanceCount = 0;
+const MAX_MASCOTS = 6;
+
+function createMascotController(mascot, bubble, options = {}) {
+    if (!mascot || !bubble) return;
+    if (mascotInstanceCount >= MAX_MASCOTS) {
+        mascot.remove();
+        bubble.remove();
+        return;
+    }
+    mascotInstanceCount++;
+
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
@@ -651,7 +723,7 @@ window.addEventListener('scroll', () => {
         en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨', 'Hey, easy!', 'Ouch!']
     };
 
-    let pos = { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
+    let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
     let isDragging = false;
     let isThrown = false;
     let dragStart = null;
@@ -781,59 +853,6 @@ window.addEventListener('scroll', () => {
             x: Math.max(MARGIN, Math.min(window.innerWidth - MARGIN, x)),
             y: Math.max(MARGIN, Math.min(window.innerHeight - MARGIN, y))
         };
-    }
-
-    // Moses effect: the bio text doesn't block the mascot — it parts around
-    // it as it passes, then closes back up. Each word is wrapped in its own
-    // span so it can be nudged sideways independently, purely via
-    // transform (content/layout untouched, nothing to ever "fix" back).
-    const PART_TEXT_SELECTOR = '.description p';
-    const PART_INFLUENCE = 70; // px, horizontal reach of the effect
-    const PART_MAX_PUSH = 26; // px, shove on the word right next to the ball
-    let wordRects = [];
-
-    function wrapWords(el) {
-        const text = el.textContent;
-        el.innerHTML = text.split(/(\s+)/).map(chunk =>
-            /^\s+$/.test(chunk) || !chunk ? chunk : `<span class="word">${chunk}</span>`
-        ).join('');
-    }
-
-    function refreshWordRects() {
-        wordRects = [];
-        if (reduceMotion) return;
-        document.querySelectorAll(`${PART_TEXT_SELECTOR} .word`).forEach(w => {
-            const r = w.getBoundingClientRect();
-            wordRects.push({ el: w, top: r.top, bottom: r.bottom, centerX: (r.left + r.right) / 2, pushed: false });
-        });
-    }
-
-    function initTextParting() {
-        if (reduceMotion) return;
-        document.querySelectorAll(PART_TEXT_SELECTOR).forEach(wrapWords);
-        refreshWordRects();
-    }
-    initTextParting();
-    // The language toggle replaces each paragraph's textContent wholesale
-    // (see applyLangUI), which wipes the word-wrapping — redo it after.
-    document.addEventListener('langchange', initTextParting);
-
-    function updateTextParting(cx, cy) {
-        wordRects.forEach(w => {
-            const inLine = cy >= w.top - 14 && cy <= w.bottom + 14;
-            const dist = Math.abs(w.centerX - cx);
-            if (!inLine || dist > PART_INFLUENCE) {
-                if (w.pushed) {
-                    w.el.style.transform = '';
-                    w.pushed = false;
-                }
-                return;
-            }
-            const strength = 1 - dist / PART_INFLUENCE;
-            const push = Math.sign(w.centerX - cx || 1) * strength * PART_MAX_PUSH;
-            w.el.style.transform = `translateX(${push.toFixed(1)}px)`;
-            w.pushed = true;
-        });
     }
 
     function place(x, y) {
@@ -1259,7 +1278,18 @@ window.addEventListener('scroll', () => {
                 isDragging = true;
                 mascot.classList.add('dragging');
             }
+            const prevX = pos.x, prevY = pos.y;
             place(dragStart.mascotX + dx, dragStart.mascotY + dy);
+
+            // Grip: squeezed rubber stretches along the direction it's
+            // being yanked and squashes on the other axis, so holding and
+            // swinging it around actually looks and feels like gripping
+            // something soft rather than dragging a rigid icon.
+            const stepVx = pos.x - prevX, stepVy = pos.y - prevY;
+            const sx = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVx) * 0.03 - Math.abs(stepVy) * 0.015));
+            const sy = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVy) * 0.03 - Math.abs(stepVx) * 0.015));
+            mascot.style.setProperty('--mascot-squash-x', sx.toFixed(3));
+            mascot.style.setProperty('--mascot-squash-y', sy.toFixed(3));
 
             // Shake detection: rapid left-right direction reversals mid-drag
             // means the visitor is roughing the mascot up, not just moving
@@ -1293,6 +1323,8 @@ window.addEventListener('scroll', () => {
         const wasDragging = isDragging;
         if (wasDragging) {
             mascot.classList.remove('dragging');
+            mascot.style.setProperty('--mascot-squash-x', 1);
+            mascot.style.setProperty('--mascot-squash-y', 1);
             if (reduceMotion) {
                 restartAnimation('dropped', 400);
                 playDropSound();
@@ -1325,8 +1357,57 @@ window.addEventListener('scroll', () => {
     mascot.addEventListener('pointerup', endDrag);
     mascot.addEventListener('pointercancel', endDrag);
 
+    // Double-click/tap splits the mascot in two: a fresh, fully independent
+    // clone (own drag/throw/pop state) pops out and springs away, up to
+    // MAX_MASCOTS total. Native 'dblclick' coexists fine with the
+    // pointer-based click/drag detection above — it's a separate event.
+    mascot.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        splitMascot();
+    });
+
+    function splitMascot() {
+        if (isPopped || mascotInstanceCount >= MAX_MASCOTS) return;
+
+        const clone = mascot.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.classList.remove('dragging', 'thrown', 'excited', 'hopping', 'dropped', 'popping', 'recovering');
+        clone.style.setProperty('--mascot-scale', 1);
+        clone.style.setProperty('--mascot-squash-x', 1);
+        clone.style.setProperty('--mascot-squash-y', 1);
+        clone.style.setProperty('--mascot-rotate', '0deg');
+
+        const bubbleClone = bubble.cloneNode(true);
+        bubbleClone.removeAttribute('id');
+        bubbleClone.hidden = true;
+
+        document.body.appendChild(bubbleClone);
+        document.body.appendChild(clone);
+
+        const angle = Math.random() * Math.PI * 2;
+        const startX = pos.x + Math.cos(angle) * 30;
+        const startY = pos.y + Math.sin(angle) * 30;
+        clone.style.left = startX + 'px';
+        clone.style.top = startY + 'px';
+
+        burstParticles({ count: 10, distance: 35, size: 5 });
+        playClickSound();
+
+        createMascotController(clone, bubbleClone, {
+            pos: { x: startX, y: startY },
+            throwVelocity: { vx: Math.cos(angle) * 500, vy: Math.sin(angle) * 500 - 200 }
+        });
+    }
+
     window.addEventListener('resize', () => {
         refreshWordRects();
         place(pos.x, pos.y);
     });
-})();
+
+    // A clone springs away from the split point instead of just appearing.
+    if (options.throwVelocity && !reduceMotion) {
+        throwMascot(options.throwVelocity.vx, options.throwVelocity.vy, false);
+    }
+}
+
+createMascotController(document.getElementById('mascot'), document.getElementById('mascot-bubble'));

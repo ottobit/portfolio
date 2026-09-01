@@ -374,6 +374,9 @@ body {
 
 .mascot.dragging {
     cursor: grabbing;
+    /* A soft inset pressure mark while held, on top of the squash/stretch
+       driven from JS — reinforces the "gripping something rubbery" feel. */
+    box-shadow: 0 4px 10px var(--glow), inset 0 0 9px rgba(0, 0, 0, 0.3);
     transition: transform 0.18s ease-out;
 }
 
