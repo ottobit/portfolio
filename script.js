@@ -772,6 +772,7 @@ function createMascotController(mascot, bubble, options = {}) {
     let isThrown = false;
     let dragStart = null;
     let dragMoved = 0;
+    let lastTapTime = 0;
     let moveHistory = [];
     let clickTimes = [];
     let isPopped = false;
@@ -1486,20 +1487,26 @@ function createMascotController(mascot, bubble, options = {}) {
         isDragging = false;
         dragStart = null;
         moveHistory = [];
-        if (!wasDragging) registerClick();
+        if (!wasDragging) {
+            registerClick();
+            // Double-click/tap splits the mascot in two — tracked by hand
+            // (two taps within a short window) instead of the native
+            // 'dblclick' event, which touch browsers only synthesize
+            // inconsistently once pointer capture and touch-action: none
+            // are in the mix, effectively never firing on some mobile
+            // browsers. This works identically for mouse and touch.
+            const now = performance.now();
+            if (!isPopped && now - lastTapTime < 350) {
+                lastTapTime = 0;
+                splitMascot();
+            } else {
+                lastTapTime = now;
+            }
+        }
     }
 
     mascot.addEventListener('pointerup', endDrag);
     mascot.addEventListener('pointercancel', endDrag);
-
-    // Double-click/tap splits the mascot in two: a fresh, fully independent
-    // clone (own drag/throw/pop state) pops out and springs away, up to
-    // MAX_MASCOTS total. Native 'dblclick' coexists fine with the
-    // pointer-based click/drag detection above — it's a separate event.
-    mascot.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        splitMascot();
-    });
 
     function splitMascot() {
         if (isPopped || mascotInstanceCount >= MAX_MASCOTS) return;
