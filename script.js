@@ -89,14 +89,27 @@ navLinks.forEach(link => {
     const menu = document.getElementById('nav-menu');
     if (!toggle || !menu) return;
 
+    const NAV_TOGGLE_TEXT = {
+        it: { open: 'Apri menu', close: 'Chiudi menu' },
+        en: { open: 'Open menu', close: 'Close menu' }
+    };
+
+    function updateToggleLabel() {
+        const lang = siteState.getLang();
+        const isOpen = menu.classList.contains('open');
+        toggle.setAttribute('aria-label', isOpen ? NAV_TOGGLE_TEXT[lang].close : NAV_TOGGLE_TEXT[lang].open);
+    }
+
     function closeMenu() {
         menu.classList.remove('open');
         toggle.setAttribute('aria-expanded', 'false');
+        updateToggleLabel();
     }
 
     function toggleMenu() {
         const open = menu.classList.toggle('open');
         toggle.setAttribute('aria-expanded', String(open));
+        updateToggleLabel();
     }
 
     toggle.addEventListener('click', (e) => {
@@ -115,27 +128,10 @@ navLinks.forEach(link => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeMenu();
     });
+
+    document.addEventListener('langchange', updateToggleLabel);
+    updateToggleLabel();
 })();
-
-// Update active nav link on scroll
-window.addEventListener('scroll', () => {
-    const sections = document.querySelectorAll('section');
-    const scrollPosition = window.scrollY + 100;
-
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionBottom = sectionTop + section.offsetHeight;
-        const sectionId = section.getAttribute('id');
-        const navLink = document.querySelector(`.nav-menu a[href="#${sectionId}"]`);
-
-        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
-            navLinks.forEach(link => link.classList.remove('active'));
-            if (navLink) {
-                navLink.classList.add('active');
-            }
-        }
-    });
-});
 
 // Animated node network in the hero
 (() => {
@@ -252,9 +248,10 @@ window.addEventListener('scroll', () => {
     step();
 })();
 
-// Hub/sub-node graph: dots overlaid on the hero canvas (desktop) and a
-// compact accordion fallback (mobile), sharing one detail panel shown as a
-// fixed overlay anchored to the bottom of the viewport (no scrolling needed).
+// Hub/sub-node graph: dots overlaid on the hero canvas, same layout at every
+// breakpoint (just larger tap targets on small screens), sharing one detail
+// panel shown as a fixed overlay anchored to the bottom of the viewport (no
+// scrolling needed).
 (() => {
     const detailPanel = document.getElementById('detail-panel');
     if (!detailPanel) return;
@@ -324,11 +321,16 @@ window.addEventListener('scroll', () => {
     }
 
     const LINK_TEXT = {
-        it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma' },
-        en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop' }
+        it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma', closePanel: 'Chiudi dettaglio' },
+        en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop', closePanel: 'Close detail' }
     };
 
     let currentEl = null;
+    let triggerEl = null;
+
+    function updateCloseLabel() {
+        if (detailClose) detailClose.setAttribute('aria-label', LINK_TEXT[siteState.getLang()].closePanel);
+    }
 
     function stopSpeech() {
         if (canSpeak) window.speechSynthesis.cancel();
@@ -344,6 +346,10 @@ window.addEventListener('scroll', () => {
         if (detailBackdrop) detailBackdrop.classList.remove('visible');
         stopSpeech();
         currentEl = null;
+        if (triggerEl) {
+            triggerEl.focus();
+            triggerEl = null;
+        }
         window.setTimeout(() => {
             detailPanel.hidden = true;
             if (detailBackdrop) detailBackdrop.hidden = true;
@@ -394,6 +400,7 @@ window.addEventListener('scroll', () => {
 
     function openDetail(el) {
         currentEl = el;
+        triggerEl = el;
         renderDetail(el);
 
         detailPanel.hidden = false;
@@ -402,11 +409,16 @@ window.addEventListener('scroll', () => {
             detailPanel.classList.add('visible');
             if (detailBackdrop) detailBackdrop.classList.add('visible');
         });
+        if (detailClose) detailClose.focus();
         document.dispatchEvent(new CustomEvent('graphinteraction'));
     }
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
     if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && detailPanel.classList.contains('visible')) closeDetail();
+    });
 
     if (detailSpeak && canSpeak) {
         detailSpeak.addEventListener('click', () => {
@@ -432,7 +444,9 @@ window.addEventListener('scroll', () => {
     // language toggle flips, so the shown text and the "read aloud" match.
     document.addEventListener('langchange', () => {
         if (currentEl && !detailPanel.hidden) renderDetail(currentEl);
+        updateCloseLabel();
     });
+    updateCloseLabel();
 
     // --- Dots overlaid directly on the hero canvas, same at every breakpoint ---
     const heroVisual = document.querySelector('.hero-visual');
@@ -578,6 +592,7 @@ window.addEventListener('scroll', () => {
 
     function closeHub(hub) {
         hub.classList.remove('active');
+        hub.setAttribute('aria-expanded', 'false');
         subDotsFor(hub.dataset.hub).forEach(s => s.classList.remove('visible', 'animate-in'));
         clearLines();
     }
@@ -599,6 +614,7 @@ window.addEventListener('scroll', () => {
         }
 
         hub.classList.add('active');
+        hub.setAttribute('aria-expanded', 'true');
         openKey = key;
         closeDetail();
         document.dispatchEvent(new CustomEvent('graphinteraction'));
@@ -724,6 +740,22 @@ const MERGE_DISTANCE = 45; // px between centers
 // it actually be seen bouncing around on its own first.
 const MERGE_GRACE_MS = 2500;
 
+// Shared by all six news-feed fetchers below: parses JSON, throws on a
+// non-OK response, and — unlike a bare fetch() — actually gives up after a
+// while instead of hanging forever if a request stalls.
+const NEWS_FETCH_TIMEOUT_MS = 8000;
+async function fetchJson(url) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), NEWS_FETCH_TIMEOUT_MS);
+    try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return await res.json();
+    } finally {
+        window.clearTimeout(timer);
+    }
+}
+
 // A lightweight, read-only feed of this project's own GitHub activity —
 // shown occasionally in dot's speech bubble alongside its usual random
 // one-liners. GitHub's public events API is CORS-open and needs no
@@ -744,9 +776,7 @@ async function fetchGithubNews() {
         // silently found nothing to show despite the API itself responding
         // fine. The commit history is a much more reliable source: every
         // commit always carries its message and html_url.
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_NEWS_REPO}/commits?per_page=20`);
-        if (!res.ok) return;
-        const commits = await res.json();
+        const commits = await fetchJson(`https://api.github.com/repos/${GITHUB_NEWS_REPO}/commits?per_page=20`);
         const items = [];
         const seenText = new Set();
         for (const c of commits) {
@@ -763,10 +793,12 @@ async function fetchGithubNews() {
         githubNewsItems = items;
     } catch (err) {
         // Offline, rate-limited, or blocked — dot's normal random lines
-        // are a perfectly fine fallback, so this fails silently.
+        // are a perfectly fine fallback for the visitor either way, but a
+        // console warning still helps diagnose a real outage.
+        console.warn('[dot] GitHub feed failed:', err);
     }
 }
-const githubNewsPromise = fetchGithubNews();
+fetchGithubNews();
 
 // AI theme: Hugging Face's public trending-models listing. Same
 // no-backend constraint as GitHub above — verified CORS-open, no key
@@ -781,18 +813,17 @@ async function fetchAiNews() {
         // popular-but-often-old models (the same handful stay on top for
         // years) — lastModified favors what's actually being worked on right
         // now, a better fit for "recent news" than raw popularity.
-        const res = await fetch('https://huggingface.co/api/models?sort=lastModified&direction=-1&limit=8');
-        if (!res.ok) return;
-        const models = await res.json();
+        const models = await fetchJson('https://huggingface.co/api/models?sort=lastModified&direction=-1&limit=8');
         aiNewsItems = models
             .filter(m => m.id)
             .map(m => ({ text: `updated on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}`, icon: '🤖' }));
     } catch (err) {
-        // Same silent fallback as the GitHub feed — offline/blocked/CORS
-        // just means this dot sticks to its usual random one-liners.
+        // Same fallback as the GitHub feed — offline/blocked/CORS just
+        // means this dot sticks to its usual random one-liners.
+        console.warn('[dot] AI feed failed:', err);
     }
 }
-const aiNewsPromise = fetchAiNews();
+fetchAiNews();
 
 // World theme: Hacker News' public top-stories feed — real, live world/tech
 // news refreshed continuously (previously Wikipedia's "on this day", which
@@ -802,13 +833,9 @@ const aiNewsPromise = fetchAiNews();
 let worldNewsItems = [];
 async function fetchWorldNews() {
     try {
-        const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
-        if (!res.ok) return;
-        const ids = (await res.json()).slice(0, 8);
+        const ids = (await fetchJson('https://hacker-news.firebaseio.com/v0/topstories.json')).slice(0, 8);
         const stories = await Promise.all(ids.map(id =>
-            fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
-                .then(r => (r.ok ? r.json() : null))
-                .catch(() => null)
+            fetchJson(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).catch(() => null)
         ));
         worldNewsItems = stories
             .filter(s => s && s.title)
@@ -820,10 +847,10 @@ async function fetchWorldNews() {
                 icon: '🌍'
             }));
     } catch (err) {
-        // Silent fallback, same as the other two feeds.
+        console.warn('[dot] world feed failed:', err);
     }
 }
-const worldNewsPromise = fetchWorldNews();
+fetchWorldNews();
 
 // Weather theme: Open-Meteo's public forecast API — no key, no signup,
 // CORS-open. A handful of fixed cities around the world rather than the
@@ -841,28 +868,24 @@ async function fetchWeatherNews() {
     try {
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
         const results = await Promise.all(WEATHER_CITIES.map(async city => {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m`);
-            if (!res.ok) {
-                console.warn(`[dot] weather feed: ${city.name} responded ${res.status}`);
+            try {
+                const data = await fetchJson(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m`);
+                const temp = data.current && data.current.temperature_2m;
+                if (temp === undefined) return null;
+                const cityName = lang === 'it' ? city.it : city.name;
+                const text = lang === 'it' ? `${Math.round(temp)}°C a ${cityName} in questo momento` : `${Math.round(temp)}°C in ${cityName} right now`;
+                return { text, url: null, icon: '🌤️' };
+            } catch (err) {
+                console.warn(`[dot] weather feed: ${city.name} failed:`, err);
                 return null;
             }
-            const data = await res.json();
-            const temp = data.current && data.current.temperature_2m;
-            if (temp === undefined) return null;
-            const cityName = lang === 'it' ? city.it : city.name;
-            const text = lang === 'it' ? `${Math.round(temp)}°C a ${cityName} in questo momento` : `${Math.round(temp)}°C in ${cityName} right now`;
-            return { text, url: null, icon: '🌤️' };
         }));
         weatherNewsItems = results.filter(Boolean);
     } catch (err) {
-        // Kept visible (unlike the other feeds' fully silent fallback) while
-        // this one's still fresh — helps tell a real outage/CORS block apart
-        // from "just hasn't cycled into view yet" without digging through
-        // the network tab.
         console.warn('[dot] weather feed failed:', err);
     }
 }
-const weatherNewsPromise = fetchWeatherNews();
+fetchWeatherNews();
 
 // Space theme: NASA's Astronomy Picture of the Day. Uses NASA's public
 // DEMO_KEY — documented, rate-limited but usable without any signup of our
@@ -871,15 +894,10 @@ const weatherNewsPromise = fetchWeatherNews();
 let spaceNewsItems = [];
 async function fetchSpaceNews() {
     try {
-        const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
-        if (!res.ok) {
-            // The shared DEMO_KEY is rate-limited (30/hour, 50/day per IP) —
-            // a 429 here means someone on this network already used it up
-            // for the day, not that the feed is broken.
-            console.warn(`[dot] space feed: NASA APOD responded ${res.status}`);
-            return;
-        }
-        const data = await res.json();
+        // The shared DEMO_KEY is rate-limited (30/hour, 50/day per IP) — a
+        // failure here often just means someone on this network already
+        // used it up for the day, not that the feed is broken.
+        const data = await fetchJson('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
         if (!data.title) return;
         spaceNewsItems = [{
             text: `NASA APOD: ${data.title}`,
@@ -890,7 +908,7 @@ async function fetchSpaceNews() {
         console.warn('[dot] space feed failed:', err);
     }
 }
-const spaceNewsPromise = fetchSpaceNews();
+fetchSpaceNews();
 
 // Trending theme: Wikipedia's official pageviews-top API — what the world
 // is actually reading right now, not "on this day in history". No key,
@@ -906,12 +924,7 @@ async function fetchTrendingNews() {
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
-        const res = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/${wikiLang}.wikipedia/all-access/${yyyy}/${mm}/${dd}`);
-        if (!res.ok) {
-            console.warn(`[dot] trending feed: Wikimedia pageviews responded ${res.status}`);
-            return;
-        }
-        const data = await res.json();
+        const data = await fetchJson(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top/${wikiLang}.wikipedia/all-access/${yyyy}/${mm}/${dd}`);
         const articles = (data.items && data.items[0] && data.items[0].articles) || [];
         trendingNewsItems = articles
             .filter(a => a.article && !/^(Special:|Wikipedia:|Main_Page|Portale:|Speciale:|Pagina_principale)/.test(a.article))
@@ -925,7 +938,7 @@ async function fetchTrendingNews() {
         console.warn('[dot] trending feed failed:', err);
     }
 }
-const trendingNewsPromise = fetchTrendingNews();
+fetchTrendingNews();
 
 // All feeds pooled together, not split one-per-dot — every dot pulls from
 // the same combined pool, so nobody has to wait for "the right one" to see
@@ -935,7 +948,7 @@ const trendingNewsPromise = fetchTrendingNews();
 function getAllNewsItems() {
     const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems];
     const combined = [];
-    const maxLen = Math.max(0, ...lists.map(l => l.length));
+    const maxLen = lists.reduce((max, l) => Math.max(max, l.length), 0);
     for (let i = 0; i < maxLen; i++) {
         for (const list of lists) {
             if (list[i]) combined.push(list[i]);
@@ -2047,6 +2060,17 @@ function createMascotController(mascot, bubble, options = {}) {
 
     mascot.addEventListener('pointerup', endDrag);
     mascot.addEventListener('pointercancel', endDrag);
+
+    // Keyboard activation (Tab to the mascot, then Enter/Space) never fires
+    // pointerdown/pointerup — only a native `click`. A real pointer tap
+    // already triggers registerClick() via endDrag() above, and also fires
+    // its own trailing `click` afterwards; detail === 0 is how the browser
+    // marks a click that came from keyboard activation (or a programmatic
+    // el.click()) rather than an actual pointer press, so this only ever
+    // fires once per interaction.
+    mascot.addEventListener('click', (e) => {
+        if (e.detail === 0) registerClick();
+    });
 
     function splitMascot() {
         if (isPopped || mascotInstanceCount >= MAX_MASCOTS) return;

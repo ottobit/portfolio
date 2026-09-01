@@ -14,6 +14,39 @@
     display: none !important;
 }
 
+/* Visible only for the pointer/keyboard interactions that actually
+   warrant an indicator — a mouse click doesn't need a ring around
+   whatever it just clicked, but Tab-ing through the page does. Applied
+   to every custom interactive element (hub-dot/sub-dot/mascot/toggles/
+   detail-panel buttons); native ones already get a sane default. */
+:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* Skip-to-content link: invisible until it receives keyboard focus, then
+   pinned to the top-left corner so a keyboard user can jump straight past
+   the nav without having to tab through it every single page load. */
+.skip-link {
+    position: absolute;
+    top: -3rem;
+    left: 1rem;
+    z-index: 2000;
+    padding: 0.6rem 1.1rem;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 1rem;
+}
+
 :root {
     --primary: #000;
     --accent: #115e59;
@@ -755,7 +788,7 @@ body {
     line-height: 1;
 }
 
-.detail-body h3 {
+.detail-body h2 {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
 }
