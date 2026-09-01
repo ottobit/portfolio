@@ -966,6 +966,13 @@ function createMascotController(mascot, bubble, options = {}) {
     // first appearance and for coming back after popping as the last dot
     // standing. No flight/physics involved, on purpose: instant by design.
     function birthAtLogo() {
+        // A rebirth is always the site's default color — a fresh start,
+        // not a continuation of whatever hue this instance happened to
+        // have (e.g. a colored clone that was the last one standing).
+        if (hueDeg) {
+            hueDeg = 0;
+            mascot.style.removeProperty('--mascot-hue');
+        }
         const logoPos = getLogoDotPos();
         place(logoPos.x, logoPos.y);
         restartAnimation('recovering', 500);
