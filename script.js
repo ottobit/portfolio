@@ -751,7 +751,7 @@ async function fetchGithubNews() {
         // are a perfectly fine fallback, so this fails silently.
     }
 }
-fetchGithubNews();
+const githubNewsPromise = fetchGithubNews();
 
 // Where "dot" is born: the dot right after "ottobit." in the big hero
 // heading (.name), not the small one in the sticky header logo. Falls back
@@ -1055,13 +1055,28 @@ function createMascotController(mascot, bubble, options = {}) {
     // bubble — only the original "dot", not its clones, and only once
     // fetchGithubNews() has actually found something to show. Longer
     // display duration than a regular one-liner: a commit message needs
-    // more than a glance to read.
+    // more than a glance to read. A small badge appears on dot a few
+    // seconds before the bubble shows itself, so a visitor who notices it
+    // can click dot to reveal the news right away instead of waiting.
+    const newsBadge = mascot.querySelector('.mascot-news-badge');
     let newsIndex = 0;
+
+    function showNextNews() {
+        if (!githubNewsItems.length) return;
+        showBubble('📰 ' + githubNewsItems[newsIndex % githubNewsItems.length], 4000);
+        newsIndex++;
+        if (newsBadge) newsBadge.hidden = true;
+    }
+
     function scheduleNews() {
         window.setTimeout(() => {
             if (!isDragging && !isThrown && !isPopped && !instanceRemoved && githubNewsItems.length) {
-                showBubble('📰 ' + githubNewsItems[newsIndex % githubNewsItems.length], 4000);
-                newsIndex++;
+                if (newsBadge) newsBadge.hidden = false;
+                window.setTimeout(() => {
+                    if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsBadge && !newsBadge.hidden) {
+                        showNextNews();
+                    }
+                }, 3000);
             }
             scheduleNews();
         }, 25000 + Math.random() * 15000);
@@ -1235,6 +1250,12 @@ function createMascotController(mascot, bubble, options = {}) {
         if (registerHit()) return;
         restartAnimation('excited', 500);
         playClickSound();
+        // The badge means dot already has something to say — a click
+        // reveals it right away instead of the usual random one-liner.
+        if (newsBadge && !newsBadge.hidden) {
+            showNextNews();
+            return;
+        }
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
         const lines = LINES[lang] || LINES.it;
         showBubble(lines[Math.floor(Math.random() * lines.length)]);

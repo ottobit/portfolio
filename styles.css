@@ -399,6 +399,36 @@ body {
     background: #fff;
 }
 
+/* A small "I have something to say" indicator — appears once dot has a
+   news item ready, before it shows up on its own; clicking dot while it's
+   up reveals it right away instead of waiting. */
+.mascot-news-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    font-size: 9px;
+    line-height: 16px;
+    text-align: center;
+    animation: mascot-news-badge-pop 0.3s ease;
+}
+
+@keyframes mascot-news-badge-pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mascot-news-badge {
+        animation: none;
+    }
+}
+
 .mascot.hopping {
     animation: mascot-hop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
