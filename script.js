@@ -1656,6 +1656,18 @@ function createMascotController(mascot, bubble, options = {}) {
                 .finally(() => { isFetchingNews = false; });
             return;
         }
+        // On cooldown, no new network call — but there's usually already a
+        // full pool of cached items from the last fetch, so a click still
+        // surfaces real content (a random pick, same as after a live
+        // refetch) instead of falling back to a generic line every time.
+        // Visitors clicking a few times in a row were seeing "Hi there!"
+        // far more often than actual news because of this.
+        const cachedCount = getAllNewsItems().length;
+        if (cachedCount) {
+            newsIndex = Math.floor(Math.random() * cachedCount);
+            showNextNews();
+            return;
+        }
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
         const lines = LINES[lang] || LINES.it;
         showBubble(lines[Math.floor(Math.random() * lines.length)]);
