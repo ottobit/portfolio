@@ -959,3 +959,132 @@ body {
         gap: 0.5rem;
     }
 }
+
+/* Evolution timeline page (evolution.html) — a standalone vertical history
+   of every merged PR, grouped into eras. Reuses the same theme tokens as
+   the rest of the site so light/dark just works. */
+.timeline-page {
+    padding: 3rem 1.5rem 5rem;
+}
+
+.timeline-intro {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto 3rem;
+}
+
+.timeline-intro h1 {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+.timeline-intro p {
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.timeline {
+    list-style: none;
+    position: relative;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+/* The line runs behind every era marker, top to bottom — it's what makes
+   this read as a single continuous history instead of separate blocks. */
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 27px;
+    width: 2px;
+    background: var(--border);
+}
+
+.timeline-era {
+    position: relative;
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.timeline-era:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-era-marker {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.timeline-era-content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 0.5rem;
+}
+
+.timeline-era-content h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.35rem;
+}
+
+.timeline-era-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0.9rem;
+}
+
+.timeline-entries {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.timeline-entries li {
+    position: relative;
+    padding-left: 1.1rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.timeline-entries li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+@media (max-width: 600px) {
+    .timeline::before {
+        left: 21px;
+    }
+
+    .timeline-era-marker {
+        width: 42px;
+        height: 42px;
+        font-size: 1.2rem;
+    }
+
+    .timeline-era {
+        gap: 0.85rem;
+    }
+}
