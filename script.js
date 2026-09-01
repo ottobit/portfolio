@@ -1030,6 +1030,12 @@ function createMascotController(mascot, bubble, options = {}) {
     let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : getLogoDotPos();
     let isDragging = false;
     let isThrown = false;
+    // Bumped every time a physics loop (a hop or a throw) starts or gets
+    // interrupted by a grab — each loop's step() captures its own value at
+    // launch and bails the moment it no longer matches, so picking the
+    // mascot up mid-flight cleanly cancels the stale loop instead of
+    // leaving two of them fighting over the same position every frame.
+    let flightToken = 0;
     let dragStart = null;
     let dragMoved = 0;
     let lastTapTime = 0;
@@ -1312,8 +1318,10 @@ function createMascotController(mascot, bubble, options = {}) {
         isThrown = true;
         mascot.classList.add('thrown');
         let lastT = performance.now();
+        const myFlight = ++flightToken;
 
         function step(now) {
+            if (myFlight !== flightToken) return; // superseded by a grab
             const dt = Math.min(0.032, (now - lastT) / 1000);
             lastT = now;
             vy += GRAVITY * dt;
@@ -1752,8 +1760,10 @@ function createMascotController(mascot, bubble, options = {}) {
         const DURATION = 900;
         const AMPLITUDE = 16;
         const FREQ = 13;
+        const myFlight = flightToken; // grabbed mid-throw's step() already bumped this before calling us
 
         function step(now) {
+            if (myFlight !== flightToken) return; // superseded by a grab
             const elapsed = now - start;
             if (elapsed >= DURATION) {
                 mascot.style.left = baseX + 'px';
@@ -1841,6 +1851,7 @@ function createMascotController(mascot, bubble, options = {}) {
         isThrown = true;
         mascot.classList.add('thrown');
         let lastT = performance.now();
+        const myFlight = ++flightToken;
 
         // Snapshot hittable elements once per throw (layout doesn't change
         // mid-flight) instead of querying/measuring the DOM every frame.
@@ -1849,6 +1860,7 @@ function createMascotController(mascot, bubble, options = {}) {
             .filter(({ rect }) => rect.width > 0 && rect.height > 0);
 
         function step(now) {
+            if (myFlight !== flightToken) return; // superseded by a grab
             const dt = Math.min(0.032, (now - lastT) / 1000);
             lastT = now;
             vy += GRAVITY * dt;
@@ -1935,7 +1947,19 @@ function createMascotController(mascot, bubble, options = {}) {
     const SHAKE_MIN_DELTA = 10; // px per step, filters out jitter
 
     mascot.addEventListener('pointerdown', (e) => {
-        if (isPopped || isThrown) return;
+        if (isPopped) return;
+        // Catching it mid-air: a hop or a throw can otherwise keep the
+        // mascot bouncing — occasionally quite high — for a couple of
+        // seconds with no way to grab it, which reads as "stuck"/"gone
+        // wild" rather than as a mascot you can always reach out and pick
+        // up. Bumping the token invalidates that flight's step() loop
+        // (it checks the token and bails on its next frame) so the drag
+        // that's about to start doesn't have to fight it for pos.x/pos.y.
+        if (isThrown) {
+            flightToken++;
+            isThrown = false;
+            mascot.classList.remove('thrown');
+        }
         stopRestBounce();
         dragStart = { x: e.clientX, y: e.clientY, mascotX: pos.x, mascotY: pos.y };
         dragMoved = 0;
