@@ -269,9 +269,6 @@ window.addEventListener('scroll', () => {
     const detailSpeakIcon = document.getElementById('detail-speak-icon');
     const detailSpeakLabel = document.getElementById('detail-speak-label');
     const detailTimeline = document.getElementById('detail-timeline');
-    const timelineDrawer = document.getElementById('timeline-drawer');
-    const timelineBackdrop = document.getElementById('timeline-backdrop');
-    const timelineDrawerClose = document.getElementById('timeline-drawer-close');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canSpeak = 'speechSynthesis' in window;
 
@@ -398,7 +395,6 @@ window.addEventListener('scroll', () => {
     function openDetail(el) {
         currentEl = el;
         renderDetail(el);
-        closeTimelineDrawer();
 
         detailPanel.hidden = false;
         if (detailBackdrop) detailBackdrop.hidden = false;
@@ -411,95 +407,6 @@ window.addEventListener('scroll', () => {
 
     if (detailClose) detailClose.addEventListener('click', closeDetail);
     if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
-
-    // Evolution timeline drawer — a quick, light sheet that rises from the
-    // bottom of the viewport. Opened either via the "Evoluzione" button
-    // (next to "Ascolta" on the "Questo sito" panel) or by pulling/scrolling
-    // up while already at the very top of the page, mimicking a
-    // pull-to-reveal gesture rather than popping open on every upward
-    // scroll mid-page.
-    let timelineDismissedUntil = 0;
-
-    function closeTimelineDrawer() {
-        if (!timelineDrawer || timelineDrawer.hidden) return;
-        timelineDrawer.classList.remove('visible');
-        if (timelineBackdrop) timelineBackdrop.classList.remove('visible');
-        timelineDismissedUntil = Date.now() + 4000;
-        window.setTimeout(() => {
-            timelineDrawer.hidden = true;
-            if (timelineBackdrop) timelineBackdrop.hidden = true;
-        }, reduceMotion ? 0 : 220);
-    }
-
-    // Each era fades/slides into place the first time it scrolls into view
-    // inside the sheet, instead of the whole list appearing at once.
-    let timelineEraObserver = null;
-    function observeTimelineEras() {
-        if (!timelineDrawer || reduceMotion) return;
-        const eras = timelineDrawer.querySelectorAll('.timeline-era');
-        if (!timelineEraObserver) {
-            if (!('IntersectionObserver' in window)) {
-                eras.forEach(era => era.classList.add('in-view'));
-                return;
-            }
-            timelineEraObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('in-view');
-                        timelineEraObserver.unobserve(entry.target);
-                    }
-                });
-            }, { root: timelineDrawer, threshold: 0.15 });
-        }
-        eras.forEach(era => timelineEraObserver.observe(era));
-    }
-
-    function openTimelineDrawer() {
-        if (!timelineDrawer || (!timelineDrawer.hidden && timelineDrawer.classList.contains('visible'))) return;
-        closeDetail();
-        if (reduceMotion) {
-            timelineDrawer.querySelectorAll('.timeline-era').forEach(era => era.classList.add('in-view'));
-        }
-        timelineDrawer.hidden = false;
-        if (timelineBackdrop) timelineBackdrop.hidden = false;
-        requestAnimationFrame(() => {
-            timelineDrawer.classList.add('visible');
-            if (timelineBackdrop) timelineBackdrop.classList.add('visible');
-            observeTimelineEras();
-        });
-    }
-
-    if (detailTimeline) detailTimeline.addEventListener('click', openTimelineDrawer);
-    if (timelineDrawerClose) timelineDrawerClose.addEventListener('click', closeTimelineDrawer);
-    if (timelineBackdrop) timelineBackdrop.addEventListener('click', closeTimelineDrawer);
-
-    if (timelineDrawer) {
-        function maybeRevealTimeline() {
-            if (Date.now() < timelineDismissedUntil) return;
-            if (timelineDrawer.classList.contains('visible')) return;
-            openTimelineDrawer();
-        }
-
-        // Desktop: an upward wheel gesture while already scrolled to the top.
-        window.addEventListener('wheel', (e) => {
-            if (window.scrollY <= 0 && e.deltaY < -8) maybeRevealTimeline();
-        }, { passive: true });
-
-        // Touch: a downward pull while already scrolled to the top.
-        let touchStartY = null;
-        window.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-        window.addEventListener('touchmove', (e) => {
-            if (touchStartY === null) return;
-            const dy = e.touches[0].clientY - touchStartY;
-            if (window.scrollY <= 0 && dy > 12) maybeRevealTimeline();
-        }, { passive: true });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && timelineDrawer.classList.contains('visible')) closeTimelineDrawer();
-        });
-    }
 
     if (detailSpeak && canSpeak) {
         detailSpeak.addEventListener('click', () => {

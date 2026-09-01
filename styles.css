@@ -811,6 +811,7 @@ body {
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 600;
+    text-decoration: none;
     cursor: pointer;
     transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -960,53 +961,14 @@ body {
     }
 }
 
-/* Evolution timeline — a sheet that rises from the bottom of the viewport
-   (opened via the "Evoluzione" button next to "Ascolta", or by
-   scrolling/pulling up while already at the top of the page), listing
-   every merged PR grouped into eras. Reuses .detail-backdrop/.detail-close
-   for the dimmed background and close button, and the same theme tokens
-   as the rest of the site so light/dark just works. A quick, snappy
-   slide+fade — not a slow drop-down — keeps it feeling like a light
-   reveal instead of a heavy modal. */
-.timeline-drawer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    max-height: 88vh;
-    overflow-y: auto;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
-    opacity: 0;
-    transform: translateY(100%);
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
-    pointer-events: none;
-}
-
-.timeline-drawer.visible {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.timeline-drawer-inner {
-    padding: 2.5rem 1.5rem 3rem;
-}
-
-/* Each era fades/slides into place as it's scrolled into view inside the
-   sheet, rather than all appearing at once. */
-.timeline-era {
-    opacity: 0;
-    transform: translateY(28px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-.timeline-era.in-view {
-    opacity: 1;
-    transform: translateY(0);
+/* Evolution timeline page (evolution.html) — a standalone vertical history
+   of every merged PR, grouped into eras. Reuses the same theme tokens as
+   the rest of the site so light/dark just works. Dynamic on purpose: each
+   era pops/fades into place the first time it's scrolled into view, and an
+   accent-colored fill grows behind it as you read down the page, instead
+   of the whole thing sitting there fully drawn from the start. */
+.timeline-page {
+    padding: 3rem 1.5rem 5rem;
 }
 
 .timeline-intro {
@@ -1025,23 +987,37 @@ body {
     line-height: 1.7;
 }
 
-.timeline {
-    list-style: none;
+.timeline-wrap {
     position: relative;
     max-width: 720px;
     margin: 0 auto;
 }
 
-/* The line runs behind every era marker, top to bottom — it's what makes
-   this read as a single continuous history instead of separate blocks. */
-.timeline::before {
-    content: '';
+/* Two stacked lines behind the markers: a faint full-height track, and an
+   accent-colored fill that grows with scroll position (height set via JS)
+   — the timeline visibly "grows" as you read down the page. */
+.timeline-track,
+.timeline-progress {
     position: absolute;
     top: 0;
-    bottom: 0;
     left: 27px;
     width: 2px;
+}
+
+.timeline-track {
+    bottom: 0;
     background: var(--border);
+}
+
+.timeline-progress {
+    height: 0%;
+    background: var(--accent);
+    transition: height 0.1s linear;
+}
+
+.timeline {
+    list-style: none;
+    position: relative;
 }
 
 .timeline-era {
@@ -1069,12 +1045,28 @@ body {
     justify-content: center;
     font-size: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.timeline-era.in-view .timeline-era-marker {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .timeline-era-content {
     flex: 1;
     min-width: 0;
     padding-top: 0.5rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease 0.08s, transform 0.5s ease 0.08s;
+}
+
+.timeline-era.in-view .timeline-era-content {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .timeline-era-content h2 {
@@ -1116,7 +1108,8 @@ body {
 }
 
 @media (max-width: 600px) {
-    .timeline::before {
+    .timeline-track,
+    .timeline-progress {
         left: 21px;
     }
 
