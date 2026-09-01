@@ -711,6 +711,18 @@ const MAX_MASCOTS = 6;
 const activeMascots = [];
 const MERGE_DISTANCE = 45; // px between centers
 
+// Where "dot" is born: the small teal dot right after "ottobit." in the
+// logo. Falls back to the old hero-center spot if the logo isn't there for
+// some reason, so a missing selector never leaves the mascot un-placeable.
+function getLogoDotPos() {
+    const logoDot = document.querySelector('.logo .dot');
+    if (logoDot) {
+        const r = logoDot.getBoundingClientRect();
+        if (r.width || r.height) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    return { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
+}
+
 function checkMascotMerge(self) {
     if (self.removed || self.merging) return;
     for (const other of activeMascots) {
@@ -749,7 +761,7 @@ function createMascotController(mascot, bubble, options = {}) {
     };
     const INTRO_LINE = { it: 'Ciao, sono dot! Prova a trascinarmi 👋', en: "Hi, I'm dot! Try dragging me 👋" };
 
-    let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
+    let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : getLogoDotPos();
     let isDragging = false;
     let isThrown = false;
     let dragStart = null;
@@ -942,6 +954,17 @@ function createMascotController(mascot, bubble, options = {}) {
         if (autoRemoveMs) window.setTimeout(() => mascot.classList.remove(className), autoRemoveMs);
     }
 
+    // Snaps straight to the logo dot and plays the same elastic "inflate
+    // like a rubber ball" pop-in used first-load — used both for the very
+    // first appearance and for coming back after popping as the last dot
+    // standing. No flight/physics involved, on purpose: instant by design.
+    function birthAtLogo() {
+        const logoPos = getLogoDotPos();
+        place(logoPos.x, logoPos.y);
+        restartAnimation('recovering', 500);
+        playRecoverSound();
+    }
+
     function randomHop() {
         if (isDragging || isThrown || isPopped || instanceRemoved) return;
         place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
@@ -950,6 +973,14 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     place(pos.x, pos.y);
+
+    // The very first "dot" (not a split-off clone, which already gets its
+    // own spring-away entrance) is born right on the logo dot, inflating
+    // into view instead of just silently appearing already in the hero.
+    if (!options.pos && !reduceMotion) {
+        restartAnimation('recovering', 500);
+        playRecoverSound();
+    }
 
     function scheduleHop() {
         window.setTimeout(() => {
@@ -1092,9 +1123,15 @@ function createMascotController(mascot, bubble, options = {}) {
         restartAnimation('popping');
         window.setTimeout(() => {
             mascot.classList.remove('popping');
-            place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
-            restartAnimation('recovering', 500);
-            playRecoverSound();
+            // Definitive pop vs rebirth: with another dot still around, this
+            // one is gone for good (also frees a slot for a future split).
+            // Alone, it has to come back — there must always be at least
+            // one — reborn on the logo dot instead of a random spot.
+            if (activeMascots.length > 1) {
+                selfHandle.remove();
+                return;
+            }
+            birthAtLogo();
             isPopped = false;
         }, 380);
     }
@@ -1365,11 +1402,20 @@ function createMascotController(mascot, bubble, options = {}) {
             const prevX = pos.x, prevY = pos.y;
             place(dragStart.mascotX + dx, dragStart.mascotY + dy);
 
+            const prevPoint = moveHistory[moveHistory.length - 1];
+            const nowT = performance.now();
+            const dt = Math.max(4, nowT - prevPoint.t); // ms, floored to dodge divide-by-near-0 spikes
+
             // Grip: squeezed rubber stretches along the direction it's
             // being yanked and squashes on the other axis, so holding and
             // swinging it around actually looks and feels like gripping
-            // something soft rather than dragging a rigid icon.
-            const stepVx = pos.x - prevX, stepVy = pos.y - prevY;
+            // something soft rather than dragging a rigid icon. Normalized
+            // to px moved per ~16ms (one frame at 60fps) instead of the raw
+            // per-event delta — pointermove fires at wildly different rates
+            // across browsers/devices, so the raw delta made this read as
+            // barely-there on any setup that fires it often.
+            const frameScale = 16.67 / dt;
+            const stepVx = (pos.x - prevX) * frameScale, stepVy = (pos.y - prevY) * frameScale;
             const sx = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVx) * 0.03 - Math.abs(stepVy) * 0.015));
             const sy = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVy) * 0.03 - Math.abs(stepVx) * 0.015));
             mascot.style.setProperty('--mascot-squash-x', sx.toFixed(3));
@@ -1378,7 +1424,6 @@ function createMascotController(mascot, bubble, options = {}) {
             // Shake detection: rapid left-right direction reversals mid-drag
             // means the visitor is roughing the mascot up, not just moving
             // it — worth a dazed reaction of its own.
-            const prevPoint = moveHistory[moveHistory.length - 1];
             const stepDx = e.clientX - prevPoint.x;
             if (Math.abs(stepDx) > SHAKE_MIN_DELTA) {
                 const sign = stepDx > 0 ? 1 : -1;
@@ -1394,10 +1439,10 @@ function createMascotController(mascot, bubble, options = {}) {
                 lastShakeDxSign = sign;
             }
 
-            moveHistory.push({ x: e.clientX, y: e.clientY, t: performance.now() });
+            moveHistory.push({ x: e.clientX, y: e.clientY, t: nowT });
             // Keep only the last ~100ms of movement — recent velocity is
             // what a real throw cares about, not the whole drag history.
-            const cutoff = performance.now() - 100;
+            const cutoff = nowT - 100;
             while (moveHistory.length > 2 && moveHistory[0].t < cutoff) moveHistory.shift();
         }
     });
