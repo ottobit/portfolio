@@ -753,6 +753,56 @@ async function fetchGithubNews() {
 }
 const githubNewsPromise = fetchGithubNews();
 
+// AI theme: Hugging Face's public trending-models listing. Same
+// no-backend constraint as GitHub above — verified CORS-open, no key
+// needed for public data.
+let aiNewsItems = [];
+async function fetchAiNews() {
+    try {
+        const res = await fetch('https://huggingface.co/api/models?sort=trending&limit=8');
+        if (!res.ok) return;
+        const models = await res.json();
+        aiNewsItems = models.map(m => `trending on Hugging Face: ${m.id}`).filter(Boolean);
+    } catch (err) {
+        // Same silent fallback as the GitHub feed — offline/blocked/CORS
+        // just means this dot sticks to its usual random one-liners.
+    }
+}
+const aiNewsPromise = fetchAiNews();
+
+// World theme: Wikipedia's official "on this day" feed — not hard news
+// (a real news API almost always needs a paid key, same backend problem
+// as Deepgram/an LLM chatbot), but a reliable, CORS-open, zero-key public
+// endpoint with a fittingly light tone for a mascot's speech bubble.
+let worldNewsItems = [];
+async function fetchWorldNews() {
+    try {
+        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
+        const wikiLang = lang === 'it' ? 'it' : 'en';
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const res = await fetch(`https://${wikiLang}.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        worldNewsItems = (data.events || []).slice(0, 8).map(e => `${e.year}: ${e.text}`).filter(e => e.text);
+    } catch (err) {
+        // Silent fallback, same as the other two feeds.
+    }
+}
+const worldNewsPromise = fetchWorldNews();
+
+// Each dot instance (the original and every split-off clone) gets one of
+// these three themes, assigned round-robin by creation order — so
+// splitting doesn't just multiply the same GitHub updates, each clone
+// becomes its own little "listening" specialty.
+const NEWS_TOPICS = [
+    { icon: '📰', items: () => githubNewsItems },
+    { icon: '🤖', items: () => aiNewsItems },
+    { icon: '🌍', items: () => worldNewsItems }
+];
+let mascotCreationCount = 0;
+
 // Where "dot" is born: the dot right after "ottobit." in the big hero
 // heading (.name), not the small one in the sticky header logo. Falls back
 // to the old hero-center spot if it isn't there for some reason, so a
@@ -790,6 +840,8 @@ function createMascotController(mascot, bubble, options = {}) {
         return;
     }
     mascotInstanceCount++;
+    const newsTopic = NEWS_TOPICS[mascotCreationCount % NEWS_TOPICS.length];
+    mascotCreationCount++;
 
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
@@ -1063,25 +1115,28 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     // Occasionally surfaces this project's own GitHub activity in the
-    // bubble — only the original "dot", not its clones, and only once
-    // fetchGithubNews() has actually found something to show. Longer
-    // display duration than a regular one-liner: a commit message needs
-    // more than a glance to read. A small badge appears on dot a few
-    // seconds before the bubble shows itself, so a visitor who notices it
-    // can click dot to reveal the news right away instead of waiting.
+    // bubble — every dot instance, original and clones alike, each with
+    // its own topic (see NEWS_TOPICS): splitting doesn't just multiply the
+    // same GitHub updates, each clone becomes its own little "listening"
+    // specialty. Longer display duration than a regular one-liner: a news
+    // item needs more than a glance to read. A small badge appears on dot
+    // a few seconds before the bubble shows itself, so a visitor who
+    // notices it can click dot to reveal the news right away instead of
+    // waiting.
     const newsBadge = mascot.querySelector('.mascot-news-badge');
     let newsIndex = 0;
 
     function showNextNews() {
-        if (!githubNewsItems.length) return;
-        showBubble('📰 ' + githubNewsItems[newsIndex % githubNewsItems.length], 4000);
+        const items = newsTopic.items();
+        if (!items.length) return;
+        showBubble(newsTopic.icon + ' ' + items[newsIndex % items.length], 4000);
         newsIndex++;
         if (newsBadge) newsBadge.hidden = true;
     }
 
     function scheduleNews() {
         window.setTimeout(() => {
-            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && githubNewsItems.length) {
+            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsTopic.items().length) {
                 if (newsBadge) newsBadge.hidden = false;
                 window.setTimeout(() => {
                     if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsBadge && !newsBadge.hidden) {
@@ -1092,7 +1147,7 @@ function createMascotController(mascot, bubble, options = {}) {
             scheduleNews();
         }, 25000 + Math.random() * 15000);
     }
-    if (!options.pos) scheduleNews();
+    scheduleNews();
 
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
     document.addEventListener('mousemove', (e) => {
