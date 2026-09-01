@@ -1120,7 +1120,16 @@ function createMascotController(mascot, bubble, options = {}) {
         // (or the "couldn't reach it" fallback) popping up somewhere the
         // visitor isn't looking anymore.
         if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
-        place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
+        // Idle wandering stays confined to a bottom-left zone instead of
+        // the whole viewport — still feels alive without turning into
+        // chaos scattered across the page. Dragging/throwing dot is
+        // unrestricted; this only tames the automatic hop.
+        const zoneW = Math.min(340, window.innerWidth * 0.4);
+        const zoneH = Math.min(260, window.innerHeight * 0.35);
+        place(
+            MARGIN + Math.random() * (zoneW - MARGIN),
+            window.innerHeight - MARGIN - Math.random() * (zoneH - MARGIN)
+        );
         restartAnimation('hopping', 600);
         playHopSound();
     }
