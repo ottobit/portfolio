@@ -18,6 +18,12 @@ dimenticata:
   qualunque sia lo stato della verifica. Aspetta che sia l'utente a dire
   esplicitamente di procedere con merge/ready-for-review.
 - Disiscriviti dalla PR solo dopo che è stata mergiata o chiusa (dall'utente).
+- **Eccezione esplicita**: quando l'utente usa la frase "commit push PR" (o
+  equivalenti tipo "vai con commit e push e PR") oppure la parola d'ordine
+  **"Concludi!"**, questo significa ANCHE chiudere/mergiare la PR — non solo
+  aprirla in draft. È il segnale che il lavoro è finito: marcarla pronta per
+  la review e mergiarla, poi seguire comunque la procedura di conferma del
+  deploy qui sotto.
 
 ## Dopo il merge: conferma il deploy, non solo il merge
 
