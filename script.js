@@ -865,6 +865,7 @@ function createMascotController(mascot, bubble, options = {}) {
         en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨', 'Hey, easy!', 'Ouch!']
     };
     const INTRO_LINE = { it: 'Ciao, sono dot! Prova a trascinarmi 👋', en: "Hi, I'm dot! Try dragging me 👋" };
+    const NEWS_FETCH_FAILED = { it: 'non ci sono riuscito, riprova tra un po\'', en: "couldn't reach it, try again in a bit" };
 
     let pos = options.pos ? { x: options.pos.x, y: options.pos.y } : getLogoDotPos();
     let isDragging = false;
@@ -875,6 +876,7 @@ function createMascotController(mascot, bubble, options = {}) {
     let moveHistory = [];
     let clickTimes = [];
     let isPopped = false;
+    let isFetchingNews = false;
     let isDizzy = false;
     let shakeReversalTimes = [];
     let lastShakeDxSign = 0;
@@ -1089,7 +1091,11 @@ function createMascotController(mascot, bubble, options = {}) {
     }
 
     function randomHop() {
-        if (isDragging || isThrown || isPopped || instanceRemoved) return;
+        // Also holds still while a manually-triggered feed refetch is in
+        // flight — wandering off mid-"…" would leave the eventual answer
+        // (or the "couldn't reach it" fallback) popping up somewhere the
+        // visitor isn't looking anymore.
+        if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
         place(MARGIN + Math.random() * (window.innerWidth - MARGIN * 2), MARGIN + Math.random() * (window.innerHeight - MARGIN * 2));
         restartAnimation('hopping', 600);
         playHopSound();
@@ -1339,14 +1345,24 @@ function createMascotController(mascot, bubble, options = {}) {
         const now = Date.now();
         if (now - newsTopic.lastRefetchAt > NEWS_REFETCH_COOLDOWN_MS) {
             newsTopic.lastRefetchAt = now;
-            showBubble(newsTopic.icon + ' …', 4000);
-            newsTopic.refetch().then(() => {
-                if (instanceRemoved) return;
-                if (newsTopic.items().length) {
-                    newsIndex = 0; // show the freshest item first, not wherever the old cycle left off
-                    showNextNews();
-                }
-            });
+            isFetchingNews = true;
+            showBubble(newsTopic.icon + ' …', 8000);
+            newsTopic.refetch()
+                .then(() => {
+                    if (instanceRemoved) return;
+                    if (newsTopic.items().length) {
+                        newsIndex = 0; // show the freshest item first, not wherever the old cycle left off
+                        showNextNews();
+                    } else {
+                        // fetchXNews() already swallows its own errors (offline,
+                        // rate-limited, blocked) — an empty result here is the
+                        // only signal we get, so surface it instead of leaving
+                        // the "…" to just quietly expire with no explanation.
+                        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
+                        showBubble(newsTopic.icon + ' ' + (NEWS_FETCH_FAILED[lang] || NEWS_FETCH_FAILED.it), 3000);
+                    }
+                })
+                .finally(() => { isFetchingNews = false; });
             return;
         }
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
