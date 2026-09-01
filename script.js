@@ -323,8 +323,8 @@ window.addEventListener('scroll', () => {
     }
 
     const LINK_TEXT = {
-        it: { repo: 'Codice', link: 'Vedi live', ref: 'Web Speech API', listen: 'Ascolta', stop: 'Ferma' },
-        en: { repo: 'Code', link: 'Live demo', ref: 'Web Speech API', listen: 'Listen', stop: 'Stop' }
+        it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma' },
+        en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop' }
     };
 
     let currentEl = null;
@@ -356,17 +356,22 @@ window.addEventListener('scroll', () => {
 
         detailIcon.textContent = el.dataset.icon || '';
         detailTitle.textContent = title;
-        detailText.textContent = text;
+        // innerHTML, not textContent: a node's own text can carry a plain
+        // inline <a> (e.g. "Questo sito" linking out to the Web Speech API
+        // docs mid-sentence) instead of needing a separate pill/button for
+        // it. The content is static, developer-authored markup in
+        // index.html, never user input.
+        detailText.innerHTML = text;
 
-        // Optional repo/live-demo/reference links — only shown when a node
-        // provides them, so lightweight entries (like most About/Social
-        // nodes) stay text-only.
+        // Optional repo/live-demo links — only shown when a node provides
+        // them, so lightweight entries (like most About/Social nodes) stay
+        // text-only. A plain reference link belongs inline in the text
+        // itself (see above), not as a separate button here.
         if (detailLinks) {
             detailLinks.innerHTML = '';
             const links = [
                 { url: el.dataset.repo, label: LINK_TEXT[lang].repo, icon: '↗' },
-                { url: el.dataset.link, label: LINK_TEXT[lang].link, icon: '↗' },
-                { url: el.dataset.ref, label: LINK_TEXT[lang].ref, icon: '↗' }
+                { url: el.dataset.link, label: LINK_TEXT[lang].link, icon: '↗' }
             ].filter(l => l.url);
 
             links.forEach(({ url, label, icon }) => {

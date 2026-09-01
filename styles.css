@@ -699,6 +699,16 @@ body {
     line-height: 1.7;
 }
 
+.inline-link {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.inline-link:hover {
+    text-decoration-thickness: 2px;
+}
+
 .detail-actions {
     display: flex;
     flex-wrap: wrap;
