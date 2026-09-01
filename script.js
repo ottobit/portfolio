@@ -944,6 +944,12 @@ function createMascotController(mascot, bubble, options = {}) {
             if (this.removed) return;
             this.removed = true;
             instanceRemoved = true;
+            // Every popped/merged clone otherwise left its document-level
+            // listeners (mousemove eye-tracking, graphinteraction) running
+            // forever — dead weight that only grows the more a visitor
+            // splits/merges dot, since nothing ever cleaned them up.
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('graphinteraction', onGraphInteraction);
             mascot.remove();
             bubble.remove();
             const idx = activeMascots.indexOf(this);
@@ -1275,20 +1281,23 @@ function createMascotController(mascot, bubble, options = {}) {
     scheduleNews();
 
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
-    document.addEventListener('mousemove', (e) => {
-        if (isDragging || isThrown || isPopped) return;
+    // Named so remove() can actually unregister it — see the comment there.
+    function onMouseMove(e) {
+        if (isDragging || isThrown || isPopped || instanceRemoved) return;
         const rect = mascot.getBoundingClientRect();
         const dx = Math.max(-1, Math.min(1, (e.clientX - (rect.left + rect.width / 2)) / 60));
         const dy = Math.max(-1, Math.min(1, (e.clientY - (rect.top + rect.height / 2)) / 60));
         mascot.querySelectorAll('.mascot-eye').forEach(eye => {
             eye.style.transform = `translate(${dx * 1.5}px, ${dy * 1.5}px)`;
         });
-    });
+    }
+    document.addEventListener('mousemove', onMouseMove);
 
     // Perks up whenever a hub or a detail panel opens elsewhere on the graph.
-    document.addEventListener('graphinteraction', () => {
+    function onGraphInteraction() {
         if (!isPopped) restartAnimation('excited', 500);
-    });
+    }
+    document.addEventListener('graphinteraction', onGraphInteraction);
 
     function burstParticles({ count = 8, distance = 40, size = 5 } = {}) {
         const rect = mascot.getBoundingClientRect();
