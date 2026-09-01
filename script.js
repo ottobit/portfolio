@@ -716,13 +716,14 @@ const MAX_MASCOTS = 6;
 const activeMascots = [];
 const MERGE_DISTANCE = 45; // px between centers
 
-// Where "dot" is born: the small teal dot right after "ottobit." in the
-// logo. Falls back to the old hero-center spot if the logo isn't there for
-// some reason, so a missing selector never leaves the mascot un-placeable.
+// Where "dot" is born: the dot right after "ottobit." in the big hero
+// heading (.name), not the small one in the sticky header logo. Falls back
+// to the old hero-center spot if it isn't there for some reason, so a
+// missing selector never leaves the mascot un-placeable.
 function getLogoDotPos() {
-    const logoDot = document.querySelector('.logo .dot');
-    if (logoDot) {
-        const r = logoDot.getBoundingClientRect();
+    const nameDot = document.querySelector('.name .dot');
+    if (nameDot) {
+        const r = nameDot.getBoundingClientRect();
         if (r.width || r.height) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     }
     return { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
