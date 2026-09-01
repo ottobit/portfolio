@@ -759,10 +759,15 @@ const githubNewsPromise = fetchGithubNews();
 let aiNewsItems = [];
 async function fetchAiNews() {
     try {
-        const res = await fetch('https://huggingface.co/api/models?sort=trending&limit=8');
+        // "trending" is a website-only sort (huggingface.co/models?sort=trending) —
+        // the actual REST API rejects it with a 400, since `sort` there must be a
+        // real ModelInfo property (downloads, likes, lastModified, ...) paired
+        // with `direction=-1` for descending. Closest well-documented proxy for
+        // "popular right now": most downloads.
+        const res = await fetch('https://huggingface.co/api/models?sort=downloads&direction=-1&limit=8');
         if (!res.ok) return;
         const models = await res.json();
-        aiNewsItems = models.map(m => `trending on Hugging Face: ${m.id}`).filter(Boolean);
+        aiNewsItems = models.map(m => `popular on Hugging Face: ${m.id}`).filter(Boolean);
     } catch (err) {
         // Same silent fallback as the GitHub feed — offline/blocked/CORS
         // just means this dot sticks to its usual random one-liners.
