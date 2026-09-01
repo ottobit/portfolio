@@ -1564,15 +1564,18 @@ function createMascotController(mascot, bubble, options = {}) {
             // Grip: squeezed rubber stretches along the direction it's
             // being yanked and squashes on the other axis, so holding and
             // swinging it around actually looks and feels like gripping
-            // something soft rather than dragging a rigid icon. Normalized
-            // to px moved per ~16ms (one frame at 60fps) instead of the raw
+            // something soft — playdough, not a rigid icon. Normalized to
+            // px moved per ~16ms (one frame at 60fps) instead of the raw
             // per-event delta — pointermove fires at wildly different rates
             // across browsers/devices, so the raw delta made this read as
-            // barely-there on any setup that fires it often.
+            // barely-there on any setup that fires it often. Wide clamp
+            // range and a strong multiplier on purpose: an ordinary drag
+            // should already read as an obvious, cartoonish stretch, not
+            // a subtle wobble.
             const frameScale = 16.67 / dt;
             const stepVx = (pos.x - prevX) * frameScale, stepVy = (pos.y - prevY) * frameScale;
-            const sx = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVx) * 0.03 - Math.abs(stepVy) * 0.015));
-            const sy = Math.max(0.7, Math.min(1.4, 1 + Math.abs(stepVy) * 0.03 - Math.abs(stepVx) * 0.015));
+            const sx = Math.max(0.45, Math.min(2.0, 1 + Math.abs(stepVx) * 0.09 - Math.abs(stepVy) * 0.05));
+            const sy = Math.max(0.45, Math.min(2.0, 1 + Math.abs(stepVy) * 0.09 - Math.abs(stepVx) * 0.05));
             mascot.style.setProperty('--mascot-squash-x', sx.toFixed(3));
             mascot.style.setProperty('--mascot-squash-y', sy.toFixed(3));
 
