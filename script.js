@@ -903,6 +903,11 @@ function createMascotController(mascot, bubble, options = {}) {
     let moveHistory = [];
     let clickTimes = [];
     let isPopped = false;
+    // Once a real drag+release lands dot somewhere, that spot is a deliberate
+    // choice — the automatic idle wandering must never sweep it back into
+    // the bottom-left zone afterwards. Reset only on rebirth (birthAtLogo),
+    // so a fresh life starts wandering normally again.
+    let userPlaced = false;
     let isFetchingNews = false;
     let isDizzy = false;
     let shakeReversalTimes = [];
@@ -1118,6 +1123,7 @@ function createMascotController(mascot, bubble, options = {}) {
             mascot.style.removeProperty('--mascot-hue');
         }
         const logoPos = getLogoDotPos();
+        userPlaced = false; // a fresh life wanders normally again
         place(logoPos.x, logoPos.y);
         restartAnimation('recovering', BIRTH_DURATION_MS);
         playInflateSound(BIRTH_DURATION_MS / 1000);
@@ -1127,8 +1133,9 @@ function createMascotController(mascot, bubble, options = {}) {
         // Also holds still while a manually-triggered feed refetch is in
         // flight — wandering off mid-"…" would leave the eventual answer
         // (or the "couldn't reach it" fallback) popping up somewhere the
-        // visitor isn't looking anymore.
-        if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
+        // visitor isn't looking anymore. And never sweeps dot away from a
+        // spot the visitor deliberately threw it to (see userPlaced above).
+        if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved || userPlaced) return;
         stopRestBounce();
 
         // Idle wandering stays confined to a bottom-left zone instead of
@@ -1593,6 +1600,7 @@ function createMascotController(mascot, bubble, options = {}) {
                 mascot.style.setProperty('--mascot-rotate', '0deg');
                 mascot.classList.remove('thrown');
                 isThrown = false;
+                userPlaced = true;
                 startRestBounce();
                 return;
             }
@@ -1752,6 +1760,7 @@ function createMascotController(mascot, bubble, options = {}) {
             } else {
                 mascot.classList.remove('thrown');
                 isThrown = false;
+                userPlaced = true;
                 startRestBounce();
             }
         }
