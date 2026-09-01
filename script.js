@@ -728,28 +728,27 @@ const GITHUB_NEWS_REPO = 'ottobit/portfolio';
 let githubNewsItems = [];
 async function fetchGithubNews() {
     try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_NEWS_REPO}/events?per_page=30`);
+        // The Events API (used previously) truncates PullRequestEvent's
+        // pull_request object down to a handful of fields — no title, no
+        // html_url, no merged flag — and often ships PushEvents with an
+        // empty commits[] for API-driven pushes (like a merge done through
+        // the GitHub API rather than a raw git push). Both meant this feed
+        // silently found nothing to show despite the API itself responding
+        // fine. The commit history is a much more reliable source: every
+        // commit always carries its message and html_url.
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_NEWS_REPO}/commits?per_page=20`);
         if (!res.ok) return;
-        const events = await res.json();
+        const commits = await res.json();
         const items = [];
         const seenText = new Set();
-        for (const e of events) {
-            if (e.type === 'PushEvent') {
-                for (const c of (e.payload.commits || [])) {
-                    const msg = (c.message || '').split('\n')[0].trim();
-                    if (msg && !/^merge /i.test(msg) && !seenText.has(msg)) {
-                        seenText.add(msg);
-                        items.push({ text: msg, url: `https://github.com/${e.repo.name}/commit/${c.sha}`, icon: '📰' });
-                    }
-                }
-            } else if (e.type === 'PullRequestEvent' && e.payload.action === 'closed' && e.payload.pull_request && e.payload.pull_request.merged) {
-                const title = e.payload.pull_request.title;
-                // A PR's squash commit often repeats its own title, showing
-                // up twice in the raw event list — keep the first one seen.
-                if (title && !seenText.has(title)) {
-                    seenText.add(title);
-                    items.push({ text: title, url: e.payload.pull_request.html_url, icon: '📰' });
-                }
+        for (const c of commits) {
+            const msg = ((c.commit && c.commit.message) || '').split('\n')[0].trim();
+            // Skip merge commits ("Merge pull request #NN from ...") — the
+            // feature branch's own commit right after it already carries
+            // the real, human-written title.
+            if (msg && !/^merge /i.test(msg) && !seenText.has(msg)) {
+                seenText.add(msg);
+                items.push({ text: msg, url: c.html_url, icon: '📰' });
             }
             if (items.length >= 8) break;
         }
@@ -1158,7 +1157,6 @@ function createMascotController(mascot, bubble, options = {}) {
         isThrown = true;
         mascot.classList.add('thrown');
         let lastT = performance.now();
-        playHopSound();
 
         function step(now) {
             const dt = Math.min(0.032, (now - lastT) / 1000);
@@ -1172,15 +1170,26 @@ function createMascotController(mascot, bubble, options = {}) {
             if (nx < zoneLeft) {
                 nx = zoneLeft;
                 vx = -vx * RESTITUTION;
+                if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
             } else if (nx > zoneRight) {
                 nx = zoneRight;
                 vx = -vx * RESTITUTION;
+                if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
             }
 
             let settled = false;
             if (ny >= floor) {
                 ny = floor;
                 if (Math.abs(vy) > REST_VEL) {
+                    // The actual "thud" of hitting the ground — same
+                    // squash/land cues a throw gets — is what was missing
+                    // before: without it the arc read as a smooth glide
+                    // instead of a real bounce.
+                    if (Math.abs(vy) > BOUNCE_SOUND_VEL) {
+                        restartAnimation('dropped', 200);
+                        playHopSound();
+                        squashBounce(1.32, 0.7);
+                    }
                     vy = -vy * RESTITUTION;
                     vx *= FRICTION;
                 } else {
