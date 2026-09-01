@@ -770,14 +770,16 @@ async function fetchAiNews() {
         // "trending" is a website-only sort (huggingface.co/models?sort=trending) —
         // the actual REST API rejects it with a 400, since `sort` there must be a
         // real ModelInfo property (downloads, likes, lastModified, ...) paired
-        // with `direction=-1` for descending. Closest well-documented proxy for
-        // "popular right now": most downloads.
-        const res = await fetch('https://huggingface.co/api/models?sort=downloads&direction=-1&limit=8');
+        // with `direction=-1` for descending. Sorting by downloads surfaces
+        // popular-but-often-old models (the same handful stay on top for
+        // years) — lastModified favors what's actually being worked on right
+        // now, a better fit for "recent news" than raw popularity.
+        const res = await fetch('https://huggingface.co/api/models?sort=lastModified&direction=-1&limit=8');
         if (!res.ok) return;
         const models = await res.json();
         aiNewsItems = models
             .filter(m => m.id)
-            .map(m => ({ text: `popular on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}`, icon: '🤖' }));
+            .map(m => ({ text: `updated on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}`, icon: '🤖' }));
     } catch (err) {
         // Same silent fallback as the GitHub feed — offline/blocked/CORS
         // just means this dot sticks to its usual random one-liners.
@@ -785,29 +787,31 @@ async function fetchAiNews() {
 }
 const aiNewsPromise = fetchAiNews();
 
-// World theme: Wikipedia's official "on this day" feed — not hard news
-// (a real news API almost always needs a paid key, same backend problem
-// as Deepgram/an LLM chatbot), but a reliable, CORS-open, zero-key public
-// endpoint with a fittingly light tone for a mascot's speech bubble.
+// World theme: Hacker News' public top-stories feed — real, live world/tech
+// news refreshed continuously (previously Wikipedia's "on this day", which
+// sounds like news but is the opposite: it always surfaces past-year
+// anniversaries for today's date, never anything actually current). No key
+// needed, CORS-open, backed by Firebase.
 let worldNewsItems = [];
 async function fetchWorldNews() {
     try {
-        const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'en';
-        const wikiLang = lang === 'it' ? 'it' : 'en';
-        const now = new Date();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const res = await fetch(`https://${wikiLang}.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`);
+        const res = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
         if (!res.ok) return;
-        const data = await res.json();
-        worldNewsItems = (data.events || [])
-            .filter(e => e.text) // must filter the raw events, before mapping to strings below — a mapped string has no .text of its own
-            .slice(0, 8)
-            .map(e => {
-                const page = e.pages && e.pages[0];
-                const url = page && page.content_urls && page.content_urls.desktop && page.content_urls.desktop.page;
-                return { text: `${e.year}: ${e.text}`, url: url || null, icon: '🌍' };
-            });
+        const ids = (await res.json()).slice(0, 8);
+        const stories = await Promise.all(ids.map(id =>
+            fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
+                .then(r => (r.ok ? r.json() : null))
+                .catch(() => null)
+        ));
+        worldNewsItems = stories
+            .filter(s => s && s.title)
+            .map(s => ({
+                text: s.title,
+                // A self-post (Ask/Show HN) has no external url — fall back
+                // to its own HN discussion page.
+                url: s.url || `https://news.ycombinator.com/item?id=${s.id}`,
+                icon: '🌍'
+            }));
     } catch (err) {
         // Silent fallback, same as the other two feeds.
     }
