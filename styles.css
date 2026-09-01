@@ -960,34 +960,53 @@ body {
     }
 }
 
-/* Evolution timeline — a drawer that slides down from the top of the
-   viewport (opened via the "Evoluzione" button next to "Ascolta", or by
+/* Evolution timeline — a sheet that rises from the bottom of the viewport
+   (opened via the "Evoluzione" button next to "Ascolta", or by
    scrolling/pulling up while already at the top of the page), listing
    every merged PR grouped into eras. Reuses .detail-backdrop/.detail-close
    for the dimmed background and close button, and the same theme tokens
-   as the rest of the site so light/dark just works. */
+   as the rest of the site so light/dark just works. A quick, snappy
+   slide+fade — not a slow drop-down — keeps it feeling like a light
+   reveal instead of a heavy modal. */
 .timeline-drawer {
     position: fixed;
-    top: 0;
+    bottom: 0;
     left: 0;
     right: 0;
     z-index: 1000;
     max-height: 88vh;
     overflow-y: auto;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    border-radius: 0 0 20px 20px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-    transform: translateY(-100%);
-    transition: transform 0.35s ease;
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translateY(100%);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
+    pointer-events: none;
 }
 
 .timeline-drawer.visible {
+    opacity: 1;
     transform: translateY(0);
+    pointer-events: auto;
 }
 
 .timeline-drawer-inner {
-    padding: 3.5rem 1.5rem 3rem;
+    padding: 2.5rem 1.5rem 3rem;
+}
+
+/* Each era fades/slides into place as it's scrolled into view inside the
+   sheet, rather than all appearing at once. */
+.timeline-era {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.timeline-era.in-view {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .timeline-intro {
