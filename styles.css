@@ -556,14 +556,34 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 0.4rem 0.7rem;
-    font-size: 0.75rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
     font-weight: 600;
+    line-height: 1.4;
     color: var(--text);
-    white-space: nowrap;
+    /* News items can run to a full sentence (a commit message, a Wikipedia
+       blurb) — wrap instead of the one-liner nowrap, capped so it never
+       spans the whole viewport. */
+    white-space: normal;
+    max-width: min(320px, 80vw);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1201;
     pointer-events: none;
+}
+
+/* A news bubble carries a link to its source — auto pointer-events (only
+   this state, so a plain one-liner never blocks clicks on what's behind
+   it) plus an underline so the affordance is obvious before the click. */
+.mascot-bubble.clickable {
+    pointer-events: auto;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 3px;
+}
+
+.mascot-bubble.clickable:hover {
+    border-color: var(--accent);
 }
 
 /* Hub/sub-node chips overlaid on the hero canvas, fixed relative to the

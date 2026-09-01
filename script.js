@@ -732,20 +732,28 @@ async function fetchGithubNews() {
         if (!res.ok) return;
         const events = await res.json();
         const items = [];
+        const seenText = new Set();
         for (const e of events) {
             if (e.type === 'PushEvent') {
                 for (const c of (e.payload.commits || [])) {
                     const msg = (c.message || '').split('\n')[0].trim();
-                    if (msg && !/^merge /i.test(msg)) items.push(msg);
+                    if (msg && !/^merge /i.test(msg) && !seenText.has(msg)) {
+                        seenText.add(msg);
+                        items.push({ text: msg, url: `https://github.com/${e.repo.name}/commit/${c.sha}` });
+                    }
                 }
             } else if (e.type === 'PullRequestEvent' && e.payload.action === 'closed' && e.payload.pull_request && e.payload.pull_request.merged) {
-                items.push(e.payload.pull_request.title);
+                const title = e.payload.pull_request.title;
+                // A PR's squash commit often repeats its own title, showing
+                // up twice in the raw event list — keep the first one seen.
+                if (title && !seenText.has(title)) {
+                    seenText.add(title);
+                    items.push({ text: title, url: e.payload.pull_request.html_url });
+                }
             }
             if (items.length >= 8) break;
         }
-        // De-dupe while keeping order — a PR's squash commit often repeats
-        // its own title, showing up twice in the raw event list.
-        githubNewsItems = [...new Set(items)];
+        githubNewsItems = items;
     } catch (err) {
         // Offline, rate-limited, or blocked — dot's normal random lines
         // are a perfectly fine fallback, so this fails silently.
@@ -767,7 +775,9 @@ async function fetchAiNews() {
         const res = await fetch('https://huggingface.co/api/models?sort=downloads&direction=-1&limit=8');
         if (!res.ok) return;
         const models = await res.json();
-        aiNewsItems = models.map(m => `popular on Hugging Face: ${m.id}`).filter(Boolean);
+        aiNewsItems = models
+            .filter(m => m.id)
+            .map(m => ({ text: `popular on Hugging Face: ${m.id}`, url: `https://huggingface.co/${m.id}` }));
     } catch (err) {
         // Same silent fallback as the GitHub feed — offline/blocked/CORS
         // just means this dot sticks to its usual random one-liners.
@@ -790,7 +800,14 @@ async function fetchWorldNews() {
         const res = await fetch(`https://${wikiLang}.wikipedia.org/api/rest_v1/feed/onthisday/events/${mm}/${dd}`);
         if (!res.ok) return;
         const data = await res.json();
-        worldNewsItems = (data.events || []).slice(0, 8).map(e => `${e.year}: ${e.text}`).filter(e => e.text);
+        worldNewsItems = (data.events || [])
+            .filter(e => e.text) // must filter the raw events, before mapping to strings below — a mapped string has no .text of its own
+            .slice(0, 8)
+            .map(e => {
+                const page = e.pages && e.pages[0];
+                const url = page && page.content_urls && page.content_urls.desktop && page.content_urls.desktop.page;
+                return { text: `${e.year}: ${e.text}`, url: url || null };
+            });
     } catch (err) {
         // Silent fallback, same as the other two feeds.
     }
@@ -1144,7 +1161,8 @@ function createMascotController(mascot, bubble, options = {}) {
     function showNextNews() {
         const items = newsTopic.items();
         if (!items.length) return;
-        showBubble(newsTopic.icon + ' ' + items[newsIndex % items.length], 4000);
+        const item = items[newsIndex % items.length];
+        showBubble(newsTopic.icon + ' ' + item.text, 4000, item.url);
         newsIndex++;
         if (newsBadge) newsBadge.hidden = true;
     }
@@ -1300,11 +1318,24 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 380);
     }
 
-    function showBubble(text, duration = 1500) {
+    // A news item's bubble carries the URL of its source (a commit, a PR, a
+    // model page, a Wikipedia article) — click it to open that instead of
+    // just reading the headline. Wired once per instance; plain one-liners
+    // (random lines, the loading/error states) pass no url and stay inert.
+    let bubbleUrl = null;
+    bubble.addEventListener('click', (e) => {
+        if (!bubbleUrl) return;
+        e.stopPropagation();
+        window.open(bubbleUrl, '_blank', 'noopener,noreferrer');
+    });
+
+    function showBubble(text, duration = 1500, url = null) {
         bubble.textContent = text;
         bubble.style.left = pos.x + 'px';
         bubble.style.top = pos.y + 'px';
         bubble.hidden = false;
+        bubbleUrl = url;
+        bubble.classList.toggle('clickable', !!url);
         window.clearTimeout(bubble._timer);
         bubble._timer = window.setTimeout(() => { bubble.hidden = true; }, duration);
     }
