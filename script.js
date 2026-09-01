@@ -797,10 +797,14 @@ const worldNewsPromise = fetchWorldNews();
 // splitting doesn't just multiply the same GitHub updates, each clone
 // becomes its own little "listening" specialty.
 const NEWS_TOPICS = [
-    { icon: '📰', items: () => githubNewsItems },
-    { icon: '🤖', items: () => aiNewsItems },
-    { icon: '🌍', items: () => worldNewsItems }
+    { icon: '📰', items: () => githubNewsItems, refetch: fetchGithubNews, lastRefetchAt: 0 },
+    { icon: '🤖', items: () => aiNewsItems, refetch: fetchAiNews, lastRefetchAt: 0 },
+    { icon: '🌍', items: () => worldNewsItems, refetch: fetchWorldNews, lastRefetchAt: 0 }
 ];
+// Floor between clicked-triggered live refetches of the same topic —
+// several dots can share a topic, and mashing clicks shouldn't hammer a
+// public API that's rate-limited per visitor IP.
+const NEWS_REFETCH_COOLDOWN_MS = 20000;
 let mascotCreationCount = 0;
 
 // Where "dot" is born: the dot right after "ottobit." in the big hero
@@ -1320,6 +1324,24 @@ function createMascotController(mascot, bubble, options = {}) {
         // reveals it right away instead of the usual random one-liner.
         if (newsBadge && !newsBadge.hidden) {
             showNextNews();
+            return;
+        }
+        // Otherwise a click asks dot to go check its feed live, instead of
+        // waiting for the next scheduled cycle — capped per topic so
+        // mashing clicks doesn't hammer a rate-limited public API. Falls
+        // back to the usual random one-liner while on cooldown, so rapid
+        // clicking still feels alive instead of doing nothing.
+        const now = Date.now();
+        if (now - newsTopic.lastRefetchAt > NEWS_REFETCH_COOLDOWN_MS) {
+            newsTopic.lastRefetchAt = now;
+            showBubble(newsTopic.icon + ' …', 4000);
+            newsTopic.refetch().then(() => {
+                if (instanceRemoved) return;
+                if (newsTopic.items().length) {
+                    newsIndex = 0; // show the freshest item first, not wherever the old cycle left off
+                    showNextNews();
+                }
+            });
             return;
         }
         const lang = (typeof siteState !== 'undefined' && siteState.getLang) ? siteState.getLang() : document.documentElement.lang || 'it';
