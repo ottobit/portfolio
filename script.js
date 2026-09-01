@@ -323,8 +323,8 @@ window.addEventListener('scroll', () => {
     }
 
     const LINK_TEXT = {
-        it: { repo: 'Codice', link: 'Vedi live', ref: 'Scopri di più', listen: 'Ascolta', stop: 'Ferma' },
-        en: { repo: 'Code', link: 'Live demo', ref: 'Learn more', listen: 'Listen', stop: 'Stop' }
+        it: { repo: 'Codice', link: 'Vedi live', ref: 'Web Speech API', listen: 'Ascolta', stop: 'Ferma' },
+        en: { repo: 'Code', link: 'Live demo', ref: 'Web Speech API', listen: 'Listen', stop: 'Stop' }
     };
 
     let currentEl = null;
