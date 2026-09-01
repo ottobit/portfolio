@@ -885,8 +885,8 @@ function createMascotController(mascot, bubble, options = {}) {
     let instanceRemoved = false;
 
     const LINES = {
-        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!', '✨', 'Ehi, piano!', 'Ahia!'],
-        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!', '✨', 'Hey, easy!', 'Ouch!']
+        it: ['Ciao! 👋', 'Continua a esplorare!', 'Prova a cliccare un nodo!'],
+        en: ['Hi there! 👋', 'Keep exploring!', 'Try clicking a node!']
     };
     const INTRO_LINE = { it: 'Ciao, sono dot! Prova a trascinarmi 👋', en: "Hi, I'm dot! Try dragging me 👋" };
     const NEWS_FETCH_FAILED = { it: 'non ci sono riuscito, riprova tra un po\'', en: "couldn't reach it, try again in a bit" };
