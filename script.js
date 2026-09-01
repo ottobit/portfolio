@@ -493,7 +493,22 @@ navLinks.forEach(link => {
         // not random each time) breaks that symmetry into something more
         // organic without ever overlapping — the relax pass below still
         // has the final say.
-        const baseRadius = Math.min(170, Math.max(95, panelWidth * 0.3)) + Math.max(0, count - 3) * 16;
+        // Radius must respect BOTH panel dimensions: on mobile the panel is
+        // full-width but short, so a width-only radius overshoots the real
+        // vertical clearance and rings end up overlapping a neighboring hub.
+        // On desktop panelHeight is always far larger than needed here, so
+        // this reduces to the previous width-only behavior unchanged.
+        const widthRadius = Math.min(170, Math.max(95, panelWidth * 0.3));
+        const heightRadius = Math.max(60, panelHeight * 0.42);
+        const capRadius = Math.min(widthRadius, heightRadius);
+        // A dense hub (e.g. About's 6 sub-dots) needs a wider ring so its own
+        // sub-dots don't collide with each other — but growing that ring at
+        // the same rate when the panel is height-capped (mobile) just pushes
+        // the ring into a neighboring hub instead. Grow it more gently in
+        // that case and let the relax pass below (which now also pushes
+        // clear of other hubs' chips) settle the rest.
+        const growthPerExtra = capRadius === heightRadius ? 8 : 16;
+        const baseRadius = capRadius + Math.max(0, count - 3) * growthPerExtra;
         const angleStep = count > 1 ? 360 / count : 0;
         const startAngle = -45; // diagonal, not straight up — avoids a N/E/S/W cross
 
@@ -519,9 +534,30 @@ navLinks.forEach(link => {
             };
         });
 
+        // Other hubs' own chips never move, but a sub-dot ring can still
+        // reach far enough to sit on top of one on short mobile panels —
+        // treat them (not the current hub, which the ring is meant to
+        // radiate close to) as fixed obstacles in the relax pass below.
+        // Active/hovered hub-dots render 8% larger (`.hub-dot.active`/
+        // `:hover` scale transform) without changing offsetWidth/Height, so
+        // pad the obstacle box to match what's actually painted — otherwise
+        // the collision math clears a gap the scaled-up chip still overlaps.
+        const hubObstacles = hubDots
+            .filter(h => h !== hub)
+            .map(h => ({
+                x: (parseFloat(h.dataset.x) / 100) * panelWidth,
+                y: (parseFloat(h.dataset.y) / 100) * panelHeight,
+                w: (h.offsetWidth || 90) * 1.08,
+                h: (h.offsetHeight || 36) * 1.08
+            }));
+
         // Relax any remaining overlap (e.g. tight radius on small panels)
-        // by nudging colliding pairs apart along their separation vector.
-        for (let pass = 0; pass < 6; pass++) {
+        // by nudging colliding pairs apart along their separation vector,
+        // and pushing any point clear of another hub's chip. More passes
+        // than the sub-vs-sub-only case needed, since a dense ring (e.g.
+        // About's 6 sub-dots) fighting a fixed hub obstacle on a short
+        // mobile panel takes longer to settle.
+        for (let pass = 0; pass < 24; pass++) {
             let moved = false;
             for (let i = 0; i < points.length; i++) {
                 for (let j = i + 1; j < points.length; j++) {
@@ -543,20 +579,53 @@ navLinks.forEach(link => {
                     b.x += nx; b.y += ny;
                     moved = true;
                 }
+
+                const p = points[i];
+                for (const ob of hubObstacles) {
+                    const minDx = (p.w + ob.w) / 2 + gap;
+                    const minDy = (p.h + ob.h) / 2 + gap / 2;
+                    const dx = p.x - ob.x;
+                    const dy = p.y - ob.y;
+                    if (Math.abs(dx) >= minDx || Math.abs(dy) >= minDy) continue;
+                    const overlapX = minDx - Math.abs(dx);
+                    const overlapY = minDy - Math.abs(dy);
+                    // Obstacle is fixed, so resolve along whichever axis
+                    // needs the smaller nudge (minimum-translation push)
+                    // instead of a diagonal step. Two hub-dots close enough
+                    // together can each demand a full push on opposite Y
+                    // sides, which would bounce a sub-dot forever between
+                    // them — damping the step lets the passes above settle
+                    // toward a resting point that minimizes overlap instead
+                    // of oscillating between two full corrections.
+                    if (overlapX < overlapY) {
+                        p.x += (dx < 0 ? -1 : 1) * (overlapX * 0.5 + 0.5);
+                    } else {
+                        p.y += (dy < 0 ? -1 : 1) * (overlapY * 0.5 + 0.5);
+                    }
+                    moved = true;
+                }
             }
+
+            // Chips are fixed (no pan to reach ones past the edge), so clamp
+            // each point within the panel at the end of every pass — not
+            // just once at the very end — otherwise a push that resolves an
+            // overlap by landing outside the panel gets pulled back by the
+            // final clamp with no chance to re-relax, silently undoing the
+            // fix on short mobile panels.
+            for (const p of points) {
+                const marginX = p.w / 2 + 10;
+                const marginY = p.h / 2 + 10;
+                p.x = Math.max(marginX, Math.min(panelWidth - marginX, p.x));
+                p.y = Math.max(marginY, Math.min(panelHeight - marginY, p.y));
+            }
+
             if (!moved) break;
         }
 
-        // Chips are fixed (no pan to reach ones past the edge), so clamp
-        // their center within the panel, leaving room for their own width.
         points.forEach(p => {
-            const marginX = p.w / 2 + 10;
-            const marginY = p.h / 2 + 10;
-            const x = Math.max(marginX, Math.min(panelWidth - marginX, p.x));
-            const y = Math.max(marginY, Math.min(panelHeight - marginY, p.y));
-            p.sub.style.left = x + 'px';
-            p.sub.style.top = y + 'px';
-            p.sub.classList.toggle('label-left', x < hx - 10);
+            p.sub.style.left = p.x + 'px';
+            p.sub.style.top = p.y + 'px';
+            p.sub.classList.toggle('label-left', p.x < hx - 10);
         });
 
         return { hx, hy };

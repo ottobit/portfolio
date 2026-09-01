@@ -939,7 +939,7 @@ body {
     .hero-visual {
         order: -1;
         flex: 0 0 auto;
-        height: clamp(120px, 26vh, 220px);
+        height: clamp(140px, 30vh, 240px);
     }
 
     .hero-text {
@@ -995,10 +995,35 @@ body {
         margin-top: clamp(0.5rem, 1.5vh, 1.5rem);
     }
 
-    /* Same interactive graph as desktop, just with a bit more tap padding */
-    .hub-dot,
+    /* Same interactive graph as desktop, but padding/label/dot size scale
+       with the available vertical space instead of a fixed value — the
+       hero-visual panel is much shorter here than on desktop, so chips need
+       their own vh-clamped sizing like the rest of this block. */
+    .hub-dot {
+        padding: clamp(0.55rem, 2vh, 0.85rem) clamp(0.7rem, 3vw, 1rem);
+        gap: clamp(0.3rem, 1vh, 0.4rem);
+    }
+
     .sub-dot {
-        padding: 0.55rem;
+        padding: clamp(0.4rem, 1.4vh, 0.55rem) clamp(0.55rem, 2.4vw, 0.8rem);
+    }
+
+    .hub-dot .node-dot {
+        width: clamp(8px, 2.2vh, 10px);
+        height: clamp(8px, 2.2vh, 10px);
+    }
+
+    .sub-dot .node-dot {
+        width: clamp(7px, 1.8vh, 8px);
+        height: clamp(7px, 1.8vh, 8px);
+    }
+
+    .hub-dot .dot-label {
+        font-size: clamp(0.78rem, 2.3vh, 0.92rem);
+    }
+
+    .sub-dot .dot-label {
+        font-size: clamp(0.68rem, 1.9vh, 0.8rem);
     }
 }
 
