@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ottobit.github.io/portfolio/sitemap.xml
