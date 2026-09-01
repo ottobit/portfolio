@@ -794,6 +794,7 @@ function createMascotController(mascot, bubble, options = {}) {
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
+    const BIRTH_DURATION_MS = 700; // must match .mascot.recovering's animation-duration in styles.css
     let hueDeg = options.hueDeg || 0;
     if (hueDeg) mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
     let instanceRemoved = false;
@@ -938,6 +939,16 @@ function createMascotController(mascot, bubble, options = {}) {
     function playRecoverSound() {
         chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
     }
+    // A balloon actually being blown up: a squeaky, rising pitch (sawtooth
+    // reads more "stretched rubber" than the plain square/sine used
+    // elsewhere) held for the whole swell, then a soft low settling thud
+    // right as it reaches full size — for dot's birth/rebirth at the logo.
+    function playInflateSound(duration) {
+        chirp({ freqStart: 180, freqEnd: 620, duration, type: 'sawtooth', gain: 0.045 });
+        window.setTimeout(() => {
+            chirp({ freqStart: 260, freqEnd: 140, duration: 0.12, type: 'sine', gain: 0.05 });
+        }, duration * 1000 * 0.85);
+    }
     // A short, punchy knock — for when the mascot collides with a page
     // element mid-throw (distinct from the softer floor/wall bounce sound).
     function playHitSound() {
@@ -1012,8 +1023,8 @@ function createMascotController(mascot, bubble, options = {}) {
         }
         const logoPos = getLogoDotPos();
         place(logoPos.x, logoPos.y);
-        restartAnimation('recovering', 500);
-        playRecoverSound();
+        restartAnimation('recovering', BIRTH_DURATION_MS);
+        playInflateSound(BIRTH_DURATION_MS / 1000);
     }
 
     function randomHop() {
@@ -1029,8 +1040,8 @@ function createMascotController(mascot, bubble, options = {}) {
     // own spring-away entrance) is born right on the logo dot, inflating
     // into view instead of just silently appearing already in the hero.
     if (!options.pos && !reduceMotion) {
-        restartAnimation('recovering', 500);
-        playRecoverSound();
+        restartAnimation('recovering', BIRTH_DURATION_MS);
+        playInflateSound(BIRTH_DURATION_MS / 1000);
     }
 
     function scheduleHop() {

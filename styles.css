@@ -491,7 +491,10 @@ body {
 }
 
 .mascot.recovering {
-    animation: mascot-recover 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Longer than most of the mascot's other transient effects on
+       purpose — a balloon actually filling up needs to read as a
+       gradual swell, not a snap-into-place blip. */
+    animation: mascot-recover 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes mascot-recover {
