@@ -1072,10 +1072,25 @@ function checkMascotMerge(self) {
     }
 }
 
-// Vivid, toy-like colors for split-off clones — chosen directly rather
-// than derived by hue-rotating the dark brand teal, which only ever lands
-// on muddy, desaturated tones.
-const BALL_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+// Vivid, toy-like colors for split-off clones, chosen directly rather than
+// derived by hue-rotating the dark brand teal (which only ever lands on
+// muddy, desaturated tones). Tuned per theme so they read clearly against
+// either background — deeper/saturated shades on light (white-ish)
+// backgrounds, brighter/lighter shades on dark ones.
+const BALL_COLORS_LIGHT = ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777'];
+const BALL_COLORS_DARK = ['#f87171', '#fb923c', '#facc15', '#4ade80', '#22d3ee', '#60a5fa', '#c084fc', '#f472b6'];
+
+// Picks a color for a new clone, preferring one no other currently active
+// mascot is already wearing — so simultaneous clones always read as
+// visually distinct instead of occasionally landing on the same hue.
+function pickBallColor() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const palette = isDark ? BALL_COLORS_DARK : BALL_COLORS_LIGHT;
+    const used = new Set(activeMascots.map(h => h.getColor && h.getColor()).filter(Boolean));
+    const free = palette.filter(c => !used.has(c));
+    const pool = free.length ? free : palette;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
 
 function createMascotController(mascot, bubble, options = {}) {
     if (!mascot || !bubble) return;
@@ -2196,7 +2211,7 @@ function createMascotController(mascot, bubble, options = {}) {
         // A clone gets a proper rubber-ball color instead of a hue-rotated
         // shift of the dark brand teal (which only ever lands on muddy,
         // desaturated tones) — a fixed palette of vivid, toy-like colors.
-        const cloneColor = BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
+        const cloneColor = pickBallColor();
         clone.style.setProperty('--mascot-color', cloneColor);
 
         const bubbleClone = bubble.cloneNode(true);
