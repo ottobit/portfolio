@@ -307,13 +307,21 @@ navLinks.forEach(link => {
     // between mimics natural breathing/phrasing better than one run-on.
     function speakSentences(text, opts, onDone) {
         const sentences = text.match(/[^.!?]+[.!?]*/g)?.map(s => s.trim()).filter(Boolean) || [text];
+        const baseRate = opts.rate ?? 1;
+        const basePitch = opts.pitch ?? 1;
         let i = 0;
         function next() {
             if (i >= sentences.length) { onDone(); return; }
             const u = new SpeechSynthesisUtterance(sentences[i]);
             Object.assign(u, opts);
+            // A little per-sentence variation in rate/pitch/pause — a real
+            // speaker never hits the exact same cadence twice in a row, and
+            // that mechanical uniformity is usually the first giveaway that
+            // a voice is synthetic.
+            u.rate = baseRate + (Math.random() - 0.5) * 0.08;
+            u.pitch = Math.min(2, Math.max(0, basePitch + (Math.random() - 0.5) * 0.1));
             i++;
-            u.onend = () => window.setTimeout(next, 120);
+            u.onend = () => window.setTimeout(next, 90 + Math.random() * 90);
             u.onerror = onDone;
             window.speechSynthesis.speak(u);
         }
