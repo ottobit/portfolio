@@ -1265,6 +1265,20 @@ function createMascotController(mascot, bubble, options = {}) {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('graphinteraction', onGraphInteraction);
             window.removeEventListener('resize', onResize);
+            // In case this instance never got its first real click/keydown
+            // (its one-time audio-unlock listeners below are still pending)
+            // — otherwise harmless no-ops.
+            document.removeEventListener('pointerdown', getAudioCtx);
+            document.removeEventListener('keydown', getAudioCtx);
+            // Every clone that ever played a sound spun up its own
+            // AudioContext — left open, each one is a real native resource
+            // (an audio thread/graph) that a plain JS reference drop won't
+            // reclaim, so a session with a lot of splitting/popping quietly
+            // piled these up forever without this.
+            if (audioCtx) {
+                audioCtx.close().catch(() => {});
+                audioCtx = null;
+            }
             mascot.remove();
             bubble.remove();
             const idx = activeMascots.indexOf(this);
@@ -1280,6 +1294,13 @@ function createMascotController(mascot, bubble, options = {}) {
     // gesture, then it just works.
     let audioCtx = null;
     function getAudioCtx() {
+        // A removed instance's own {once: true} unlock listeners below can
+        // still be sitting on `document` when this fires (the very next
+        // pointerdown/keydown anywhere consumes them, whether or not this
+        // instance is still around) — without this guard that spins up a
+        // fresh AudioContext for a mascot that's already gone, which then
+        // never gets closed since remove() already ran.
+        if (instanceRemoved) return null;
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (!Ctx) return null;
         if (!audioCtx) audioCtx = new Ctx();
