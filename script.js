@@ -1690,10 +1690,26 @@ function createMascotController(mascot, bubble, options = {}) {
     // another handful of small particles among the others.
     function burstShockwave(big) {
         const rect = mascot.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
         const ring = document.createElement('span');
         ring.className = big ? 'mascot-shockwave big' : 'mascot-shockwave';
-        ring.style.left = (rect.left + rect.width / 2) + 'px';
-        ring.style.top = (rect.top + rect.height / 2) + 'px';
+        ring.style.left = cx + 'px';
+        ring.style.top = cy + 'px';
+        if (big) {
+            // A fixed scale factor would fall short on a large screen, or
+            // when dot explodes near a corner instead of the middle —
+            // always reach the farthest corner of the viewport instead,
+            // wherever dot happens to be.
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const maxDist = Math.max(
+                Math.hypot(0 - cx, 0 - cy),
+                Math.hypot(vw - cx, 0 - cy),
+                Math.hypot(0 - cx, vh - cy),
+                Math.hypot(vw - cx, vh - cy)
+            );
+            ring.style.setProperty('--shockwave-scale', (maxDist / 10).toFixed(1));
+        }
         if (mascotColor) ring.style.borderColor = mascotColor;
         document.body.appendChild(ring);
         ring.addEventListener('animationend', () => ring.remove());
