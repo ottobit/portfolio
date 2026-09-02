@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ottobit — Cerebro Engine</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css?v=4.9">
+</head>
+<body>
+    <a href="#main" class="skip-link" data-en="Skip to content">Vai al contenuto</a>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="index.html#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Apri menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="index.html#home">Home</a></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="timeline-page container" id="main">
+        <header class="timeline-intro">
+            <h1 data-en="Cerebro Engine — flow diagram">Cerebro Engine — diagramma di flusso</h1>
+            <p data-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result.">Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato.</p>
+        </header>
+
+        <div class="diagram-page">
+            <img src="cerebro-diagram.svg" alt="Diagramma a stati del flusso di Cerebro Engine" data-alt-en="State diagram of the Cerebro Engine flow">
+        </div>
+    </main>
+
+    <div class="container">
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 ottobit</p>
+        </footer>
+    </div>
+
+    <script>
+    // Minimal, self-contained theme/language bootstrap — shares the same
+    // localStorage keys ('theme'/'lang') as script.js on the main page, so
+    // toggling here or there stays in sync, but deliberately does NOT load
+    // script.js itself: that file's hero-canvas/graph/mascot/news-feed code
+    // has nothing to do with this page and would fire six unnecessary
+    // public-API calls on every visit here.
+    (function () {
+        var root = document.documentElement;
+        var themeToggle = document.getElementById('theme-toggle');
+        var themeIcon = document.getElementById('theme-toggle-icon');
+        var themeLabel = document.getElementById('theme-toggle-label');
+        var langToggle = document.getElementById('lang-toggle');
+        var langLabel = document.getElementById('lang-toggle-label');
+        var diagramImg = document.querySelector('.diagram-page img');
+
+        var THEME_TEXT = {
+            it: { toDark: 'Tema scuro', toLight: 'Tema chiaro' },
+            en: { toDark: 'Dark theme', toLight: 'Light theme' }
+        };
+
+        var lang = localStorage.getItem('lang') || 'en';
+        var theme = localStorage.getItem('theme') || 'light';
+        var updateNavToggleLabel = function () {};
+
+        function applyThemeUI() {
+            var isDark = theme === 'dark';
+            root.setAttribute('data-theme', theme);
+            if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+            if (themeLabel) themeLabel.textContent = isDark ? THEME_TEXT[lang].toLight : THEME_TEXT[lang].toDark;
+            if (themeToggle) themeToggle.setAttribute('aria-pressed', String(isDark));
+        }
+
+        function applyLangUI() {
+            root.lang = lang;
+            if (langLabel) langLabel.textContent = lang === 'it' ? 'English' : 'Italiano';
+            if (langToggle) langToggle.setAttribute('aria-pressed', String(lang === 'en'));
+            document.querySelectorAll('[data-en]').forEach(function (el) {
+                if (!el.dataset.it) el.dataset.it = el.textContent;
+                el.textContent = lang === 'en' ? el.dataset.en : el.dataset.it;
+            });
+            if (diagramImg) diagramImg.alt = lang === 'en' ? diagramImg.dataset.altEn : diagramImg.getAttribute('alt');
+            updateNavToggleLabel();
+        }
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                theme = theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', theme);
+                applyThemeUI();
+            });
+        }
+
+        if (langToggle) {
+            langToggle.addEventListener('click', function () {
+                lang = lang === 'en' ? 'it' : 'en';
+                localStorage.setItem('lang', lang);
+                applyLangUI();
+                applyThemeUI();
+            });
+        }
+
+        // Hamburger menu — same behavior as script.js's copy on index.html.
+        var navToggle = document.getElementById('nav-toggle');
+        var navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            var NAV_TOGGLE_TEXT = {
+                it: { open: 'Apri menu', close: 'Chiudi menu' },
+                en: { open: 'Open menu', close: 'Close menu' }
+            };
+            function updateToggleLabel() {
+                var isOpen = navMenu.classList.contains('open');
+                navToggle.setAttribute('aria-label', isOpen ? NAV_TOGGLE_TEXT[lang].close : NAV_TOGGLE_TEXT[lang].open);
+            }
+            updateNavToggleLabel = updateToggleLabel;
+            function closeMenu() {
+                navMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+                updateToggleLabel();
+            }
+            navToggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = navMenu.classList.toggle('open');
+                navToggle.setAttribute('aria-expanded', String(open));
+                updateToggleLabel();
+            });
+            navMenu.addEventListener('click', function (e) {
+                if (e.target.closest('a')) closeMenu();
+            });
+            document.addEventListener('click', function (e) {
+                if (!navMenu.contains(e.target) && e.target !== navToggle) closeMenu();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMenu();
+            });
+        }
+
+        applyThemeUI();
+        applyLangUI();
+    })();
+    </script>
+</body>
+</html>
