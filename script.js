@@ -1072,6 +1072,11 @@ function checkMascotMerge(self) {
     }
 }
 
+// Vivid, toy-like colors for split-off clones — chosen directly rather
+// than derived by hue-rotating the dark brand teal, which only ever lands
+// on muddy, desaturated tones.
+const BALL_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+
 function createMascotController(mascot, bubble, options = {}) {
     if (!mascot || !bubble) return;
     if (mascotInstanceCount >= MAX_MASCOTS) {
@@ -1084,9 +1089,9 @@ function createMascotController(mascot, bubble, options = {}) {
     const MARGIN = 20;
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
-    const BIRTH_DURATION_MS = 700; // must match .mascot.recovering's animation-duration in styles.css
-    let hueDeg = options.hueDeg || 0;
-    if (hueDeg) mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
+    const BIRTH_DURATION_MS = 1100; // must match .mascot.recovering's animation-duration in styles.css
+    let mascotColor = options.mascotColor || null;
+    if (mascotColor) mascot.style.setProperty('--mascot-color', mascotColor);
     let instanceRemoved = false;
 
     const LINES = {
@@ -1130,7 +1135,7 @@ function createMascotController(mascot, bubble, options = {}) {
         merging: false,
         bornAt: performance.now(),
         getPos: () => pos,
-        getHueDeg: () => hueDeg,
+        getColor: () => mascotColor,
         hasPendingNews: () => !!(newsBadge && !newsBadge.hidden),
         getNewsIndex: () => newsIndex,
         absorb(otherHandle) {
@@ -1142,10 +1147,10 @@ function createMascotController(mascot, bubble, options = {}) {
             // its colored clones. Without this, every fusion would erase
             // color back to the site's default, no matter how many colorful
             // clones went into it. Keep a color if either side had one.
-            const otherHue = otherHandle.getHueDeg ? otherHandle.getHueDeg() : 0;
-            if (!hueDeg && otherHue) {
-                hueDeg = otherHue;
-                mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
+            const otherColor = otherHandle.getColor ? otherHandle.getColor() : null;
+            if (!mascotColor && otherColor) {
+                mascotColor = otherColor;
+                mascot.style.setProperty('--mascot-color', mascotColor);
             }
             // The absorbed dot might have had a news badge lit — a story it
             // hadn't revealed yet. Without this it would just vanish with
@@ -1340,9 +1345,9 @@ function createMascotController(mascot, bubble, options = {}) {
         // A rebirth is always the site's default color — a fresh start,
         // not a continuation of whatever hue this instance happened to
         // have (e.g. a colored clone that was the last one standing).
-        if (hueDeg) {
-            hueDeg = 0;
-            mascot.style.removeProperty('--mascot-hue');
+        if (mascotColor) {
+            mascotColor = null;
+            mascot.style.removeProperty('--mascot-color');
         }
         const logoPos = getLogoDotPos();
         userPlaced = false; // a fresh life wanders normally again
@@ -1555,7 +1560,7 @@ function createMascotController(mascot, bubble, options = {}) {
             p.style.height = size + 'px';
             p.style.left = cx + 'px';
             p.style.top = cy + 'px';
-            if (hueDeg) p.style.filter = `hue-rotate(${hueDeg}deg)`;
+            if (mascotColor) p.style.background = mascotColor;
             document.body.appendChild(p);
             p.addEventListener('animationend', () => p.remove());
         }
@@ -1570,7 +1575,7 @@ function createMascotController(mascot, bubble, options = {}) {
         ring.className = 'mascot-shockwave';
         ring.style.left = (rect.left + rect.width / 2) + 'px';
         ring.style.top = (rect.top + rect.height / 2) + 'px';
-        if (hueDeg) ring.style.filter = `hue-rotate(${hueDeg}deg)`;
+        if (mascotColor) ring.style.borderColor = mascotColor;
         document.body.appendChild(ring);
         ring.addEventListener('animationend', () => ring.remove());
     }
@@ -2188,10 +2193,11 @@ function createMascotController(mascot, bubble, options = {}) {
         clone.style.setProperty('--mascot-squash-x', 1);
         clone.style.setProperty('--mascot-squash-y', 1);
         clone.style.setProperty('--mascot-rotate', '0deg');
-        // A fresh, on-theme hue rotation off the same accent teal — a
-        // moderate offset so clones read as siblings, not clashing colors.
-        const cloneHueDeg = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 70);
-        clone.style.setProperty('--mascot-hue', cloneHueDeg + 'deg');
+        // A clone gets a proper rubber-ball color instead of a hue-rotated
+        // shift of the dark brand teal (which only ever lands on muddy,
+        // desaturated tones) — a fixed palette of vivid, toy-like colors.
+        const cloneColor = BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)];
+        clone.style.setProperty('--mascot-color', cloneColor);
 
         const bubbleClone = bubble.cloneNode(true);
         bubbleClone.removeAttribute('id');
@@ -2214,7 +2220,7 @@ function createMascotController(mascot, bubble, options = {}) {
         createMascotController(clone, bubbleClone, {
             pos: { x: startX, y: startY },
             throwVelocity: { vx: Math.cos(angle) * 500, vy: Math.sin(angle) * 500 - 200 },
-            hueDeg: cloneHueDeg
+            mascotColor: cloneColor
         });
     }
 
