@@ -797,6 +797,45 @@ body {
     line-height: 1;
 }
 
+/* "Dot World"'s icon: a little cluster of dot-colored circles next to the
+   globe — slightly uneven sizes/positions on purpose, a loose triangle
+   rather than a neat, machine-perfect grid. */
+.icon-dot-trio {
+    position: relative;
+    display: inline-block;
+    width: 1.3em;
+    height: 1.1em;
+    vertical-align: middle;
+    margin-left: 0.15em;
+}
+
+.icon-dot-trio span {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.icon-dot-trio span:nth-child(1) {
+    width: 0.5em;
+    height: 0.5em;
+    top: 0;
+    left: 0.35em;
+}
+
+.icon-dot-trio span:nth-child(2) {
+    width: 0.4em;
+    height: 0.4em;
+    top: 0.58em;
+    left: 0;
+}
+
+.icon-dot-trio span:nth-child(3) {
+    width: 0.44em;
+    height: 0.44em;
+    top: 0.5em;
+    left: 0.8em;
+}
+
 .detail-body h2 {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
