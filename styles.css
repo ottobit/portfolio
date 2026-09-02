@@ -1254,17 +1254,25 @@ body {
     margin: 0 auto;
 }
 
-/* Cerebro Engine's diagram, shown full-page on cerebro.html — the SVG
-   already draws its own white card (see cerebro-diagram.svg), so this
-   just centers and constrains it, adding depth via shadow. */
+/* Cerebro Engine's diagram, shown full-page on cerebro.html — deliberately
+   wider than the site's usual reading-width container (it's a technical
+   diagram, not prose) and never shrunk past a legible size: the SVG's own
+   baked-in text would turn to mush well before a typical phone's width, so
+   below that it scrolls horizontally instead. The SVG already draws its
+   own white card (see cerebro-diagram.svg), so this just centers/
+   constrains it, adding depth via shadow. */
 .diagram-page {
-    max-width: 900px;
+    max-width: 1400px;
     margin: 0 auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .diagram-page img {
     display: block;
     width: 100%;
+    min-width: 820px;
+    max-width: 1400px;
     height: auto;
     border-radius: 18px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
