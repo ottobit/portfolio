@@ -373,7 +373,15 @@ navLinks.forEach(link => {
         const title = (lang === 'en' && el.dataset.titleEn) || el.dataset.title || '';
         const text = (lang === 'en' && el.dataset.detailEn) || el.dataset.detail || '';
 
-        detailIcon.textContent = el.dataset.icon || '';
+        // innerHTML for nodes that need more than a single emoji glyph (e.g.
+        // "Dot World"'s globe + a little cluster of dot-colored circles) —
+        // same static, developer-authored-only content as detailText below,
+        // never user input. Falls back to plain text for every other node.
+        if (el.dataset.iconHtml) {
+            detailIcon.innerHTML = el.dataset.iconHtml;
+        } else {
+            detailIcon.textContent = el.dataset.icon || '';
+        }
         detailTitle.textContent = title;
         // innerHTML, not textContent: a node's own text can carry a plain
         // inline <a> (e.g. "Questo sito" linking out to the Web Speech API
