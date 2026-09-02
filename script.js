@@ -1158,6 +1158,7 @@ function createMascotController(mascot, bubble, options = {}) {
     mascotInstanceCount++;
 
     const MARGIN = 20;
+    const MASCOT_BASE_RADIUS = 19; // half of --mascot-base
     const POP_THRESHOLD = 6;
     const POP_WINDOW_MS = 2200;
     const BIRTH_DURATION_MS = 1100; // must match .mascot.recovering's animation-duration in styles.css
@@ -1429,10 +1430,19 @@ function createMascotController(mascot, bubble, options = {}) {
         osc.stop(ctx.currentTime + duration);
     }
 
+    // MARGIN alone only keeps a normal-sized dot on screen — inflated by a
+    // tap streak or puffed up huge by rage, its actual rendered radius can
+    // well exceed that fixed 20px, so the safe zone has to shrink to match
+    // whatever size dot currently is, not just its resting one.
+    function safeMargin() {
+        return Math.max(MARGIN, MASCOT_BASE_RADIUS * currentInflateScale + 2);
+    }
+
     function clamp(x, y) {
+        const m = safeMargin();
         return {
-            x: Math.max(MARGIN, Math.min(window.innerWidth - MARGIN, x)),
-            y: Math.max(MARGIN, Math.min(window.innerHeight - MARGIN, y))
+            x: Math.max(m, Math.min(window.innerWidth - m, x)),
+            y: Math.max(m, Math.min(window.innerHeight - m, y))
         };
     }
 
@@ -1488,15 +1498,16 @@ function createMascotController(mascot, bubble, options = {}) {
         // in the neighborhood of wherever it currently is.
         const zoneW = Math.min(340, window.innerWidth * 0.4);
         const zoneH = Math.min(260, window.innerHeight * 0.35);
-        const floor = window.innerHeight - MARGIN;
+        const m = safeMargin();
+        const floor = window.innerHeight - m;
         let zoneLeft, zoneRight;
         if (userPlaced) {
             const localRange = zoneW / 2;
-            zoneLeft = Math.max(MARGIN, pos.x - localRange);
-            zoneRight = Math.min(window.innerWidth - MARGIN, pos.x + localRange);
+            zoneLeft = Math.max(m, pos.x - localRange);
+            zoneRight = Math.min(window.innerWidth - m, pos.x + localRange);
         } else {
-            zoneLeft = MARGIN;
-            zoneRight = MARGIN + zoneW;
+            zoneLeft = m;
+            zoneRight = m + zoneW;
         }
 
         if (reduceMotion) {
@@ -1752,6 +1763,11 @@ function createMascotController(mascot, bubble, options = {}) {
         // clicks in.
         currentInflateScale = 1 + count * 0.4;
         mascot.style.setProperty('--mascot-scale', currentInflateScale.toFixed(3));
+        // Growing happens in place — dot doesn't move, it just puffs up
+        // around its current center — so a spot that was safely on screen
+        // at normal size can now have the bigger dot bulging past an edge.
+        // Re-clamping (a no-op unless that just happened) nudges it back.
+        place(pos.x, pos.y);
     }
 
     function resetInflate() {
@@ -1820,7 +1836,12 @@ function createMascotController(mascot, bubble, options = {}) {
         mascot.classList.remove('excited', 'hopping', 'dropped');
         mascotColor = angryColor();
         mascot.style.setProperty('--mascot-color', mascotColor);
+        currentInflateScale = RAGE_SCALE;
         mascot.style.setProperty('--mascot-scale', String(RAGE_SCALE));
+        // Puffing up to 5x happens in place — re-clamp so growing near an
+        // edge doesn't leave dot bulging off screen (same reasoning as
+        // updateInflate()).
+        place(pos.x, pos.y);
         restartAnimation('angry');
         playRageGrowlSound();
         window.setTimeout(() => {
@@ -2068,7 +2089,6 @@ function createMascotController(mascot, bubble, options = {}) {
     // nothing is ever removed or altered in the DOM, so the site stays
     // fully usable during and after.
     const HITTABLE_SELECTOR = '.role, .btn, .logo, .nav-menu a, .footer a, .hub-dot, .sub-dot';
-    const MASCOT_BASE_RADIUS = 19; // half of --mascot-base
     const HIT_COOLDOWN_MS = 500;
     const HIT_RESTITUTION = 0.4; // weaker than a wall — the element isn't rigid
     const hitCooldowns = new Map();
@@ -2144,23 +2164,24 @@ function createMascotController(mascot, bubble, options = {}) {
 
             let nx = pos.x + vx * dt;
             let ny = pos.y + vy * dt;
+            const m = safeMargin();
 
-            if (nx < MARGIN) {
-                nx = MARGIN;
+            if (nx < m) {
+                nx = m;
                 vx = -vx * RESTITUTION;
                 if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
-            } else if (nx > window.innerWidth - MARGIN) {
-                nx = window.innerWidth - MARGIN;
+            } else if (nx > window.innerWidth - m) {
+                nx = window.innerWidth - m;
                 vx = -vx * RESTITUTION;
                 if (Math.abs(vx) > BOUNCE_SOUND_VEL) squashBounce(0.75, 1.3);
             }
 
-            if (ny < MARGIN) {
-                ny = MARGIN;
+            if (ny < m) {
+                ny = m;
                 vy = -vy * RESTITUTION;
             }
 
-            const floor = window.innerHeight - MARGIN;
+            const floor = window.innerHeight - m;
             let settled = false;
             if (ny >= floor) {
                 ny = floor;
