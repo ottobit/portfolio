@@ -799,12 +799,16 @@ body {
 
 /* "Dot World"'s icon: a little cluster of dot-colored circles next to the
    globe — slightly uneven sizes/positions on purpose, a loose triangle
-   rather than a neat, machine-perfect grid. */
+   rather than a neat, machine-perfect grid. Each one gets its own tiny
+   pair of white eyes (a background-image, not extra DOM nodes — the
+   gradient positions are percentages of each circle's own box, so they
+   scale automatically with it), the same detail that makes the real
+   "dot" mascot read as a face and not just a colored ball. */
 .icon-dot-trio {
     position: relative;
     display: inline-block;
-    width: 1.3em;
-    height: 1.1em;
+    width: 1.4em;
+    height: 1.2em;
     vertical-align: middle;
     margin-left: 0.15em;
 }
@@ -812,28 +816,31 @@ body {
 .icon-dot-trio span {
     position: absolute;
     border-radius: 50%;
-    background: var(--accent);
+    background-color: var(--accent);
+    background-image:
+        radial-gradient(circle at 35% 42%, #fff 0 16%, transparent 17%),
+        radial-gradient(circle at 65% 42%, #fff 0 16%, transparent 17%);
 }
 
 .icon-dot-trio span:nth-child(1) {
-    width: 0.5em;
-    height: 0.5em;
+    width: 0.56em;
+    height: 0.56em;
     top: 0;
-    left: 0.35em;
+    left: 0.38em;
 }
 
 .icon-dot-trio span:nth-child(2) {
-    width: 0.4em;
-    height: 0.4em;
-    top: 0.58em;
+    width: 0.44em;
+    height: 0.44em;
+    top: 0.62em;
     left: 0;
 }
 
 .icon-dot-trio span:nth-child(3) {
-    width: 0.44em;
-    height: 0.44em;
-    top: 0.5em;
-    left: 0.8em;
+    width: 0.48em;
+    height: 0.48em;
+    top: 0.54em;
+    left: 0.86em;
 }
 
 .detail-body h2 {
