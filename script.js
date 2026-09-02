@@ -460,6 +460,7 @@ navLinks.forEach(link => {
     const heroVisual = document.querySelector('.hero-visual');
     const overlay = document.getElementById('hub-overlay');
     const svg = document.getElementById('graph-lines');
+    const canvasDim = document.getElementById('canvas-dim');
     const hubDots = overlay ? Array.from(overlay.querySelectorAll('.hub-dot')) : [];
     let openKey = null;
 
@@ -687,6 +688,7 @@ navLinks.forEach(link => {
             closeHub(hub);
             closeDetail();
             openKey = null;
+            if (canvasDim) canvasDim.classList.remove('visible');
             return;
         }
 
@@ -703,6 +705,7 @@ navLinks.forEach(link => {
             window.setTimeout(() => s.classList.add('animate-in'), reduceMotion ? 0 : i * 70);
         });
         drawLines(hx, hy, subs);
+        if (canvasDim) canvasDim.classList.add('visible');
     }
 
     positionHubDots();
