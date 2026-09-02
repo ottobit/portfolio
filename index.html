@@ -33,7 +33,7 @@
     }
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=4.8">
+    <link rel="stylesheet" href="styles.css?v=4.9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -147,11 +147,11 @@
                     <span class="dot-label">Creative</span>
                 </button>
 
-                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-title-en="This site" data-timeline="true" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser." data-detail-en="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>.">
+                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-title-en="This site" data-page="evolution.html" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser." data-detail-en="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>.">
                     <span class="node-dot"></span>
                     <span class="dot-label" data-en="This site">Questo sito</span>
                 </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-diagram="cerebro-diagram.svg" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models.">
+                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-page="cerebro.html" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Cerebro Engine</span>
                 </button>
@@ -196,22 +196,13 @@
                     <span id="detail-speak-icon" aria-hidden="true">🔊</span>
                     <span id="detail-speak-label">Ascolta</span>
                 </button>
-                <a class="detail-speak" id="detail-timeline" href="evolution.html" hidden>
-                    <span aria-hidden="true">🕰️</span>
-                    <span>Timeline</span>
+                <a class="detail-speak" id="detail-page" href="#" hidden>
+                    <span id="detail-page-icon" aria-hidden="true"></span>
+                    <span id="detail-page-label"></span>
                 </a>
-                <button class="detail-speak" id="detail-diagram" type="button" hidden>
-                    <span aria-hidden="true">📊</span>
-                    <span data-en="Diagram">Diagramma</span>
-                </button>
                 <div class="detail-links" id="detail-links" hidden></div>
             </div>
         </div>
-    </div>
-
-    <div class="diagram-lightbox" id="diagram-lightbox" hidden>
-        <button class="diagram-lightbox-close" id="diagram-lightbox-close" type="button" aria-label="Chiudi">✕</button>
-        <img id="diagram-lightbox-img" src="" alt="">
     </div>
 
     <div class="container">
@@ -221,6 +212,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=6.9"></script>
+    <script src="script.js?v=7.0"></script>
 </body>
 </html>

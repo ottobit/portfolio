@@ -265,11 +265,9 @@ navLinks.forEach(link => {
     const detailSpeak = document.getElementById('detail-speak');
     const detailSpeakIcon = document.getElementById('detail-speak-icon');
     const detailSpeakLabel = document.getElementById('detail-speak-label');
-    const detailTimeline = document.getElementById('detail-timeline');
-    const detailDiagram = document.getElementById('detail-diagram');
-    const diagramLightbox = document.getElementById('diagram-lightbox');
-    const diagramLightboxImg = document.getElementById('diagram-lightbox-img');
-    const diagramLightboxClose = document.getElementById('diagram-lightbox-close');
+    const detailPage = document.getElementById('detail-page');
+    const detailPageIcon = document.getElementById('detail-page-icon');
+    const detailPageLabel = document.getElementById('detail-page-label');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canSpeak = 'speechSynthesis' in window;
 
@@ -335,6 +333,14 @@ navLinks.forEach(link => {
     const LINK_TEXT = {
         it: { repo: 'Codice', link: 'Vedi live', listen: 'Ascolta', stop: 'Ferma', closePanel: 'Chiudi dettaglio' },
         en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop', closePanel: 'Close detail' }
+    };
+
+    // Dedicated sub-pages linked from the detail panel (evolution.html's
+    // timeline, cerebro.html's diagram) — icon/label per target page, keyed
+    // by the same href set in data-page.
+    const PAGE_LINK_TEXT = {
+        'evolution.html': { icon: '🕰️', it: 'Timeline', en: 'Timeline' },
+        'cerebro.html': { icon: '📊', it: 'Diagramma', en: 'Diagram' }
     };
 
     let currentEl = null;
@@ -414,8 +420,15 @@ navLinks.forEach(link => {
         }
 
         if (detailSpeak) detailSpeak.hidden = !canSpeak;
-        if (detailTimeline) detailTimeline.hidden = !el.dataset.timeline;
-        if (detailDiagram) detailDiagram.hidden = !el.dataset.diagram;
+        if (detailPage) {
+            const pageInfo = el.dataset.page && PAGE_LINK_TEXT[el.dataset.page];
+            detailPage.hidden = !pageInfo;
+            if (pageInfo) {
+                detailPage.href = el.dataset.page;
+                if (detailPageIcon) detailPageIcon.textContent = pageInfo.icon;
+                if (detailPageLabel) detailPageLabel.textContent = pageInfo[lang];
+            }
+        }
         stopSpeech();
     }
 
@@ -437,39 +450,8 @@ navLinks.forEach(link => {
     if (detailClose) detailClose.addEventListener('click', closeDetail);
     if (detailBackdrop) detailBackdrop.addEventListener('click', closeDetail);
 
-    function openDiagram(src) {
-        if (!diagramLightbox || !diagramLightboxImg) return;
-        diagramLightboxImg.src = src;
-        diagramLightbox.hidden = false;
-        requestAnimationFrame(() => diagramLightbox.classList.add('visible'));
-    }
-
-    function closeDiagram() {
-        if (!diagramLightbox) return;
-        diagramLightbox.classList.remove('visible');
-        window.setTimeout(() => { diagramLightbox.hidden = true; }, reduceMotion ? 0 : 300);
-    }
-
-    if (detailDiagram) {
-        detailDiagram.addEventListener('click', () => {
-            if (currentEl && currentEl.dataset.diagram) openDiagram(currentEl.dataset.diagram);
-        });
-    }
-    if (diagramLightboxClose) diagramLightboxClose.addEventListener('click', closeDiagram);
-    // Click anywhere on the backdrop closes it — but not a click that lands
-    // on the image itself, which sits inside the same flex-centered element.
-    if (diagramLightbox) {
-        diagramLightbox.addEventListener('click', (e) => {
-            if (e.target === diagramLightbox) closeDiagram();
-        });
-    }
-
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        if (diagramLightbox && diagramLightbox.classList.contains('visible')) {
-            closeDiagram();
-            return;
-        }
         if (detailPanel.classList.contains('visible')) closeDetail();
     });
 

@@ -941,53 +941,6 @@ body {
     color: var(--text);
 }
 
-/* Full-screen viewer for reference diagrams (e.g. Cerebro Engine's state
-   machine) — a dark backdrop regardless of site theme, same reasoning as
-   any image lightbox: the image needs to read clearly on its own, not
-   blend into whichever theme happens to be active. */
-.diagram-lightbox {
-    position: fixed;
-    inset: 0;
-    z-index: 1900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2.5rem;
-    background: rgba(0, 0, 0, 0.75);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.diagram-lightbox.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.diagram-lightbox img {
-    max-width: 90vw;
-    max-height: 90vh;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.diagram-lightbox-close {
-    position: fixed;
-    top: 1.25rem;
-    right: 1.5rem;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: #fff;
-    cursor: pointer;
-    padding: 0.25rem;
-    line-height: 1;
-}
-
-.diagram-lightbox-close:hover {
-    color: var(--accent);
-}
-
 /* Footer */
 .footer {
     padding: 1.5rem 0;
@@ -1273,6 +1226,22 @@ body {
     position: relative;
     max-width: 720px;
     margin: 0 auto;
+}
+
+/* Cerebro Engine's diagram, shown full-page on cerebro.html — the SVG
+   already draws its own white card (see cerebro-diagram.svg), so this
+   just centers and constrains it, adding depth via shadow. */
+.diagram-page {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.diagram-page img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 /* Two stacked lines behind the markers: a faint full-height track, and an
