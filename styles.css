@@ -562,7 +562,7 @@ body {
 
 @keyframes mascot-shockwave-big {
     0% { transform: scale(0.5); opacity: 0.9; border-width: 8px; }
-    100% { transform: scale(50); opacity: 0; border-width: 1px; }
+    100% { transform: scale(var(--shockwave-scale, 50)); opacity: 0; border-width: 1px; }
 }
 
 .mascot.recovering {
@@ -1019,7 +1019,7 @@ body {
     .hero-visual {
         order: -1;
         flex: 0 0 auto;
-        height: clamp(140px, 30vh, 240px);
+        height: clamp(160px, 38vh, 340px);
     }
 
     .hero-text {
