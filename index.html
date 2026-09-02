@@ -33,7 +33,7 @@
     }
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=4.5">
+    <link rel="stylesheet" href="styles.css?v=4.6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -151,7 +151,7 @@
                     <span class="node-dot"></span>
                     <span class="dot-label" data-en="This site">Questo sito</span>
                 </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. È l'esperimento che mi aiuta a costruirne altri, come Triple Triad e il Minigioco RPG, a partire da una semplice descrizione del task. Ogni agente gira su provider e modello configurabili indipendentemente. Repository privato." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. It's the experiment that helps me build other ones, like Triple Triad and the RPG minigame, starting from a plain task description. Each agent runs on an independently configurable provider and model. Private repository.">
+                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-diagram="cerebro-diagram.svg" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. È l'esperimento che mi aiuta a costruirne altri, come Triple Triad e il Minigioco RPG, a partire da una semplice descrizione del task. Ogni agente gira su provider e modello configurabili indipendentemente." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. It's the experiment that helps me build other ones, like Triple Triad and the RPG minigame, starting from a plain task description. Each agent runs on an independently configurable provider and model.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Cerebro Engine</span>
                 </button>
@@ -159,7 +159,7 @@
                     <span class="node-dot"></span>
                     <span class="dot-label">Triple Triad</span>
                 </button>
-                <button class="sub-dot" data-parent="experiments" data-icon="⚔️" data-title="L'avventura di dot" data-title-en="dot's Adventure" data-detail="Un piccolo RPG con dot protagonista, ancora tutto da progettare — il prossimo esperimento in coda dopo Triple Triad." data-detail-en="A small RPG starring dot, still all to be designed — the next experiment queued up after Triple Triad.">
+                <button class="sub-dot" data-parent="experiments" data-icon="⚔️" data-title="L'avventura di dot" data-title-en="dot's Adventure" data-detail="Un piccolo RPG con dot protagonista: un mondo popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti. Ancora tutto da progettare — il prossimo esperimento in coda dopo Triple Triad." data-detail-en="A small RPG starring dot: a world populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models. Still all to be designed — the next experiment queued up after Triple Triad.">
                     <span class="node-dot"></span>
                     <span class="dot-label" data-en="dot's Adventure">L'avventura di dot</span>
                 </button>
@@ -200,9 +200,18 @@
                     <span aria-hidden="true">🕰️</span>
                     <span>Timeline</span>
                 </a>
+                <button class="detail-speak" id="detail-diagram" type="button" hidden>
+                    <span aria-hidden="true">📊</span>
+                    <span data-en="Diagram">Diagramma</span>
+                </button>
                 <div class="detail-links" id="detail-links" hidden></div>
             </div>
         </div>
+    </div>
+
+    <div class="diagram-lightbox" id="diagram-lightbox" hidden>
+        <button class="diagram-lightbox-close" id="diagram-lightbox-close" type="button" aria-label="Chiudi">✕</button>
+        <img id="diagram-lightbox-img" src="" alt="">
     </div>
 
     <div class="container">
@@ -212,6 +221,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=6.6"></script>
+    <script src="script.js?v=6.7"></script>
 </body>
 </html>
