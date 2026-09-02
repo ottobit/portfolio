@@ -1253,6 +1253,7 @@ function createMascotController(mascot, bubble, options = {}) {
             // splits/merges dot, since nothing ever cleaned them up.
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('graphinteraction', onGraphInteraction);
+            window.removeEventListener('resize', onResize);
             mascot.remove();
             bubble.remove();
             const idx = activeMascots.indexOf(this);
@@ -1546,6 +1547,7 @@ function createMascotController(mascot, bubble, options = {}) {
 
     function scheduleHop() {
         window.setTimeout(() => {
+            if (instanceRemoved || selfHandle.removed) return;
             randomHop();
             scheduleHop();
         }, 4000 + Math.random() * 2000);
@@ -1582,10 +1584,12 @@ function createMascotController(mascot, bubble, options = {}) {
 
     function scheduleNews() {
         window.setTimeout(() => {
-            if (!isDragging && !isThrown && !isPopped && !instanceRemoved && getAllNewsItems().length) {
+            if (instanceRemoved || selfHandle.removed) return;
+            if (!isDragging && !isThrown && !isPopped && getAllNewsItems().length) {
                 if (newsBadge) newsBadge.hidden = false;
                 window.setTimeout(() => {
-                    if (!isDragging && !isThrown && !isPopped && !instanceRemoved && newsBadge && !newsBadge.hidden) {
+                    if (instanceRemoved || selfHandle.removed) return;
+                    if (!isDragging && !isThrown && !isPopped && newsBadge && !newsBadge.hidden) {
                         showNextNews();
                     }
                 }, 3000);
@@ -2295,10 +2299,11 @@ function createMascotController(mascot, bubble, options = {}) {
         });
     }
 
-    window.addEventListener('resize', () => {
+    function onResize() {
         refreshWordRects();
         place(pos.x, pos.y);
-    });
+    }
+    window.addEventListener('resize', onResize);
 
     // A clone springs away from the split point instead of just appearing.
     if (options.throwVelocity && !reduceMotion) {
