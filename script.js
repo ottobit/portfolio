@@ -1131,6 +1131,8 @@ function createMascotController(mascot, bubble, options = {}) {
         bornAt: performance.now(),
         getPos: () => pos,
         getHueDeg: () => hueDeg,
+        hasPendingNews: () => !!(newsBadge && !newsBadge.hidden),
+        getNewsIndex: () => newsIndex,
         absorb(otherHandle) {
             if (otherHandle.removed) return;
             const combinedCount = Math.min(POP_THRESHOLD - 1, clickTimes.length + otherHandle.streak() + 1);
@@ -1145,7 +1147,18 @@ function createMascotController(mascot, bubble, options = {}) {
                 hueDeg = otherHue;
                 mascot.style.setProperty('--mascot-hue', hueDeg + 'deg');
             }
+            // The absorbed dot might have had a news badge lit — a story it
+            // hadn't revealed yet. Without this it would just vanish with
+            // the removed instance; carry it over to self instead, unless
+            // self already has its own pending badge lit (never silently
+            // drop that one to make room for the merged-in story).
+            const otherHadNews = otherHandle.hasPendingNews && otherHandle.hasPendingNews();
+            const otherNewsIndex = otherHadNews ? otherHandle.getNewsIndex() : null;
             otherHandle.remove();
+            if (otherHadNews && !(newsBadge && !newsBadge.hidden)) {
+                newsIndex = otherNewsIndex;
+                if (newsBadge) newsBadge.hidden = false;
+            }
             clickTimes = new Array(combinedCount).fill(Date.now());
             updateInflate(combinedCount);
             scheduleInflateReset();
