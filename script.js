@@ -847,6 +847,16 @@ const MERGE_DISTANCE = 45; // px between centers
 // it actually be seen bouncing around on its own first.
 const MERGE_GRACE_MS = 2500;
 
+// If mashing dot into a pop (registerHit() hitting POP_THRESHOLD) happens
+// this many times within this rolling window, the next one escalates into
+// a full rage instead of the usual quick pop — a longer fuse than the pop
+// threshold itself, so it takes sustained pestering across several bursts,
+// not just one.
+let angerStreak = 0;
+let angerStreakResetTimer = null;
+const ANGER_STREAK_THRESHOLD = 3;
+const ANGER_STREAK_WINDOW_MS = 20000;
+
 // Shared by all six news-feed fetchers below: parses JSON, throws on a
 // non-OK response, and — unlike a bare fetch() — actually gives up after a
 // while instead of hanging forever if a request stalls.
@@ -1130,6 +1140,14 @@ function pickBallColor() {
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// The color dot flashes when it's had enough — reuses each palette's own
+// red rather than inventing a new one, so it stays consistent with the
+// clone colors already in use.
+function angryColor() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return isDark ? BALL_COLORS_DARK[0] : BALL_COLORS_LIGHT[0];
+}
+
 function createMascotController(mascot, bubble, options = {}) {
     if (!mascot || !bubble) return;
     if (mascotInstanceCount >= MAX_MASCOTS) {
@@ -1225,6 +1243,17 @@ function createMascotController(mascot, bubble, options = {}) {
             restartAnimation('excited', 400);
         },
         streak: () => clickTimes.length,
+        // Caught in another instance's rage explosion — pops this one away
+        // too, without going through the usual isPopped/streak gate (that's
+        // the raging instance's own state, not this one's).
+        rageBurst() {
+            if (this.removed) return;
+            burstParticles({ count: 14, distance: 90, size: 8 });
+            burstShockwave();
+            playPopSound();
+            if (!reduceMotion) restartAnimation('popping');
+            window.setTimeout(() => this.remove(), reduceMotion ? 0 : 260);
+        },
         remove() {
             if (this.removed) return;
             this.removed = true;
@@ -1320,6 +1349,18 @@ function createMascotController(mascot, bubble, options = {}) {
     }
     function playRecoverSound() {
         chirp({ freqStart: 200, freqEnd: 950, duration: 0.25, type: 'square', gain: 0.05 });
+    }
+    // A low, building growl as dot puffs up red with rage — distinct from
+    // the sharper playPopSound that follows once it actually blows.
+    function playRageGrowlSound() {
+        chirp({ freqStart: 90, freqEnd: 55, duration: 0.45, type: 'sawtooth', gain: 0.08 });
+        staticBurst(0.4, 0.05);
+    }
+    // The rage blast itself — playPopSound's usual crackle/sweep plus an
+    // extra deep boom underneath, for a bigger, angrier detonation.
+    function playRageBoomSound() {
+        playPopSound();
+        chirp({ freqStart: 70, freqEnd: 20, duration: 0.4, type: 'sine', gain: 0.1 });
     }
     // A balloon actually being blown up: a squeaky, rising pitch (sawtooth
     // reads more "stretched rubber" than the plain square/sine used
@@ -1626,10 +1667,10 @@ function createMascotController(mascot, bubble, options = {}) {
     // A single expanding, fading ring at the mascot's position — a
     // shockwave to make the pop read clearly even at a glance, not just
     // another handful of small particles among the others.
-    function burstShockwave() {
+    function burstShockwave(big) {
         const rect = mascot.getBoundingClientRect();
         const ring = document.createElement('span');
-        ring.className = 'mascot-shockwave';
+        ring.className = big ? 'mascot-shockwave big' : 'mascot-shockwave';
         ring.style.left = (rect.left + rect.width / 2) + 'px';
         ring.style.top = (rect.top + rect.height / 2) + 'px';
         if (mascotColor) ring.style.borderColor = mascotColor;
@@ -1646,15 +1687,15 @@ function createMascotController(mascot, bubble, options = {}) {
     // self-righting, for a more physical "knocked over" read. Still purely
     // visual (the standalone `rotate` property, composes with each
     // element's own transform) — nothing in the DOM ever changes.
-    function tipNearbyElements(cx, cy) {
+    function tipNearbyElements(cx, cy, radius = POP_TIP_RADIUS) {
         document.querySelectorAll(HITTABLE_SELECTOR).forEach(el => {
             const rect = el.getBoundingClientRect();
             if (!rect.width && !rect.height) return;
             const ex = rect.left + rect.width / 2;
             const ey = rect.top + rect.height / 2;
             const dist = Math.hypot(ex - cx, ey - cy);
-            if (dist > POP_TIP_RADIUS) return;
-            const strength = 1 - dist / POP_TIP_RADIUS;
+            if (dist > radius) return;
+            const strength = 1 - dist / radius;
             const angle = (Math.sign(ex - cx) || 1) * (20 + strength * POP_TIP_MAX_DEG);
             el.style.setProperty('--tip-angle', angle.toFixed(1) + 'deg');
             el.classList.remove('page-tipped');
@@ -1721,6 +1762,52 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 380);
     }
 
+    const RAGE_SCALE = 5;
+    const RAGE_GROW_MS = 500;
+
+    // The rare escalation past a plain pop: dot visibly swells up huge and
+    // red for a beat, then unloads a page-wide blast that also pops every
+    // other mascot on screen with it — then always comes back calm at the
+    // logo afterwards, same as popping alone (never left angry/oversized).
+    function rage() {
+        if (isPopped) return;
+        isPopped = true;
+        stopRestBounce();
+        clickTimes = [];
+        resetInflate();
+        bubble.hidden = true;
+        if (reduceMotion) {
+            window.setTimeout(() => { isPopped = false; }, 300);
+            return;
+        }
+        mascot.classList.remove('excited', 'hopping', 'dropped');
+        mascotColor = angryColor();
+        mascot.style.setProperty('--mascot-color', mascotColor);
+        mascot.style.setProperty('--mascot-scale', String(RAGE_SCALE));
+        restartAnimation('angry');
+        playRageGrowlSound();
+        window.setTimeout(() => {
+            mascot.classList.remove('angry');
+            const rect = mascot.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            burstParticles({ count: 40, distance: 260, size: 14 });
+            burstShockwave(true);
+            tipNearbyElements(cx, cy, Math.hypot(window.innerWidth, window.innerHeight));
+            playRageBoomSound();
+            activeMascots
+                .filter(h => h !== selfHandle && !h.removed)
+                .forEach(h => h.rageBurst());
+            resetInflate(); // shrink back to scale 1 as it pops away, so the respawn starts clean
+            restartAnimation('popping');
+            window.setTimeout(() => {
+                mascot.classList.remove('popping');
+                birthAtLogo();
+                isPopped = false;
+            }, 380);
+        }, RAGE_GROW_MS);
+    }
+
     // A news item's bubble carries the URL of its source (a commit, a PR, a
     // model page, a Wikipedia article) — click it to open that instead of
     // just reading the headline. Wired once per instance; plain one-liners
@@ -1771,7 +1858,15 @@ function createMascotController(mascot, bubble, options = {}) {
         clickTimes.push(now);
         clickTimes = clickTimes.filter(t => now - t < POP_WINDOW_MS);
         if (clickTimes.length >= POP_THRESHOLD) {
-            pop();
+            window.clearTimeout(angerStreakResetTimer);
+            angerStreak++;
+            angerStreakResetTimer = window.setTimeout(() => { angerStreak = 0; }, ANGER_STREAK_WINDOW_MS);
+            if (angerStreak >= ANGER_STREAK_THRESHOLD) {
+                angerStreak = 0;
+                rage();
+            } else {
+                pop();
+            }
             return true;
         }
         updateInflate(clickTimes.length);
