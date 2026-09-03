@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ottobit — Dot World</title>
+    <meta name="description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ottobit.github.io/portfolio/dot-world.html">
+    <meta property="og:title" content="ottobit — Dot World">
+    <meta property="og:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta property="og:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ottobit — Dot World">
+    <meta name="twitter:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta name="twitter:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="styles.css?v=5.4">
+</head>
+<body>
+    <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="index.html#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="index.html#home">Home</a></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="timeline-page" id="main">
+        <header class="timeline-intro">
+            <h1 data-it="Dot World — ciclo di un dot">Dot World — a dot's cycle</h1>
+            <p data-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Questo è un primo abbozzo, non il disegno finale: il modello di interazione tra i dot e il mondo è ancora in fase di definizione.">A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. This is a first sketch, not the final design: the dot/world interaction model is still being figured out.</p>
+        </header>
+
+        <div class="diagram-page">
+            <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="State diagram of a dot's perceive-reason-decide-act cycle in Dot World — tap to zoom in" data-aria-label-it="Diagramma a stati del ciclo percepisci-ragiona-decidi-agisci di un dot in Dot World — tocca per ingrandire">
+                <img id="diagram-img" src="dot-world-diagram.svg?v=1" alt="">
+            </button>
+        </div>
+    </main>
+
+    <div class="diagram-zoom-overlay" id="diagram-zoom-overlay" hidden>
+        <button class="diagram-zoom-close" id="diagram-zoom-close" type="button" aria-label="Chiudi">✕</button>
+        <img id="diagram-zoom-img" src="" alt="">
+    </div>
+
+    <div class="container">
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 ottobit</p>
+        </footer>
+    </div>
+
+    <script>
+    // Minimal, self-contained theme/language bootstrap — shares the same
+    // localStorage keys ('theme'/'lang') as script.js on the main page, so
+    // toggling here or there stays in sync, but deliberately does NOT load
+    // script.js itself: that file's hero-canvas/graph/mascot/news-feed code
+    // has nothing to do with this page and would fire six unnecessary
+    // public-API calls on every visit here.
+    (function () {
+        var root = document.documentElement;
+        var themeToggle = document.getElementById('theme-toggle');
+        var themeIcon = document.getElementById('theme-toggle-icon');
+        var themeLabel = document.getElementById('theme-toggle-label');
+        var langToggle = document.getElementById('lang-toggle');
+        var langLabel = document.getElementById('lang-toggle-label');
+        var diagramImg = document.querySelector('.diagram-page img');
+        var diagramTrigger = document.getElementById('diagram-trigger');
+
+        var THEME_TEXT = {
+            it: { toDark: 'Tema scuro', toLight: 'Tema chiaro' },
+            en: { toDark: 'Dark theme', toLight: 'Light theme' }
+        };
+
+        var lang = localStorage.getItem('lang') || 'en';
+        var theme = localStorage.getItem('theme') || 'light';
+        var updateNavToggleLabel = function () {};
+
+        function applyThemeUI() {
+            var isDark = theme === 'dark';
+            root.setAttribute('data-theme', theme);
+            if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+            if (themeLabel) themeLabel.textContent = isDark ? THEME_TEXT[lang].toLight : THEME_TEXT[lang].toDark;
+            if (themeToggle) themeToggle.setAttribute('aria-pressed', String(isDark));
+        }
+
+        function applyLangUI() {
+            root.lang = lang;
+            if (langLabel) langLabel.textContent = lang === 'it' ? 'English' : 'Italiano';
+            if (langToggle) langToggle.setAttribute('aria-pressed', String(lang === 'en'));
+            document.querySelectorAll('[data-it]').forEach(function (el) {
+                if (!el.dataset.en) el.dataset.en = el.textContent;
+                el.textContent = lang === 'it' ? el.dataset.it : el.dataset.en;
+            });
+            if (diagramTrigger) {
+                if (!diagramTrigger.dataset.en) diagramTrigger.dataset.en = diagramTrigger.getAttribute('aria-label');
+                diagramTrigger.setAttribute('aria-label', lang === 'it' ? diagramTrigger.dataset.ariaLabelIt : diagramTrigger.dataset.en);
+            }
+            updateNavToggleLabel();
+        }
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                theme = theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', theme);
+                applyThemeUI();
+            });
+        }
+
+        if (langToggle) {
+            langToggle.addEventListener('click', function () {
+                lang = lang === 'en' ? 'it' : 'en';
+                localStorage.setItem('lang', lang);
+                applyLangUI();
+                applyThemeUI();
+            });
+        }
+
+        // Hamburger menu — same behavior as script.js's copy on index.html.
+        var navToggle = document.getElementById('nav-toggle');
+        var navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            var NAV_TOGGLE_TEXT = {
+                it: { open: 'Apri menu', close: 'Chiudi menu' },
+                en: { open: 'Open menu', close: 'Close menu' }
+            };
+            function updateToggleLabel() {
+                var isOpen = navMenu.classList.contains('open');
+                navToggle.setAttribute('aria-label', isOpen ? NAV_TOGGLE_TEXT[lang].close : NAV_TOGGLE_TEXT[lang].open);
+            }
+            updateNavToggleLabel = updateToggleLabel;
+            function closeMenu() {
+                navMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', 'false');
+                updateToggleLabel();
+            }
+            navToggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = navMenu.classList.toggle('open');
+                navToggle.setAttribute('aria-expanded', String(open));
+                updateToggleLabel();
+            });
+            navMenu.addEventListener('click', function (e) {
+                if (e.target.closest('a')) closeMenu();
+            });
+            document.addEventListener('click', function (e) {
+                if (!navMenu.contains(e.target) && e.target !== navToggle) closeMenu();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMenu();
+            });
+        }
+
+        applyThemeUI();
+        applyLangUI();
+
+        // Tap-to-zoom: the inline diagram always fits the screen width (see
+        // .diagram-page img), so on a phone its baked-in SVG text is too
+        // small to read — this opens the same image full-screen instead,
+        // where the browser's native pinch-zoom/pan takes over (the SVG
+        // stays crisp at any zoom level).
+        var zoomOverlay = document.getElementById('diagram-zoom-overlay');
+        var zoomImg = document.getElementById('diagram-zoom-img');
+        var zoomClose = document.getElementById('diagram-zoom-close');
+        if (diagramTrigger && diagramImg && zoomOverlay && zoomImg) {
+            diagramTrigger.addEventListener('click', function () {
+                zoomImg.src = diagramImg.src;
+                zoomImg.alt = diagramTrigger.getAttribute('aria-label');
+                zoomOverlay.hidden = false;
+            });
+            function closeZoom() {
+                zoomOverlay.hidden = true;
+            }
+            zoomImg.addEventListener('click', closeZoom);
+            if (zoomClose) zoomClose.addEventListener('click', closeZoom);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !zoomOverlay.hidden) closeZoom();
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
