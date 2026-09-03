@@ -19,25 +19,28 @@
   <rect x="140" y="90" width="110" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
   <text x="195" y="123" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Human</text>
 
-  <!-- Only via CLI: Integrator + Verifier, grouped above the main chain
-       (between reviewer and finalizer, but a level up rather than inline) -->
-  <rect x="678" y="164" width="150" height="112" rx="12" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
-  <text x="753" y="178" font-size="10" fill="#64748b" text-anchor="middle">only via CLI</text>
+  <!-- Only via CLI: Integrator + Verifier, grouped above the main chain,
+       centered over reviewer — reviewer is the only one that calls into
+       this group and the only one it hands back to; reviewer alone still
+       carries the pipeline forward to finalizer via its own /ok arrow. -->
+  <rect x="607" y="164" width="150" height="112" rx="12" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+  <text x="682" y="178" font-size="10" fill="#64748b" text-anchor="middle">only via CLI</text>
 
-  <rect x="688" y="186" width="130" height="34" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="753" y="208" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Integrator</text>
+  <rect x="617" y="186" width="130" height="34" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="682" y="208" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Integrator</text>
 
-  <rect x="688" y="234" width="130" height="34" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="753" y="256" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
+  <rect x="617" y="234" width="130" height="34" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="682" y="256" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
 
   <!-- Integrator -> Verifier -->
-  <line x1="753" y1="220" x2="753" y2="232" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="682" y1="220" x2="682" y2="232" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
-  <!-- reviewer -> Integrator (conditional branch up) — routed around
-       Verifier's left edge, not straight through its box -->
-  <path d="M700,282 C670,240 650,210 686,203" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
-  <!-- Verifier -> finalizer (conditional branch back down) -->
-  <path d="M800,268 C812,285 818,285 825,283" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
+  <!-- reviewer -> Integrator (conditional call out) — loops around the
+       group's left edge so it never crosses Verifier's box -->
+  <path d="M650,282 C630,250 600,220 617,203" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
+  <!-- Verifier -> reviewer (conditional return) — loops around the
+       group's right edge so it never crosses Integrator's box -->
+  <path d="M747,251 C772,260 732,275 712,282" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
 
   <!-- Autonomous Agents (via CLI) container -->
   <rect x="60" y="258" width="820" height="110" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
