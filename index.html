@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,13 +9,13 @@
     <meta property="og:url" content="https://ottobit.github.io/portfolio/">
     <meta property="og:title" content="ottobit — AI Enthusiast | Music | Gaming">
     <meta property="og:description" content="Full Stack Developer, Team Lead & Senior Technical Lead. Multi-agent AI architectures, system design, and things built out of curiosity.">
-    <meta property="og:image" content="https://ottobit.github.io/portfolio/og-image.png">
+    <meta property="og:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ottobit — AI Enthusiast | Music | Gaming">
     <meta name="twitter:description" content="Full Stack Developer, Team Lead & Senior Technical Lead. Multi-agent AI architectures, system design, and things built out of curiosity.">
-    <meta name="twitter:image" content="https://ottobit.github.io/portfolio/og-image.png">
+    <meta name="twitter:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -33,25 +33,37 @@
     }
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=5.3">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    // Anti-FOUC: applies the saved theme before first paint, so the page
+    // never flashes light before switching to dark a moment later. Kept
+    // tiny and inline (no external request) — script.js runs the same
+    // logic again at the bottom of the page, this just gets there first.
+    (function () {
+        try {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="styles.css?v=5.4">
 </head>
 <body>
-    <a href="#home" class="skip-link" data-en="Skip to content">Vai al contenuto</a>
+    <a href="#home" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
 
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
             <a href="#home" class="logo">ottobit<span class="dot">.</span></a>
             <div class="nav-menu-wrap">
-                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Apri menu">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
                     <span class="nav-toggle-bar"></span>
                     <span class="nav-toggle-bar"></span>
                     <span class="nav-toggle-bar"></span>
                 </button>
                 <ul class="nav-menu" id="nav-menu">
                     <li><a href="#home">Home</a></li>
-                    <li><span class="nav-menu-soon">CV <small data-en="(soon)">(presto)</small></span></li>
+                    <li><span class="nav-menu-soon">CV <small data-it="(presto)">(soon)</small></span></li>
                     <li class="nav-menu-divider"></li>
                     <li>
                         <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
@@ -81,11 +93,11 @@
                 <span class="role">AI Enthusiast</span>
             </div>
             <div class="description">
-                <p data-en="Classical high school, then Mathematics and Computer Science in Catania, always alongside a job. The most important part of my education, though, was never the one from books: it's the curiosity that pushes me to learn something new — or something, again.">Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.</p>
-                <p data-en="In a field that reinvents itself every six months, that works out fine: I'm obsessed with what I don't know.">In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.</p>
+                <p data-it="Liceo classico, poi Matematica e Informatica a Catania, sempre in parallelo col lavoro. La parte più importante della formazione, però, non è mai stata quella sui libri: è la curiosità che mi spinge a imparare qualcosa di nuovo — o qualcosa, di nuovo.">Classical high school, then Mathematics and Computer Science in Catania, always alongside a job. The most important part of my education, though, was never the one from books: it's the curiosity that pushes me to learn something new — or something, again.</p>
+                <p data-it="In un campo che si reinventa ogni sei mesi, va bene così: sono ossessionato da ciò che non conosco.">In a field that reinvents itself every six months, that works out fine: I'm obsessed with what I don't know.</p>
             </div>
             <div class="cta-buttons">
-                <a href="#home" class="btn btn-primary" data-hub="projects" data-en="See my Projects">Vedi i Progetti</a>
+                <a href="#home" class="btn btn-primary" data-hub="projects" data-it="Vedi i Progetti">See my Projects</a>
             </div>
         </div>
         <div class="hero-visual">
@@ -107,11 +119,11 @@
 
                 <button class="hub-dot" data-hub="about" data-x="26" data-y="26" aria-expanded="false">
                     <span class="node-dot"></span>
-                    <span class="dot-label" data-en="About me">Chi sono</span>
+                    <span class="dot-label" data-it="Chi sono">About me</span>
                 </button>
                 <button class="hub-dot" data-hub="projects" data-x="64" data-y="46" aria-expanded="false">
                     <span class="node-dot"></span>
-                    <span class="dot-label" data-en="Projects">Progetti</span>
+                    <span class="dot-label" data-it="Progetti">Projects</span>
                 </button>
                 <button class="hub-dot" data-hub="social" data-x="30" data-y="74" aria-expanded="false">
                     <span class="node-dot"></span>
@@ -119,47 +131,47 @@
                 </button>
                 <button class="hub-dot" data-hub="experiments" data-x="74" data-y="78" aria-expanded="false">
                     <span class="node-dot"></span>
-                    <span class="dot-label" data-en="Experiments">Esperimenti</span>
+                    <span class="dot-label" data-it="Esperimenti">Experiments</span>
                 </button>
 
-                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI." data-detail-en="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents.">
+                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents." data-detail-it="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.">
                     <span class="node-dot"></span>
                     <span class="dot-label">AI Enthusiast</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto." data-detail-en="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound.">
+                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound." data-detail-it="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Music</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-en="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
+                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-detail="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-it="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Gaming</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎬" data-title="Film Addicted" data-detail="Cinefilo per passione: dai classici alle scoperte di nicchia, il cinema è un'altra fuga creativa, come la musica." data-detail-en="A film buff at heart: from the classics to niche discoveries, cinema is another creative escape, much like music.">
+                <button class="sub-dot" data-parent="about" data-icon="🎬" data-title="Film Addicted" data-detail="A film buff at heart: from the classics to niche discoveries, cinema is another creative escape, much like music." data-detail-it="Cinefilo per passione: dai classici alle scoperte di nicchia, il cinema è un'altra fuga creativa, come la musica.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Film Addicted</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="📚" data-title="Anime &amp; Manga" data-detail="Cresciuto tra anime e manga, un mondo che continuo a esplorare — dalle serie storiche alle nuove uscite." data-detail-en="Grew up on anime and manga, a world I keep exploring — from classic series to the newest releases.">
+                <button class="sub-dot" data-parent="about" data-icon="📚" data-title="Anime &amp; Manga" data-detail="Grew up on anime and manga, a world I keep exploring — from classic series to the newest releases." data-detail-it="Cresciuto tra anime e manga, un mondo che continuo a esplorare — dalle serie storiche alle nuove uscite.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Anime &amp; Manga</span>
                 </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎨" data-title="Creative" data-detail="Un lato creativo che esce ogni tanto, tra piccoli progetti personali e sperimentazioni fuori dal lavoro." data-detail-en="A creative streak that comes out now and then, between small personal projects and experiments outside of work.">
+                <button class="sub-dot" data-parent="about" data-icon="🎨" data-title="Creative" data-detail="A creative streak that comes out now and then, between small personal projects and experiments outside of work." data-detail-it="Un lato creativo che esce ogni tanto, tra piccoli progetti personali e sperimentazioni fuori dal lavoro.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Creative</span>
                 </button>
 
-                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="Questo sito" data-title-en="This site" data-page="evolution.html" data-detail="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser." data-detail-en="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>.">
+                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="This site" data-title-it="Questo sito" data-page="evolution.html" data-detail="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>." data-detail-it="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser.">
                     <span class="node-dot"></span>
-                    <span class="dot-label" data-en="This site">Questo sito</span>
+                    <span class="dot-label" data-it="Questo sito">This site</span>
                 </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-page="cerebro.html" data-detail="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente." data-detail-en="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models.">
+                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-page="cerebro.html" data-detail="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models." data-detail-it="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Cerebro Engine</span>
                 </button>
-                <button class="sub-dot" data-parent="experiments" data-icon="🃏" data-title="Triple Triad" data-detail="Il minigioco di carte di Final Fantasy VIII — un progetto iniziato anni prima dell'arrivo dell'IA generativa, riscritto da zero. L'avversario sarà un'IA dedicata che conosce le regole del gioco, non un modello generalista e non Claude. Integrazione ancora in corso." data-detail-en="The card minigame from Final Fantasy VIII — a project started years before generative AI came along, rebuilt from scratch. The opponent will be a dedicated AI that knows the game's rules, not a generalist model and not Claude. Integration still in progress.">
+                <button class="sub-dot" data-parent="experiments" data-icon="🃏" data-title="Triple Triad" data-detail="The card minigame from Final Fantasy VIII — a project started years before generative AI came along, rebuilt from scratch. The opponent will be a dedicated AI that knows the game's rules, not a generalist model and not Claude. Integration still in progress." data-detail-it="Il minigioco di carte di Final Fantasy VIII — un progetto iniziato anni prima dell'arrivo dell'IA generativa, riscritto da zero. L'avversario sarà un'IA dedicata che conosce le regole del gioco, non un modello generalista e non Claude. Integrazione ancora in corso.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Triple Triad</span>
                 </button>
-                <button class="sub-dot" data-parent="experiments" data-icon="🌍" data-icon-html="🌍<span class='icon-dot-trio' aria-hidden='true'><span></span><span></span><span></span></span>" data-title="Dot World" data-detail="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Ancora in corso." data-detail-en="A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. Still in progress.">
+                <button class="sub-dot" data-parent="experiments" data-icon="🌍" data-icon-html="🌍<span class='icon-dot-trio' aria-hidden='true'><span></span><span></span><span></span></span>" data-title="Dot World" data-detail="A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. Still in progress." data-detail-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Ancora in corso.">
                     <span class="node-dot"></span>
                     <span class="dot-label">Dot World</span>
                 </button>
@@ -186,7 +198,7 @@
 
     <div class="detail-backdrop" id="detail-backdrop" hidden></div>
     <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
-        <button class="detail-close" id="detail-close" type="button" aria-label="Chiudi dettaglio">✕</button>
+        <button class="detail-close" id="detail-close" type="button" aria-label="Close detail">✕</button>
         <div class="detail-icon" id="detail-icon"></div>
         <div class="detail-body">
             <h2 id="detail-title"></h2>
@@ -212,6 +224,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=7.3"></script>
+    <script src="script.js?v=7.5"></script>
 </body>
 </html>

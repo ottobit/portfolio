@@ -1025,7 +1025,12 @@ body {
     .hero-text {
         flex: 1 1 auto;
         min-height: 0;
-        overflow: hidden;
+        /* The clamp()s below fit comfortably down to ~700px of viewport
+           height, but a genuinely short phone (iPhone SE, 568px) still
+           overflows even at every floor value — an internal scroll here
+           is a much better fallback than silently clipping the end of the
+           bio with no way to reach it. */
+        overflow-y: auto;
         justify-content: center;
         gap: clamp(0.3rem, 1.6vh, 0.9rem);
         padding: clamp(0.6rem, 2.5vh, 1.25rem) 1.25rem;
@@ -1267,6 +1272,20 @@ body {
     margin: 0 auto;
 }
 
+/* Wraps the diagram img in a real button — a plain <img> is never
+   reachable by keyboard, so a Tab + Enter/Space visitor couldn't open the
+   zoomed view before this existed. */
+.diagram-trigger {
+    display: block;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+}
+
 .diagram-page img {
     display: block;
     width: 100%;
@@ -1274,7 +1293,6 @@ body {
     height: auto;
     border-radius: 18px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-    cursor: zoom-in;
 }
 
 /* Full-screen tap-to-zoom view — a plain scrollable container so the
