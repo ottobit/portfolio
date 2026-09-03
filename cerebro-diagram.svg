@@ -39,7 +39,7 @@
   <text x="720" y="225" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
 
   <!-- Integrator -> Verifier -->
-  <line x1="680" y1="170" x2="680" y2="203" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="670" y1="170" x2="670" y2="203" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
   <!-- reviewer -> Integrator (conditional call out) — perfectly vertical,
        tail tucked under reviewer's box -->
