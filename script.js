@@ -340,7 +340,9 @@ navLinks.forEach(link => {
     // by the same href set in data-page.
     const PAGE_LINK_TEXT = {
         'evolution.html': { icon: '🕰️', it: 'Timeline', en: 'Timeline' },
-        'cerebro.html': { icon: '📊', it: 'Diagramma', en: 'Diagram' }
+        'cerebro.html': { icon: '📊', it: 'Diagramma', en: 'Diagram' },
+        'dot-world.html': { icon: '📊', it: 'Diagramma', en: 'Diagram' },
+        'triple-triad.html': { icon: '📊', it: 'Diagramma', en: 'Diagram' }
     };
 
     let currentEl = null;
