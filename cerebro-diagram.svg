@@ -19,32 +19,34 @@
   <rect x="140" y="90" width="110" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
   <text x="195" y="123" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Human</text>
 
-  <!-- Only via CLI: Integrator + Verifier, side by side, raised well above
-       the main chain and centered over reviewer — reviewer is the only one
-       that calls into this group and the only one it hands back to; reviewer
-       alone still carries the pipeline forward to finalizer via its own /ok
-       arrow. Both connectors are straight lines aimed directly at the boxes
-       (no loops): the outgoing one starts from a point under reviewer's own
-       rect, which is drawn later in the document and paints over it, so it
-       visually emerges from beneath reviewer. -->
-  <rect x="573" y="126" width="280" height="80" rx="12" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
-  <text x="713" y="140" font-size="10" fill="#64748b" text-anchor="middle">only via CLI</text>
+  <!-- Only via CLI: Integrator + Verifier, stacked but staggered (offset
+       sideways from each other) so each keeps its own clear index/anchor
+       point, raised well above the main chain and centered over reviewer —
+       reviewer is the only one that calls into this group and the only one
+       it hands back to; reviewer alone still carries the pipeline forward
+       to finalizer via its own /ok arrow. Both connectors are straight
+       lines aimed directly at the boxes (no loops): the outgoing one
+       starts from a point under reviewer's own rect, which is drawn later
+       in the document and paints over it, so it visually emerges from
+       beneath reviewer. -->
+  <rect x="545" y="122" width="260" height="126" rx="12" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+  <text x="675" y="136" font-size="10" fill="#64748b" text-anchor="middle">only via CLI</text>
 
-  <rect x="588" y="150" width="118" height="38" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="647" y="174" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Integrator</text>
+  <rect x="560" y="145" width="140" height="38" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="630" y="169" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Integrator</text>
 
-  <rect x="726" y="150" width="118" height="38" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="785" y="174" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
+  <rect x="650" y="195" width="140" height="38" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="720" y="219" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
 
   <!-- Integrator -> Verifier -->
-  <line x1="708" y1="169" x2="724" y2="169" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="680" y1="183" x2="682" y2="193" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
   <!-- reviewer -> Integrator (conditional call out) — straight line, tail
        tucked under reviewer's box -->
-  <line x1="660" y1="300" x2="647" y2="188" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></line>
+  <line x1="650" y1="300" x2="590" y2="183" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></line>
   <!-- Verifier -> reviewer (conditional return) — straight line, ends
        right at reviewer's top edge -->
-  <line x1="785" y1="188" x2="700" y2="282" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></line>
+  <line x1="760" y1="233" x2="720" y2="282" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></line>
 
   <!-- Autonomous Agents (via CLI) container -->
   <rect x="60" y="258" width="820" height="110" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
