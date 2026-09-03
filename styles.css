@@ -1415,6 +1415,18 @@ body {
     transform: translateY(0);
 }
 
+/* Real dates, taken from the repo's own git history — a timeline without
+   them is just a list. Deliberately quiet: it labels the era, it doesn't
+   compete with its title. */
+.timeline-era-date {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+}
+
 .timeline-era-content h2 {
     font-size: 1.2rem;
     margin-bottom: 0.35rem;
