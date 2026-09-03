@@ -1353,9 +1353,6 @@ function createMascotController(mascot, bubble, options = {}) {
         noise.start();
     }
 
-    function playHopSound() {
-        chirp({ freqStart: 500 + Math.random() * 120, freqEnd: 720 + Math.random() * 150, duration: 0.08, type: 'square', gain: 0.03 });
-    }
     function playClickSound() {
         chirp({ freqStart: 320, freqEnd: 900, duration: 0.1, type: 'square', gain: 0.05 });
     }
@@ -1563,8 +1560,13 @@ function createMascotController(mascot, bubble, options = {}) {
                     // before: without it the arc read as a smooth glide
                     // instead of a real bounce.
                     if (Math.abs(vy) > BOUNCE_SOUND_VEL) {
+                        // Visual thud only, no sound: this fires on its own
+                        // during idle hopping (not a response to anything
+                        // the visitor did), and a little bounce noise every
+                        // few seconds reads as pestering rather than alive —
+                        // misophonia-unfriendly in particular. Interaction
+                        // sounds (click, throw, hit, pop...) are unaffected.
                         restartAnimation('dropped', 200);
-                        playHopSound();
                         squashBounce(1.32, 0.7);
                     }
                     vy = -vy * RESTITUTION;
