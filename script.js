@@ -33,9 +33,9 @@ const siteState = (() => {
         if (langLabel) langLabel.textContent = lang === 'it' ? 'English' : 'Italiano';
         if (langToggle) langToggle.setAttribute('aria-pressed', String(lang === 'en'));
 
-        document.querySelectorAll('[data-en]').forEach(el => {
-            if (!el.dataset.it) el.dataset.it = el.textContent;
-            el.textContent = lang === 'en' ? el.dataset.en : el.dataset.it;
+        document.querySelectorAll('[data-it]').forEach(el => {
+            if (!el.dataset.en) el.dataset.en = el.textContent;
+            el.textContent = lang === 'it' ? el.dataset.it : el.dataset.en;
         });
 
         document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
@@ -376,8 +376,8 @@ navLinks.forEach(link => {
 
     function renderDetail(el) {
         const lang = siteState.getLang();
-        const title = (lang === 'en' && el.dataset.titleEn) || el.dataset.title || '';
-        const text = (lang === 'en' && el.dataset.detailEn) || el.dataset.detail || '';
+        const title = (lang === 'it' && el.dataset.titleIt) || el.dataset.title || '';
+        const text = (lang === 'it' && el.dataset.detailIt) || el.dataset.detail || '';
 
         // innerHTML for nodes that need more than a single emoji glyph (e.g.
         // "Dot World"'s globe + a little cluster of dot-colored circles) —
@@ -578,13 +578,16 @@ navLinks.forEach(link => {
         // `:hover` scale transform) without changing offsetWidth/Height, so
         // pad the obstacle box to match what's actually painted — otherwise
         // the collision math clears a gap the scaled-up chip still overlaps.
+        // 1.08 left a couple of small edge/corner touches on the
+        // shortest mobile panels — a wider pad gives the relax pass a bit
+        // more room to push clear where the panel has space to spare.
         const hubObstacles = hubDots
             .filter(h => h !== hub)
             .map(h => ({
                 x: (parseFloat(h.dataset.x) / 100) * panelWidth,
                 y: (parseFloat(h.dataset.y) / 100) * panelHeight,
-                w: (h.offsetWidth || 90) * 1.08,
-                h: (h.offsetHeight || 36) * 1.08
+                w: (h.offsetWidth || 90) * 1.15,
+                h: (h.offsetHeight || 36) * 1.15
             }));
 
         // Relax any remaining overlap (e.g. tight radius on small panels)
@@ -839,6 +842,14 @@ const MAX_MASCOTS = 6;
 // split-off clones), so each one can notice when another gets close enough
 // to merge back into it — the reverse of splitting.
 const activeMascots = [];
+// Page-wide: has any real user gesture happened yet? A mascot's very first
+// automatic action (its own birth-at-load animation) fires before any
+// visitor interaction, so it must not try to play a sound — the browser's
+// autoplay policy would just log an "AudioContext was not allowed to
+// start" warning for a sound that can't be heard anyway.
+let hasUserGesture = false;
+document.addEventListener('pointerdown', () => { hasUserGesture = true; }, { once: true, capture: true });
+document.addEventListener('keydown', () => { hasUserGesture = true; }, { once: true, capture: true });
 const MERGE_DISTANCE = 45; // px between centers
 // A clone is born right next to the original and often gets thrown/hops
 // straight back into merge range within moments — it would visibly hop
@@ -915,7 +926,6 @@ async function fetchGithubNews() {
         console.warn('[dot] GitHub feed failed:', err);
     }
 }
-fetchGithubNews();
 
 // AI theme: Hugging Face's public trending-models listing. Same
 // no-backend constraint as GitHub above — verified CORS-open, no key
@@ -940,7 +950,6 @@ async function fetchAiNews() {
         console.warn('[dot] AI feed failed:', err);
     }
 }
-fetchAiNews();
 
 // World theme: Hacker News' public top-stories feed — real, live world/tech
 // news refreshed continuously (previously Wikipedia's "on this day", which
@@ -967,7 +976,6 @@ async function fetchWorldNews() {
         console.warn('[dot] world feed failed:', err);
     }
 }
-fetchWorldNews();
 
 // Weather theme: Open-Meteo's public forecast API — no key, no signup,
 // CORS-open. A handful of fixed cities around the world rather than the
@@ -1002,7 +1010,6 @@ async function fetchWeatherNews() {
         console.warn('[dot] weather feed failed:', err);
     }
 }
-fetchWeatherNews();
 
 // Space theme: NASA's Astronomy Picture of the Day. Uses NASA's public
 // DEMO_KEY — documented, rate-limited but usable without any signup of our
@@ -1025,7 +1032,6 @@ async function fetchSpaceNews() {
         console.warn('[dot] space feed failed:', err);
     }
 }
-fetchSpaceNews();
 
 // Trending theme: Wikipedia's official pageviews-top API — what the world
 // is actually reading right now, not "on this day in history". No key,
@@ -1055,7 +1061,6 @@ async function fetchTrendingNews() {
         console.warn('[dot] trending feed failed:', err);
     }
 }
-fetchTrendingNews();
 
 // All feeds pooled together, not split one-per-dot — every dot pulls from
 // the same combined pool, so nobody has to wait for "the right one" to see
@@ -1083,6 +1088,11 @@ async function refetchAllNews() {
         fetchTrendingNews()
     ]);
 }
+// The initial population doesn't need to happen at parse time — dot's
+// first news reveal is never before ~25s (see scheduleNews below), so a
+// short delay here is invisible to a visitor but avoids firing 6 requests
+// to external APIs before the page has even finished settling.
+window.setTimeout(refetchAllNews, 6000);
 // Floor between click-triggered live refetches — mashing clicks shouldn't
 // hammer three rate-limited public APIs at once.
 const NEWS_REFETCH_COOLDOWN_MS = 20000;
@@ -1476,7 +1486,10 @@ function createMascotController(mascot, bubble, options = {}) {
         userPlaced = false; // a fresh life wanders normally again
         place(logoPos.x, logoPos.y);
         restartAnimation('recovering', BIRTH_DURATION_MS);
-        playInflateSound(BIRTH_DURATION_MS / 1000);
+        // Skip the sound if no real gesture has happened yet — the very
+        // first automatic birth on page load can hit this before any
+        // interaction; the visual animation still plays either way.
+        if (hasUserGesture) playInflateSound(BIRTH_DURATION_MS / 1000);
     }
 
     function randomHop() {
@@ -1599,7 +1612,7 @@ function createMascotController(mascot, bubble, options = {}) {
     // into view instead of just silently appearing already in the hero.
     if (!options.pos && !reduceMotion) {
         restartAnimation('recovering', BIRTH_DURATION_MS);
-        playInflateSound(BIRTH_DURATION_MS / 1000);
+        if (hasUserGesture) playInflateSound(BIRTH_DURATION_MS / 1000);
     }
 
     function scheduleHop() {
