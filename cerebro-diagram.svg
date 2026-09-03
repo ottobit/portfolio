@@ -19,6 +19,24 @@
   <rect x="140" y="90" width="110" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
   <text x="195" y="123" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Human</text>
 
+  <!-- Human -> restart bus, tucked-under segment: drawn before the
+       Autonomous Agents container right below (opaque white, not
+       transparent), so the entire descent through the row's full height
+       (y 258-368) is hidden beneath it — the restart bus passes UNDER the
+       whole horizontal block, not just under Clarifier, and stays hidden
+       until it clears it. -->
+  <path d="M150,146 C126,196 112,240 110,280" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
+  <line x1="110" y1="280" x2="110" y2="368" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+
+  <!-- Autonomous Agents (via CLI) container — opaque white fill (not the
+       usual transparent dashed box) so it fully covers the hidden restart
+       segment above. Everything that needs to stay visible where it
+       overlaps this container (the Integrator/Verifier connectors, the
+       "new task" arrow, the pipeline boxes) is drawn after it, further
+       down in the document, so it paints back on top. -->
+  <rect x="60" y="258" width="820" height="110" rx="14" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+  <text x="76" y="358" font-size="12" fill="#64748b">Autonomous Agents — via CLI · each on a local or remote model</text>
+
   <!-- Only via CLI: Integrator + Verifier, stacked but staggered (offset
        sideways from each other) so each keeps its own clear index/anchor
        point, raised well above the main chain and centered over reviewer —
@@ -48,22 +66,10 @@
        ends right at reviewer's top edge -->
   <line x1="715" y1="235" x2="715" y2="282" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></line>
 
-  <!-- Autonomous Agents (via CLI) container -->
-  <rect x="60" y="258" width="820" height="110" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
-  <text x="76" y="358" font-size="12" fill="#64748b">Autonomous Agents — via CLI · each on a local or remote model</text>
-
   <!-- start -->
   <circle cx="30" cy="310" r="7" fill="#0f172a"></circle>
   <text x="4" y="296" font-size="11" fill="#64748b">new task</text>
   <line x1="37" y1="310" x2="76" y2="310" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
-
-  <!-- Human -> restart bus, tucked-under segment: drawn before Clarifier's
-       own opaque box below, so the part of this line running through
-       Clarifier's footprint (y 282-338) is hidden beneath it — the restart
-       bus visibly passes UNDER the horizontal row of phases instead of
-       going around it on the outside. -->
-  <path d="M150,146 C126,196 112,240 110,280" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
-  <line x1="110" y1="280" x2="110" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
 
   <!-- main pipeline nodes -->
   <rect x="80" y="282" width="110" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
@@ -110,9 +116,11 @@
   <!-- Human can restart any stage of the horizontal pipeline: a dedicated
        "bus" running under the whole row, tapped into every box, distinct
        (violet, dashed) from the pipeline's own dark arrows. Re-emerges here
-       from beneath Clarifier (see the tucked-under segment drawn earlier,
-       before Clarifier's own box) instead of going around the row. -->
-  <line x1="110" y1="340" x2="110" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+       right at the container's own bottom edge (see the tucked-under
+       segment drawn near the top of the document, before the container),
+       having stayed hidden for the whole height of the block instead of
+       going around it on the outside. -->
+  <line x1="110" y1="368" x2="110" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
   <line x1="110" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
   <text x="115" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
 
