@@ -25,7 +25,8 @@
        (y 258-368) is hidden beneath it — the restart bus passes UNDER the
        whole horizontal block, not just under Clarifier, and stays hidden
        until it clears it. -->
-  <path d="M150,146 C150,180 122,220 110,280" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
+  <line x1="150" y1="188" x2="150" y2="235" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <path d="M150,235 C150,258 130,270 110,280" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
   <line x1="110" y1="280" x2="110" y2="368" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
 
   <!-- Autonomous Agents (via CLI) container — opaque white fill (not the
