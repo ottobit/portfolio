@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"></path>
+    </marker>
+    <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"></path>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="898" height="558" rx="18" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"></rect>
+
+  <text x="24" y="30" font-size="16" font-weight="700" fill="#0f172a">Dot World — ciclo di un dot (abbozzo)</text>
+
+  <!-- News sources: external, feeds every dot's own perception -->
+  <rect x="110" y="48" width="220" height="100" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+  <text x="320" y="65" font-size="12" fill="#64748b" text-anchor="end">News sources (external)</text>
+  <rect x="140" y="80" width="160" height="50" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="220" y="110" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">News feed</text>
+
+  <!-- News feed -> Perceive -->
+  <path d="M220,130 C220,165 190,190 165,218" fill="none" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></path>
+
+  <!-- start -->
+  <circle cx="30" cy="248" r="7" fill="#0f172a"></circle>
+  <text x="2" y="234" font-size="11" fill="#64748b">tick</text>
+  <line x1="37" y1="248" x2="88" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+
+  <!-- main pipeline: one dot's own loop -->
+  <rect x="90" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="155" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Perceive</text>
+
+  <rect x="250" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="315" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Reason</text>
+
+  <rect x="410" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="475" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Decide</text>
+
+  <rect x="570" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="635" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Act</text>
+
+  <line x1="220" y1="248" x2="248" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="380" y1="248" x2="408" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="540" y1="248" x2="568" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+
+  <!-- Act loops back to Perceive: the next tick -->
+  <path d="M635,218 C635,170 220,170 155,218" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
+  <rect x="360" y="164" width="70" height="16" fill="#ffffff"></rect>
+  <text x="365" y="176" font-size="12" fill="#334155">next tick</text>
+
+  <!-- World state: shared, written by Act, read by every dot's own Perceive -->
+  <rect x="330" y="360" width="220" height="56" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-width="2"></rect>
+  <text x="440" y="393" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">World state (shared)</text>
+
+  <path d="M635,278 C635,330 550,350 500,362" fill="none" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow-violet)"></path>
+  <rect x="530" y="310" width="36" height="16" fill="#ffffff"></rect>
+  <text x="533" y="322" font-size="12" fill="#7c3aed">writes</text>
+
+  <path d="M330,388 C120,388 90,320 130,280" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow-violet)"></path>
+  <rect x="90" y="330" width="150" height="16" fill="#ffffff"></rect>
+  <text x="93" y="342" font-size="12" fill="#7c3aed">read by every dot</text>
+
+  <!-- Legend -->
+  <rect x="20" y="440" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="40" y="468" font-size="13" font-weight="700" fill="#0f172a">Provider-agnostic</text>
+  <text x="40" y="492" font-size="12" fill="#475569">Each dot's Reason step runs its own configurable model —</text>
+  <text x="40" y="512" font-size="12" fill="#475569">local or remote, independently of every other dot.</text>
+
+  <rect x="460" y="440" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="480" y="468" font-size="13" font-weight="700" fill="#7c3aed">Still taking shape</text>
+  <text x="480" y="492" font-size="12" fill="#475569">This is a first sketch, not the final design — the world/dot</text>
+  <text x="480" y="512" font-size="12" fill="#475569">interaction model is still being figured out.</text>
+</svg>

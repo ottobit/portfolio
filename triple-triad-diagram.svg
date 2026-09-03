@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"></path>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="898" height="478" rx="18" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"></rect>
+
+  <text x="24" y="30" font-size="16" font-weight="700" fill="#0f172a">Triple Triad — flusso di una partita (abbozzo)</text>
+
+  <!-- start -->
+  <circle cx="30" cy="140" r="7" fill="#0f172a"></circle>
+  <text x="2" y="126" font-size="11" fill="#64748b">new match</text>
+  <line x1="37" y1="140" x2="88" y2="140" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+
+  <!-- top row: player turn -> resolve -> decision -->
+  <rect x="90" y="112" width="140" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="160" y="145" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Player turn</text>
+
+  <rect x="270" y="112" width="160" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="350" y="145" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Resolve captures</text>
+
+  <rect x="480" y="112" width="150" height="56" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="555" y="140" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">Board</text>
+  <text x="555" y="157" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">full?</text>
+
+  <line x1="230" y1="140" x2="268" y2="140" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <line x1="430" y1="140" x2="478" y2="140" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+
+  <!-- yes: -> tally & winner -> end -->
+  <line x1="630" y1="140" x2="678" y2="140" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <rect x="638" y="121" width="20" height="16" fill="#ffffff"></rect>
+  <text x="640" y="133" font-size="12" fill="#334155">sì</text>
+
+  <rect x="680" y="112" width="150" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="755" y="135" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">Tally &amp;</text>
+  <text x="755" y="152" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">winner</text>
+
+  <line x1="830" y1="140" x2="855" y2="140" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <circle cx="865" cy="140" r="7" fill="none" stroke="#0f172a" stroke-width="2"></circle>
+  <circle cx="865" cy="140" r="3" fill="#0f172a"></circle>
+  <text x="838" y="126" font-size="11" fill="#64748b" text-anchor="end">end</text>
+
+  <!-- no: -> opponent AI turn, loops back up to player turn -->
+  <line x1="555" y1="170" x2="555" y2="228" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <rect x="562" y="188" width="24" height="16" fill="#ffffff"></rect>
+  <text x="564" y="200" font-size="12" fill="#334155">no</text>
+
+  <rect x="480" y="230" width="150" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="555" y="258" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">Opponent AI turn</text>
+  <text x="555" y="275" font-size="10" fill="#64748b" text-anchor="middle">places a card, resolves captures</text>
+
+  <!-- loop back to Player turn, routed below the top row so it never
+       crosses Resolve captures / Board full? -->
+  <path d="M480,258 C300,258 170,258 160,230 160,200 160,190 160,170" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
+  <rect x="165" y="238" width="70" height="16" fill="#ffffff"></rect>
+  <text x="168" y="250" font-size="12" fill="#334155">next turn</text>
+
+  <!-- Legend -->
+  <rect x="20" y="340" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="40" y="368" font-size="13" font-weight="700" fill="#0f172a">Dedicated rules AI</text>
+  <text x="40" y="392" font-size="12" fill="#475569">The opponent is a small AI that knows this game's rules —</text>
+  <text x="40" y="412" font-size="12" fill="#475569">not a generalist model, and not Claude.</text>
+
+  <rect x="460" y="340" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="480" y="368" font-size="13" font-weight="700" fill="#7c3aed">Still taking shape</text>
+  <text x="480" y="392" font-size="12" fill="#475569">This is a first sketch, not the final design — capture</text>
+  <text x="480" y="412" font-size="12" fill="#475569">rules (Same, Plus, elemental...) aren't mapped out yet.</text>
+</svg>
