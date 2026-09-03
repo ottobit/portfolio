@@ -95,15 +95,15 @@
        (violet, dashed) from the pipeline's own dark arrows. -->
   <path d="M150,146 C 90,180 40,220 45,258" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
   <line x1="45" y1="258" x2="45" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <line x1="45" y1="395" x2="825" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <line x1="45" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
   <text x="50" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
 
-  <line x1="135" y1="395" x2="135" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
+  <!-- Clarifier and finalizer are the only two stages that can't be
+       restarted this way — no drop-arrow into either of them. -->
   <line x1="273" y1="395" x2="273" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
   <line x1="405" y1="395" x2="405" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
   <line x1="543" y1="395" x2="543" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
   <line x1="683" y1="395" x2="683" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
-  <line x1="825" y1="395" x2="825" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#arrow-violet)"></line>
 
   <!-- Legend: why the model choice per agent doesn't matter -->
   <rect x="20" y="430" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
@@ -113,7 +113,7 @@
 
   <!-- Legend: restart -->
   <rect x="460" y="430" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
-  <text x="480" y="458" font-size="13" font-weight="700" fill="#7c3aed">Human can restart any stage</text>
-  <text x="480" y="482" font-size="12" fill="#475569">The human in the loop isn't limited to answering Clarifier's</text>
-  <text x="480" y="502" font-size="12" fill="#475569">questions — any stage of the pipeline can be re-run on demand.</text>
+  <text x="480" y="458" font-size="13" font-weight="700" fill="#7c3aed">Human can restart most stages</text>
+  <text x="480" y="482" font-size="12" fill="#475569">planner, organizer, executor and reviewer can be re-run on demand —</text>
+  <text x="480" y="502" font-size="12" fill="#475569">only Clarifier and finalizer can't be restarted this way.</text>
 </svg>
