@@ -57,6 +57,14 @@
   <text x="4" y="296" font-size="11" fill="#64748b">new task</text>
   <line x1="37" y1="310" x2="76" y2="310" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
+  <!-- Human -> restart bus, tucked-under segment: drawn before Clarifier's
+       own opaque box below, so the part of this line running through
+       Clarifier's footprint (y 282-338) is hidden beneath it — the restart
+       bus visibly passes UNDER the horizontal row of phases instead of
+       going around it on the outside. -->
+  <path d="M150,146 C126,196 112,240 110,280" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
+  <line x1="110" y1="280" x2="110" y2="340" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+
   <!-- main pipeline nodes -->
   <rect x="80" y="282" width="110" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
   <text x="135" y="315" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Clarifier</text>
@@ -101,11 +109,12 @@
 
   <!-- Human can restart any stage of the horizontal pipeline: a dedicated
        "bus" running under the whole row, tapped into every box, distinct
-       (violet, dashed) from the pipeline's own dark arrows. -->
-  <path d="M150,146 C 90,180 40,220 45,258" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></path>
-  <line x1="45" y1="258" x2="45" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <line x1="45" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <text x="50" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
+       (violet, dashed) from the pipeline's own dark arrows. Re-emerges here
+       from beneath Clarifier (see the tucked-under segment drawn earlier,
+       before Clarifier's own box) instead of going around the row. -->
+  <line x1="110" y1="340" x2="110" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <line x1="110" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <text x="115" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
 
   <!-- Clarifier and finalizer are the only two stages that can't be
        restarted this way — no drop-arrow into either of them. -->
