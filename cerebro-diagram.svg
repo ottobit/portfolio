@@ -25,8 +25,7 @@
        (y 258-368) is hidden beneath it — the restart bus passes UNDER the
        whole horizontal block, not just under Clarifier, and stays hidden
        until it clears it. -->
-  <line x1="150" y1="188" x2="110" y2="280" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <line x1="110" y1="280" x2="110" y2="368" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <line x1="150" y1="188" x2="150" y2="368" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
 
   <!-- Autonomous Agents (via CLI) container — opaque white fill (not the
        usual transparent dashed box) so it fully covers the hidden restart
@@ -120,9 +119,9 @@
        segment drawn near the top of the document, before the container),
        having stayed hidden for the whole height of the block instead of
        going around it on the outside. -->
-  <line x1="110" y1="368" x2="110" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <line x1="110" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
-  <text x="115" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
+  <line x1="150" y1="368" x2="150" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <line x1="150" y1="395" x2="683" y2="395" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="4 4"></line>
+  <text x="155" y="412" font-size="11" font-weight="600" fill="#7c3aed">restart</text>
 
   <!-- Clarifier and finalizer are the only two stages that can't be
        restarted this way — no drop-arrow into either of them. -->
