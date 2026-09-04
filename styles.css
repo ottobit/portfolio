@@ -1737,6 +1737,20 @@ body {
     background: var(--accent);
 }
 
+/* The line that closes the timeline: it says the story is finished, not
+   abandoned. Deliberately quiet — no marker, no track, and outside
+   .timeline-wrap entirely, so the vertical track still stops at the last
+   era exactly as it did before. Indented to line up with the eras' text
+   rather than with their markers. */
+.timeline-end {
+    max-width: 720px;
+    margin: 2.5rem auto 0;
+    padding-left: 4.75rem; /* 56px marker + the era's 1.25rem gap */
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
 @media (max-width: 600px) {
     .timeline-track,
     .timeline-progress {
@@ -1751,5 +1765,9 @@ body {
 
     .timeline-era {
         gap: 0.85rem;
+    }
+
+    .timeline-end {
+        padding-left: 3.48rem; /* 42px marker + 0.85rem gap */
     }
 }
