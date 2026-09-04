@@ -1770,6 +1770,117 @@ function createMascotController(mascot, bubble, options = {}) {
         });
     }
 
+    // The rage blast doesn't only tip things over: it drops them. Gravity is
+    // what turns a reaction into a consequence — before this, everything
+    // rotated but stayed nailed to its spot, which read as "shoved" rather
+    // than "knocked down".
+    //
+    // Each element falls to the floor of the box that actually contains it,
+    // not to the bottom of the viewport: .hero-visual and .hero-text clip
+    // their overflow, so a chip "falling to the bottom of the screen" would
+    // simply vanish at their edge. Things fall to the bottom of the box
+    // they're in, which is both what the CSS allows and what physics would
+    // do anyway.
+    //
+    // Still purely visual, like the tip it extends: the standalone
+    // `translate`/`rotate` properties compose with each element's own
+    // `transform` (the graph nodes are positioned through it), and nothing
+    // in the DOM moves — the page is never actually rearranged, so the
+    // layout that comes back up is the one that went down.
+    const COLLAPSE_WAVE_MS_PER_PX = 0.32; // the blast front travels outward
+    const COLLAPSE_MAX_DELAY_MS = 320;    // ...but nothing waits longer than this
+    const COLLAPSE_DURATION_MS = 2000;
+
+    // The box an element can actually move inside: the nearest ancestor that
+    // clips its overflow, or the viewport when nothing does. Its bottom is
+    // the floor to fall to, and its sides are walls — without them a chip
+    // drifting sideways gets sliced in half at the panel's edge, and the
+    // logo slides straight off the screen, both of which read as a bug
+    // rather than as debris.
+    function clipBoxFor(el) {
+        for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+            const style = getComputedStyle(node);
+            if (style.overflow !== 'visible' || style.overflowY !== 'visible' || style.overflowX !== 'visible') {
+                return node.getBoundingClientRect();
+            }
+        }
+        return { left: 0, right: window.innerWidth, bottom: window.innerHeight };
+    }
+
+    function collapseVisibleElements(cx, cy) {
+        document.querySelectorAll(HITTABLE_SELECTOR).forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (!rect.width && !rect.height) return;
+            // Off-screen elements are skipped: nobody would see them fall,
+            // and animating them is pure cost.
+            if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+
+            const ex = rect.left + rect.width / 2;
+            const ey = rect.top + rect.height / 2;
+            const dir = Math.sign(ex - cx) || 1;
+            const box = clipBoxFor(el);
+            // A resting tilt, jittered per element: one uniform angle looks
+            // like a table collapsing, not like things falling over.
+            const angle = dir * (58 + Math.random() * 38);
+            const rad = angle * Math.PI / 180;
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+
+            // Lying on its side, an element's footprint is no longer its
+            // width and height: without this a wide element (the logo, a
+            // chip) comes to rest half sunk through the floor.
+            const halfWide = (Math.abs(rect.width * cos) + Math.abs(rect.height * sin)) / 2;
+            const halfTall = (Math.abs(rect.width * sin) + Math.abs(rect.height * cos)) / 2;
+
+            // And it doesn't necessarily turn on the spot. `rotate` is
+            // applied *before* the element's own `transform`, around the
+            // origin of its untransformed box — so anything positioned by a
+            // transform (every graph node carries translate(-50%, -50%))
+            // swings along an arc instead of pivoting in place. That offset
+            // is exactly the rotation applied to its transform's own
+            // translation, and it has to be predicted here or the node ends
+            // up sliced against the panel edge it swung into.
+            let arcX = 0, arcY = 0;
+            const ownTransform = getComputedStyle(el).transform;
+            if (ownTransform && ownTransform !== 'none') {
+                const m = new DOMMatrixReadOnly(ownTransform);
+                arcX = m.e * cos - m.f * sin - m.e;
+                arcY = m.e * sin + m.f * cos - m.f;
+            }
+            const restX = ex + arcX;
+            const restY = ey + arcY;
+
+            // Not clamped at zero on purpose: something already resting on
+            // the floor has to rise a little as it tips, because lying down
+            // makes it taller than it was standing. Refusing that is what
+            // pushed the hero button through the bottom of its panel.
+            const fall = box.bottom - 2 - halfTall - restY;
+            // Blown away from dot, but never through the walls of its box.
+            // Both limits can pull the other way — an element that would
+            // swing into a wall has to be nudged back inside, not merely
+            // stopped from drifting further into it.
+            const drift = Math.min(
+                Math.max(dir * (8 + Math.random() * 26), box.left + 2 + halfWide - restX),
+                box.right - 2 - halfWide - restX
+            );
+            const delay = Math.min(Math.hypot(ex - cx, ey - cy) * COLLAPSE_WAVE_MS_PER_PX, COLLAPSE_MAX_DELAY_MS);
+
+            el.style.setProperty('--fall-y', fall.toFixed(0) + 'px');
+            el.style.setProperty('--fall-x', drift.toFixed(0) + 'px');
+            el.style.setProperty('--tip-angle', angle.toFixed(1) + 'deg');
+            el.style.setProperty('--fall-delay', delay.toFixed(0) + 'ms');
+            el.style.setProperty('--fall-dur', (COLLAPSE_DURATION_MS + Math.random() * 260).toFixed(0) + 'ms');
+
+            el.classList.remove('page-tipped', 'page-collapsed');
+            void el.offsetWidth; // force reflow so the animation can replay
+            el.classList.add('page-collapsed');
+            el.addEventListener('animationend', () => el.classList.remove('page-collapsed'), { once: true });
+            // Safety net for the cases where animationend never fires — the
+            // element hidden mid-fall by a language switch, a resize, or a
+            // second explosion restarting the animation underneath it.
+            window.setTimeout(() => el.classList.remove('page-collapsed'), COLLAPSE_DURATION_MS + COLLAPSE_MAX_DELAY_MS + 400);
+        });
+    }
+
     // Grows the mascot a little more with each click in the current streak,
     // so it visibly "puffs up" as it approaches the pop threshold — and
     // since dragging doesn't reset the streak, it can be picked up and
@@ -1868,7 +1979,7 @@ function createMascotController(mascot, bubble, options = {}) {
             const cy = rect.top + rect.height / 2;
             burstParticles({ count: 40, distance: 260, size: 14 });
             burstShockwave(true);
-            tipNearbyElements(cx, cy, Math.hypot(window.innerWidth, window.innerHeight));
+            collapseVisibleElements(cx, cy);
             playRageBoomSound();
             activeMascots
                 .filter(h => h !== selfHandle && !h.removed)
