@@ -51,3 +51,20 @@ completamento automaticamente. Dopo ogni merge:
 
 Se il deploy fallisce o resta bloccato, dillo esplicitamente invece di
 assumere che sia andato a buon fine.
+
+## La timeline è chiusa
+
+`evolution.html` racconta i salti creativi del sito, non il suo changelog,
+e si ferma al punto in cui ogni progetto ha ottenuto la sua pagina. Da lì
+in poi:
+
+- **Le modifiche al sito non aggiungono più ere.** Nessun fix, nessuna
+  rifinitura, nessun giro di manutenzione va aggiunto alla timeline: quella
+  storia sta già nei commit e nelle PR, che la pagina stessa linka in
+  chiusura.
+- **Quello che evolve si documenta nella pagina del progetto**
+  (`cerebro.html`, `dot-world.html`, `triple-triad.html`), nelle sezioni
+  "In breve" / "Come funziona" / "Scelte e vincoli".
+- Si torna a toccare la timeline solo se succede un vero salto creativo —
+  cioè se cambia la natura di quello che il sito è, non se una cosa viene
+  sistemata — e comunque solo su richiesta esplicita dell'utente.
