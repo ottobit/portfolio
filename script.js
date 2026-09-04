@@ -852,6 +852,20 @@ const activeMascots = [];
 let hasUserGesture = false;
 document.addEventListener('pointerdown', () => { hasUserGesture = true; }, { once: true, capture: true });
 document.addEventListener('keydown', () => { hasUserGesture = true; }, { once: true, capture: true });
+
+// When the page was last touched by an actual person, and who wants to know.
+// dot uses it to fall asleep once it's been left alone (see the mascot
+// controller): news arriving on its own doesn't count as company, only a
+// real gesture does — otherwise it would be woken every 25 seconds by its
+// own feed and never get to sleep at all.
+let lastActivityAt = Date.now();
+const wakeCallbacks = new Set();
+['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(type => {
+    document.addEventListener(type, () => {
+        lastActivityAt = Date.now();
+        wakeCallbacks.forEach(fn => fn());
+    }, { passive: true, capture: true });
+});
 const MERGE_DISTANCE = 45; // px between centers
 // A clone is born right next to the original and often gets thrown/hops
 // straight back into merge range within moments — it would visibly hop
@@ -1206,6 +1220,8 @@ function createMascotController(mascot, bubble, options = {}) {
     // so a fresh life starts wandering normally again.
     let userPlaced = false;
     let isFetchingNews = false;
+    let isAsleep = false;        // left alone long enough to nod off
+    let sleepCheckTimer = null;
     let isDizzy = false;
     let shakeReversalTimes = [];
     let lastShakeDxSign = 0;
@@ -1276,6 +1292,8 @@ function createMascotController(mascot, bubble, options = {}) {
             // forever — dead weight that only grows the more a visitor
             // splits/merges dot, since nothing ever cleaned them up.
             document.removeEventListener('mousemove', onMouseMove);
+            wakeCallbacks.delete(wakeUp);
+            window.clearInterval(sleepCheckTimer);
             document.removeEventListener('graphinteraction', onGraphInteraction);
             window.removeEventListener('resize', onResize);
             // In case this instance never got its first real click/keydown
@@ -1500,6 +1518,7 @@ function createMascotController(mascot, bubble, options = {}) {
         // (or the "couldn't reach it" fallback) popping up somewhere the
         // visitor isn't looking anymore.
         if (isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
+        if (isAsleep) return; // let it sleep
         stopRestBounce();
 
         // Before anyone has touched dot, idle wandering stays confined to a
@@ -1657,7 +1676,7 @@ function createMascotController(mascot, bubble, options = {}) {
     function scheduleNews() {
         window.setTimeout(() => {
             if (instanceRemoved || selfHandle.removed) return;
-            if (!isDragging && !isThrown && !isPopped && getAllNewsItems().length) {
+            if (!isDragging && !isThrown && !isPopped && !isAsleep && getAllNewsItems().length) {
                 if (newsBadge) newsBadge.hidden = false;
                 window.setTimeout(() => {
                     if (instanceRemoved || selfHandle.removed) return;
@@ -1670,6 +1689,39 @@ function createMascotController(mascot, bubble, options = {}) {
         }, 25000 + Math.random() * 15000);
     }
     scheduleNews();
+
+    // Left alone long enough, dot goes to sleep: it stops wandering, closes
+    // its eyes, breathes slowly and lets the odd "z" escape, and holds its
+    // news back until someone is around to read it. Any real gesture
+    // anywhere on the page wakes it with a stretch — sleeping through a
+    // visitor's return would read as broken, not as sleepy.
+    const SLEEP_AFTER_MS = 45000;
+    const SLEEP_CHECK_MS = 2000;
+
+    function fallAsleep() {
+        // Never mid-throw, mid-drag, mid-explosion or mid-fetch: those all
+        // end with dot doing something, and it should be awake for it.
+        if (isAsleep || isDragging || isThrown || isPopped || isFetchingNews || instanceRemoved) return;
+        isAsleep = true;
+        stopRestBounce();
+        mascot.classList.remove('waking');
+        mascot.classList.add('sleeping');
+    }
+
+    function wakeUp() {
+        if (!isAsleep) return;
+        isAsleep = false;
+        mascot.classList.remove('sleeping');
+        restartAnimation('waking', 460);
+    }
+
+    if (!reduceMotion) {
+        wakeCallbacks.add(wakeUp);
+        sleepCheckTimer = window.setInterval(() => {
+            if (instanceRemoved || selfHandle.removed) return;
+            if (Date.now() - lastActivityAt >= SLEEP_AFTER_MS) fallAsleep();
+        }, SLEEP_CHECK_MS);
+    }
 
     // Eyes glance toward the cursor when it's nearby, anywhere on the page.
     // Named so remove() can actually unregister it — see the comment there.
