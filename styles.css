@@ -446,6 +446,8 @@ body {
     height: calc(7px * var(--mascot-scale, 1));
     border-radius: 50%;
     background: #fff;
+    /* Eased so falling asleep closes them rather than snapping them shut. */
+    transition: height 0.3s ease, border-radius 0.3s ease;
 }
 
 /* A small "I have something to say" indicator — appears once dot has a
@@ -526,10 +528,6 @@ body {
 .mascot.sleeping .mascot-eye {
     height: calc(2px * var(--mascot-scale, 1));
     border-radius: 2px;
-}
-
-.mascot-eye {
-    transition: height 0.3s ease, border-radius 0.3s ease;
 }
 
 /* Absolutely positioned on purpose: .mascot is a flex row of two eyes, and
