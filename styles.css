@@ -870,21 +870,23 @@ body {
 }
 
 /* "Triple Triad"'s icon: a hand-built card instead of the generic joker
-   emoji, which says "playing cards" but nothing about this game. Final
-   Fantasy VIII prints four ranks on every card — one per side — and the
-   whole game is those numbers beating the ones facing them, so the icon is
-   just that: a card with the rank cross, "A" (the top rank) up top and an
-   8 on the left for the game it comes from. Pure CSS in em units, so it
-   scales with whatever font-size .detail-icon carries. */
+   emoji, which says "playing cards" but nothing about this game. The layout
+   is the one Final Fantasy VIII actually prints: the four ranks in a cross
+   in the top-left corner, the element slot top-right, and the creature's
+   artwork filling the rest — here a Cactuar (a real Triple Triad card) in
+   pixel art, the one silhouette that survives being drawn 9 pixels wide in
+   a single color. Pure CSS in em units, so the whole thing scales with
+   whatever font-size .detail-icon carries. */
 .icon-tt-card {
     position: relative;
     display: inline-block;
-    width: 1.35em;
-    height: 1.78em;
+    width: 1.62em;
+    height: 2.16em;
     vertical-align: middle;
     border: 0.075em solid var(--accent);
     border-radius: 0.2em;
     background: var(--accent-soft);
+    color: var(--accent);
 }
 
 /* The little box in the top-right corner: on a real card that slot carries
@@ -895,8 +897,8 @@ body {
     position: absolute;
     top: 0;
     right: 0;
-    width: 0.36em;
-    height: 0.36em;
+    width: 0.34em;
+    height: 0.34em;
     background: var(--surface);
     border-left: 0.075em solid var(--accent);
     border-bottom: 0.075em solid var(--accent);
@@ -904,36 +906,60 @@ body {
     border-top-right-radius: 0.13em;
 }
 
+/* The rank cross, tucked in the top-left corner the way the game lays it
+   out — not spread across the whole card, which would leave nowhere for the
+   artwork to go. */
+.icon-tt-ranks {
+    position: absolute;
+    top: 0.08em;
+    left: 0.05em;
+    width: 0.8em;
+    height: 0.7em;
+}
+
 .icon-tt-rank {
     position: absolute;
-    font-size: 0.36em;
+    font-size: 0.3em;
     font-weight: 700;
     line-height: 1;
     color: var(--accent);
 }
 
 .icon-tt-rank.tt-top {
-    top: 0.5em;
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
 }
 
 .icon-tt-rank.tt-left {
-    left: 0.36em;
+    left: 0;
     top: 50%;
     transform: translateY(-50%);
 }
 
 .icon-tt-rank.tt-right {
-    right: 0.36em;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
 }
 
 .icon-tt-rank.tt-bottom {
-    bottom: 0.5em;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
+}
+
+/* The Cactuar itself: a 9x11 pixel grid drawn as inline <rect>s with
+   crispEdges, so every pixel stays a hard-edged square at any zoom instead
+   of blurring the way a scaled bitmap would. */
+.icon-tt-art {
+    position: absolute;
+    bottom: 0.16em;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.88em;
+    height: auto;
+    display: block;
 }
 
 .detail-body h2 {
