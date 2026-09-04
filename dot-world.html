@@ -26,7 +26,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=5.6">
+    <link rel="stylesheet" href="styles.css?v=5.7">
 </head>
 <body>
     <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -71,6 +71,72 @@
             <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="State diagram of a dot's perceive-reason-decide-act cycle in Dot World — tap to zoom in" data-aria-label-it="Diagramma a stati del ciclo percepisci-ragiona-decidi-agisci di un dot in Dot World — tocca per ingrandire">
                 <img id="diagram-img" src="dot-world-diagram.svg?v=1" alt="">
             </button>
+        </div>
+
+        <div class="doc-sections">
+            <section class="doc-section">
+                <h2 data-it="In breve">At a glance</h2>
+                <dl class="doc-facts">
+                    <dt data-it="Tipo">Type</dt>
+                    <dd data-it="Simulazione multi-agente">Multi-agent simulation</dd>
+                    <dt data-it="Attori">Actors</dt>
+                    <dd data-it="Tanti dot, ognuno che decide e ragiona per conto suo">Many dots, each deciding and reasoning on its own</dd>
+                    <dt data-it="Modelli">Models</dt>
+                    <dd data-it="Uno per dot, configurabile indipendentemente da ogni altro dot — locale o remoto">One per dot, configurable independently of every other dot — local or remote</dd>
+                    <dt data-it="Input esterni">External input</dt>
+                    <dd data-it="Notizie che il mondo legge dall&#x27;esterno">News the world reads from outside itself</dd>
+                    <dt data-it="Stato condiviso">Shared state</dt>
+                    <dd data-it="Uno stato del mondo su cui ogni dot scrive e che ogni dot legge">A world state every dot writes to and every dot reads</dd>
+                    <dt data-it="Stato">Status</dt>
+                    <dd data-it="Primo abbozzo — il disegno è ancora in via di definizione">First sketch — the design is still taking shape</dd>
+                </dl>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Come funziona">How it works</h2>
+                <ol class="doc-steps">
+                    <li>
+                        <span class="doc-step-name" data-it="Perceive">Perceive</span>
+                        <span data-it=" — un dot legge le notizie che arrivano dall&#x27;esterno, e lo stato condiviso del mondo com&#x27;è in quel momento"> — a dot reads the news coming in from outside, and the shared state of the world as it stands</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Reason">Reason</span>
+                        <span data-it=" — ci ragiona sopra con il proprio modello, locale o remoto"> — it thinks that over with its own model, local or remote</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Decide">Decide</span>
+                        <span data-it=" — sceglie un&#x27;azione"> — it picks an action</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Act">Act</span>
+                        <span data-it=" — esegue l&#x27;azione e scrive il risultato nello stato condiviso del mondo"> — it carries the action out and writes the result into the shared world state</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Tick successivo">Next tick</span>
+                        <span data-it=" — il mondo avanza e il ciclo ricomincia: ciò che un dot ha scritto è ciò che gli altri percepiranno"> — the world moves on and the cycle starts over: what one dot wrote is what the others will perceive</span>
+                    </li>
+                </ol>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Scelte e vincoli">Decisions and constraints</h2>
+                <ul class="doc-list">
+                    <li>
+                        <span class="doc-step-name" data-it="Ogni dot ragiona per conto suo">Every dot reasons on its own</span>
+                        <span data-it=" — con il proprio modello, indipendentemente da ogni altro dot — non c&#x27;è un unico cervello che governa il mondo"> — with its own model, independently of every other dot — there is no single brain running the world</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="I dot non si parlano mai direttamente">Dots never talk to each other directly</span>
+                        <span data-it=" — si influenzano attraverso lo stato condiviso del mondo, e in nessun altro modo"> — they influence one another through the shared world state, and nowhere else</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il mondo non è chiuso">The world is not sealed off</span>
+                        <span data-it=" — le notizie dall&#x27;esterno alimentano ciò che i dot percepiscono, quindi la simulazione è influenzata da cose realmente accadute"> — news from outside feeds into what the dots perceive, so the simulation is shaped by things that actually happened</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il modello di interazione è ancora aperto">The interaction model is still open</span>
+                        <span data-it=" — come esattamente dot e mondo si influenzano è ancora da definire. Questo è un primo abbozzo, non il disegno finale"> — how exactly dots and world affect each other is being figured out. This is a first sketch, not the final design</span>
+                    </li>
+                </ul>
+            </section>
         </div>
     </main>
 
