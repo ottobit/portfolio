@@ -205,10 +205,12 @@
                 if (!el.dataset.en) el.dataset.en = el.textContent;
                 el.textContent = lang === 'it' ? el.dataset.it : el.dataset.en;
             });
-            if (diagramTrigger) {
-                if (!diagramTrigger.dataset.en) diagramTrigger.dataset.en = diagramTrigger.getAttribute('aria-label');
-                diagramTrigger.setAttribute('aria-label', lang === 'it' ? diagramTrigger.dataset.ariaLabelIt : diagramTrigger.dataset.en);
-            }
+            // Any element carrying data-aria-label-it, not just the diagram
+            // button: the reference marker's label needs translating too.
+            document.querySelectorAll('[data-aria-label-it]').forEach(function (el) {
+                if (!el.dataset.ariaLabelEn) el.dataset.ariaLabelEn = el.getAttribute('aria-label');
+                el.setAttribute('aria-label', lang === 'it' ? el.dataset.ariaLabelIt : el.dataset.ariaLabelEn);
+            });
             updateNavToggleLabel();
         }
 
