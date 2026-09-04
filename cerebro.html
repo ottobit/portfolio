@@ -26,7 +26,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=5.6">
+    <link rel="stylesheet" href="styles.css?v=5.7">
 </head>
 <body>
     <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -71,6 +71,80 @@
             <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="State diagram of the Cerebro Engine flow — tap to zoom in" data-aria-label-it="Diagramma a stati del flusso di Cerebro Engine — tocca per ingrandire">
                 <img id="diagram-img" src="cerebro-diagram.svg?v=17" alt="">
             </button>
+        </div>
+
+        <div class="doc-sections">
+            <section class="doc-section">
+                <h2 data-it="In breve">At a glance</h2>
+                <dl class="doc-facts">
+                    <dt data-it="Tipo">Type</dt>
+                    <dd data-it="Motore multi-agente, costruito su LangGraph">Multi-agent engine, built on LangGraph</dd>
+                    <dt data-it="Interfaccia">Interface</dt>
+                    <dd data-it="Solo riga di comando">Command line only</dd>
+                    <dt data-it="Attori">Actors</dt>
+                    <dd data-it="Sei agenti in sequenza, più Integrator e Verifier quando il motore è agganciato a un progetto reale">Six agents in sequence, plus Integrator and Verifier when the engine is hooked to a real project</dd>
+                    <dt data-it="Modelli">Models</dt>
+                    <dd data-it="Uno per agente, configurabile in modo indipendente — locale o remoto">One per agent, configurable independently — local or remote</dd>
+                    <dt data-it="Umano nel ciclo">Human in the loop</dt>
+                    <dd data-it="Sì: domande e risposte via CLI, e la maggior parte delle fasi può essere fatta ripartire su richiesta">Yes: questions and answers over the CLI, and most stages can be restarted on demand</dd>
+                    <dt data-it="Stato">Status</dt>
+                    <dd data-it="Funzionante">Working</dd>
+                </dl>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Come funziona">How it works</h2>
+                <ol class="doc-steps">
+                    <li>
+                        <span class="doc-step-name" data-it="Clarifier">Clarifier</span>
+                        <span data-it=" — prende la descrizione del task e chiede all&#x27;umano ciò che è ambiguo, prima che parta qualsiasi altra cosa"> — takes the task description and asks the human whatever is ambiguous, before anything else starts</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="planner">planner</span>
+                        <span data-it=" — trasforma il task chiarito in un piano"> — turns the clarified task into a plan</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="organizer">organizer</span>
+                        <span data-it=" — progetta come quel piano verrà effettivamente realizzato"> — designs how that plan will actually be carried out</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="executor">executor</span>
+                        <span data-it=" — lo implementa"> — implements it</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="reviewer">reviewer</span>
+                        <span data-it=" — rivede il risultato"> — reviews the result</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="finalizer">finalizer</span>
+                        <span data-it=" — chiude l&#x27;esecuzione e restituisce il deliverable finito"> — closes the run and hands back the finished deliverable</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Integrator e Verifier">Integrator and Verifier</span>
+                        <span data-it=" — solo quando il motore è agganciato a un progetto reale: il codice viene integrato e il risultato verificato"> — only when the engine is hooked to a real project: the code is integrated and the result verified</span>
+                    </li>
+                </ol>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Scelte e vincoli">Decisions and constraints</h2>
+                <ul class="doc-list">
+                    <li>
+                        <span class="doc-step-name" data-it="Provider-agnostic, un agente alla volta">Provider-agnostic, one agent at a time</span>
+                        <span data-it=" — ogni agente gira sul proprio modello configurabile, locale o remoto. Conta l&#x27;obiettivo, non il modello"> — each agent runs its own configurable model, local or remote. The goal is what matters, not the model</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;umano può far ripartire quasi tutte le fasi">The human can restart most stages</span>
+                        <span data-it=" — planner, organizer, executor e reviewer possono essere rieseguiti su richiesta; Clarifier e finalizer no"> — planner, organizer, executor and reviewer can be re-run on demand; Clarifier and finalizer can&#x27;t</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il dialogo passa solo dalla CLI">The conversation happens only over the CLI</span>
+                        <span data-it=" — il motore chiede e l&#x27;umano risponde lì e in nessun altro posto"> — the engine asks and the human answers there and nowhere else</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;integrazione è opzionale">Integration is optional</span>
+                        <span data-it=" — Integrator e Verifier entrano in gioco solo quando il motore è puntato su un progetto reale; da solo si ferma al deliverable revisionato"> — Integrator and Verifier come into play only when the engine is pointed at a real project; on its own it stops at the reviewed deliverable</span>
+                    </li>
+                </ul>
+            </section>
         </div>
     </main>
 

@@ -26,7 +26,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=5.6">
+    <link rel="stylesheet" href="styles.css?v=5.7">
 </head>
 <body>
     <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -71,6 +71,72 @@
             <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="Flow diagram of a Triple Triad match — tap to zoom in" data-aria-label-it="Diagramma di flusso di una partita a Triple Triad — tocca per ingrandire">
                 <img id="diagram-img" src="triple-triad-diagram.svg?v=1" alt="">
             </button>
+        </div>
+
+        <div class="doc-sections">
+            <section class="doc-section">
+                <h2 data-it="In breve">At a glance</h2>
+                <dl class="doc-facts">
+                    <dt data-it="Tipo">Type</dt>
+                    <dd data-it="Il minigioco di carte di Final Fantasy VIII, riscritto da zero">The card minigame from Final Fantasy VIII, rebuilt from scratch</dd>
+                    <dt data-it="Avversario">Opponent</dt>
+                    <dd data-it="Un&#x27;IA dedicata che conosce le regole di questo gioco — non un modello generalista, e non Claude">A dedicated AI that knows this game&#x27;s rules — not a generalist model, and not Claude</dd>
+                    <dt data-it="Origine">Origin</dt>
+                    <dd data-it="Iniziato anni prima che arrivasse l&#x27;IA generativa">Started years before generative AI came along</dd>
+                    <dt data-it="Stato">Status</dt>
+                    <dd data-it="Primo abbozzo — le regole di cattura non sono ancora mappate">First sketch — the capture rules aren&#x27;t mapped out yet</dd>
+                </dl>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Come si svolge una partita">How a match runs</h2>
+                <ol class="doc-steps">
+                    <li>
+                        <span class="doc-step-name" data-it="Nuova partita">New match</span>
+                        <span data-it=" — il tavolo parte vuoto"> — the board starts empty</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Turno del giocatore">Player turn</span>
+                        <span data-it=" — il giocatore piazza una carta sul tavolo"> — the player places a card on the board</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Risoluzione delle catture">Resolve captures</span>
+                        <span data-it=" — i ranghi sui lati che si toccano vengono confrontati, e le carte che perdono si girano"> — the ranks on the touching sides are compared, and the cards that lose flip over</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Tavolo pieno?">Board full?</span>
+                        <span data-it=" — se non lo è, il turno passa all&#x27;avversario; se lo è, la partita finisce"> — if it isn&#x27;t, play passes to the opponent; if it is, the match ends</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Turno dell&#x27;IA avversaria">Opponent AI turn</span>
+                        <span data-it=" — l&#x27;IA dedicata piazza una carta e le sue catture si risolvono allo stesso modo, poi tocca di nuovo al giocatore"> — the dedicated AI places a card and its captures are resolved the same way, then it&#x27;s the player&#x27;s turn again</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Conteggio e vincitore">Tally and winner</span>
+                        <span data-it=" — le carte vengono contate e viene dichiarato il vincitore"> — the cards are counted and the winner is declared</span>
+                    </li>
+                </ol>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Scelte e vincoli">Decisions and constraints</h2>
+                <ul class="doc-list">
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;avversario è un&#x27;IA dedicata alle regole">The opponent is a dedicated rules AI</span>
+                        <span data-it=" — una piccola IA che conosce questo gioco, non un modello generalista e non Claude"> — a small AI that knows this game, not a generalist model and not Claude</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il progetto è più vecchio dell&#x27;IA generativa">The project predates generative AI</span>
+                        <span data-it=" — è stato iniziato anni prima e viene riscritto da zero, non rattoppato sul vecchio"> — it was started years earlier and is being rebuilt from scratch, not patched onto the old one</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Una sola risoluzione delle catture per entrambi">One capture resolution for both sides</span>
+                        <span data-it=" — la mossa del giocatore e quella dell&#x27;IA passano dallo stesso passaggio — un solo insieme di regole, non uno per parte"> — the player&#x27;s move and the AI&#x27;s move go through the same step — one rule set, not one per side</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Le regole di cattura sono ancora aperte">The capture rules are still open</span>
+                        <span data-it=" — Same, Plus, elementali e le altre non sono ancora mappate. Questo è un primo abbozzo, non il disegno finale"> — Same, Plus, elemental and the rest aren&#x27;t mapped out yet. This is a first sketch, not the final design</span>
+                    </li>
+                </ul>
+            </section>
         </div>
     </main>
 

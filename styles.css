@@ -1346,6 +1346,123 @@ body {
     line-height: 1.7;
 }
 
+/* The project pages (cerebro/dot-world/triple-triad) read as short
+   technical documents: overview, diagram, then a fact sheet, the flow
+   written out step by step, and the decisions behind it. Text sections are
+   held to a reading width, deliberately narrower than the diagram above
+   them, which stays as wide as it needs to be. */
+.doc-sections {
+    max-width: 720px;
+    margin: 3rem auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.doc-section h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* The fact sheet: label/value pairs in two columns, the labels quiet and
+   the values carrying the weight. Rows a project has no documented answer
+   for are simply left out of that page's markup rather than shown empty —
+   the sheet is variable-length, not a table with holes. */
+.doc-facts {
+    display: grid;
+    grid-template-columns: minmax(7rem, 12rem) 1fr;
+    gap: 0.55rem 1.25rem;
+    margin: 0;
+}
+
+.doc-facts dt {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-top: 0.15em;
+}
+
+.doc-facts dd {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+/* The flow in words — the diagram above said the same thing in a picture,
+   but on a phone that picture needs a tap and a pinch to read. */
+.doc-steps {
+    margin: 0;
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.doc-steps li {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    padding-left: 0.3rem;
+}
+
+.doc-steps li::marker {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* The step's (or decision's) own name, kept as a separate element from
+   its description: these pages swap languages with textContent, so any
+   markup nested inside a translated node would be stripped on the first
+   toggle. Two sibling nodes, two data-it attributes, nothing nested. */
+.doc-step-name {
+    font-weight: 600;
+}
+
+/* Same dot marker as the timeline's entries, so a bulleted list looks the
+   same wherever it appears on the site. */
+.doc-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.doc-list li {
+    position: relative;
+    padding-left: 1.1rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text);
+}
+
+.doc-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+@media (max-width: 560px) {
+    /* Two columns stop working once the labels have less room than their
+       own words need: below this width the label sits above its value. */
+    .doc-facts {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+
+    .doc-facts dd {
+        margin-bottom: 0.7rem;
+    }
+}
+
 .timeline-wrap {
     position: relative;
     max-width: 720px;
