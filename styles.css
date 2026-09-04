@@ -869,6 +869,73 @@ body {
     left: 0.86em;
 }
 
+/* "Triple Triad"'s icon: a hand-built card instead of the generic joker
+   emoji, which says "playing cards" but nothing about this game. Final
+   Fantasy VIII prints four ranks on every card — one per side — and the
+   whole game is those numbers beating the ones facing them, so the icon is
+   just that: a card with the rank cross, "A" (the top rank) up top and an
+   8 on the left for the game it comes from. Pure CSS in em units, so it
+   scales with whatever font-size .detail-icon carries. */
+.icon-tt-card {
+    position: relative;
+    display: inline-block;
+    width: 1.35em;
+    height: 1.78em;
+    vertical-align: middle;
+    border: 0.075em solid var(--accent);
+    border-radius: 0.2em;
+    background: var(--accent-soft);
+}
+
+/* The little box in the top-right corner: on a real card that slot carries
+   the element symbol. It sits inside the outline (no negative offsets), so
+   the card's own border stays an unbroken rectangle. */
+.icon-tt-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0.36em;
+    height: 0.36em;
+    background: var(--surface);
+    border-left: 0.075em solid var(--accent);
+    border-bottom: 0.075em solid var(--accent);
+    border-bottom-left-radius: 0.1em;
+    border-top-right-radius: 0.13em;
+}
+
+.icon-tt-rank {
+    position: absolute;
+    font-size: 0.36em;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent);
+}
+
+.icon-tt-rank.tt-top {
+    top: 0.5em;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.icon-tt-rank.tt-left {
+    left: 0.36em;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.icon-tt-rank.tt-right {
+    right: 0.36em;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.icon-tt-rank.tt-bottom {
+    bottom: 0.5em;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 .detail-body h2 {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
