@@ -1754,6 +1754,10 @@ function createMascotController(mascot, bubble, options = {}) {
     // element's own transform) — nothing in the DOM ever changes.
     function tipNearbyElements(cx, cy, radius = POP_TIP_RADIUS) {
         document.querySelectorAll(HITTABLE_SELECTOR).forEach(el => {
+            // Leave alone whatever is still falling from a rage blast: its
+            // resting angle and landing point were computed together, and a
+            // tip landing on top of it moves the goalposts mid-flight.
+            if (el.classList.contains('page-collapsed')) return;
             const rect = el.getBoundingClientRect();
             if (!rect.width && !rect.height) return;
             const ex = rect.left + rect.width / 2;
@@ -1775,12 +1779,12 @@ function createMascotController(mascot, bubble, options = {}) {
     // rotated but stayed nailed to its spot, which read as "shoved" rather
     // than "knocked down".
     //
-    // Each element falls to the floor of the box that actually contains it,
-    // not to the bottom of the viewport: .hero-visual and .hero-text clip
-    // their overflow, so a chip "falling to the bottom of the screen" would
-    // simply vanish at their edge. Things fall to the bottom of the box
-    // they're in, which is both what the CSS allows and what physics would
-    // do anyway.
+    // Everything lands on the same floor — the bottom of the screen —
+    // wherever it started from. The panels in the way (.hero-visual and
+    // .hero-text clip their overflow) would otherwise swallow whatever
+    // falls past their edge, so they are opened for the duration of the
+    // collapse and closed again straight after: for two seconds the page
+    // has one floor and no walls but the window's own.
     //
     // Still purely visual, like the tip it extends: the standalone
     // `translate`/`rotate` properties compose with each element's own
@@ -1791,34 +1795,44 @@ function createMascotController(mascot, bubble, options = {}) {
     const COLLAPSE_MAX_DELAY_MS = 320;    // ...but nothing waits longer than this
     const COLLAPSE_DURATION_MS = 2000;
 
-    // The box an element can actually move inside: the nearest ancestor that
-    // clips its overflow, or the viewport when nothing does. Its bottom is
-    // the floor to fall to, and its sides are walls — without them a chip
-    // drifting sideways gets sliced in half at the panel's edge, and the
-    // logo slides straight off the screen, both of which read as a bug
-    // rather than as debris.
-    function clipBoxFor(el) {
+    // Every ancestor between the element and the body that would clip what
+    // falls out of it. They get opened while the collapse plays, otherwise
+    // a chip leaving its panel is simply cut off mid-air at the edge.
+    function clippingAncestors(el) {
+        const found = [];
         for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
             const style = getComputedStyle(node);
             if (style.overflow !== 'visible' || style.overflowY !== 'visible' || style.overflowX !== 'visible') {
-                return node.getBoundingClientRect();
+                found.push(node);
             }
         }
-        return { left: 0, right: window.innerWidth, bottom: window.innerHeight };
+        return found;
     }
 
     function collapseVisibleElements(cx, cy) {
+        const targets = [];
+        const opened = new Set();
+
         document.querySelectorAll(HITTABLE_SELECTOR).forEach(el => {
             const rect = el.getBoundingClientRect();
             if (!rect.width && !rect.height) return;
             // Off-screen elements are skipped: nobody would see them fall,
             // and animating them is pure cost.
             if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+            targets.push({ el, rect });
+            clippingAncestors(el).forEach(node => opened.add(node));
+        });
+        if (!targets.length) return;
 
+        // Open every panel that would otherwise cut off what leaves it, for
+        // as long as the collapse lasts.
+        opened.forEach(node => node.classList.add('page-collapse-open'));
+
+        const floor = window.innerHeight;
+        targets.forEach(({ el, rect }) => {
             const ex = rect.left + rect.width / 2;
             const ey = rect.top + rect.height / 2;
             const dir = Math.sign(ex - cx) || 1;
-            const box = clipBoxFor(el);
             // A resting tilt, jittered per element: one uniform angle looks
             // like a table collapsing, not like things falling over.
             const angle = dir * (58 + Math.random() * 38);
@@ -1838,7 +1852,7 @@ function createMascotController(mascot, bubble, options = {}) {
             // swings along an arc instead of pivoting in place. That offset
             // is exactly the rotation applied to its transform's own
             // translation, and it has to be predicted here or the node ends
-            // up sliced against the panel edge it swung into.
+            // up somewhere other than where the maths says it will.
             let arcX = 0, arcY = 0;
             const ownTransform = getComputedStyle(el).transform;
             if (ownTransform && ownTransform !== 'none') {
@@ -1849,24 +1863,23 @@ function createMascotController(mascot, bubble, options = {}) {
             const restX = ex + arcX;
             const restY = ey + arcY;
 
-            // Not clamped at zero on purpose: something already resting on
-            // the floor has to rise a little as it tips, because lying down
-            // makes it taller than it was standing. Refusing that is what
-            // pushed the hero button through the bottom of its panel.
-            const fall = box.bottom - 2 - halfTall - restY;
-            // Blown away from dot, but never through the walls of its box.
-            // Both limits can pull the other way — an element that would
-            // swing into a wall has to be nudged back inside, not merely
-            // stopped from drifting further into it.
+            // Everything ends up on the same floor, wherever it started.
+            // Not clamped at zero on purpose: something already down there
+            // has to rise a little as it tips, because lying down makes it
+            // taller than standing did.
+            const fall = floor - 2 - halfTall - restY;
+            // Blown away from dot, but never off the screen's own edges.
             const drift = Math.min(
-                Math.max(dir * (8 + Math.random() * 26), box.left + 2 + halfWide - restX),
-                box.right - 2 - halfWide - restX
+                Math.max(dir * (8 + Math.random() * 26), 2 + halfWide - restX),
+                window.innerWidth - 2 - halfWide - restX
             );
+            // Staggered by distance, so the collapse reads as a wave leaving
+            // dot rather than every element giving way at the same instant.
             const delay = Math.min(Math.hypot(ex - cx, ey - cy) * COLLAPSE_WAVE_MS_PER_PX, COLLAPSE_MAX_DELAY_MS);
 
             el.style.setProperty('--fall-y', fall.toFixed(0) + 'px');
             el.style.setProperty('--fall-x', drift.toFixed(0) + 'px');
-            el.style.setProperty('--tip-angle', angle.toFixed(1) + 'deg');
+            el.style.setProperty('--fall-angle', angle.toFixed(1) + 'deg');
             el.style.setProperty('--fall-delay', delay.toFixed(0) + 'ms');
             el.style.setProperty('--fall-dur', (COLLAPSE_DURATION_MS + Math.random() * 260).toFixed(0) + 'ms');
 
@@ -1879,6 +1892,12 @@ function createMascotController(mascot, bubble, options = {}) {
             // second explosion restarting the animation underneath it.
             window.setTimeout(() => el.classList.remove('page-collapsed'), COLLAPSE_DURATION_MS + COLLAPSE_MAX_DELAY_MS + 400);
         });
+
+        // Close the panels again once the last element is back on its feet.
+        window.setTimeout(
+            () => opened.forEach(node => node.classList.remove('page-collapse-open')),
+            COLLAPSE_DURATION_MS + COLLAPSE_MAX_DELAY_MS + 400
+        );
     }
 
     // Grows the mascot a little more with each click in the current streak,
