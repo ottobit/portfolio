@@ -1450,6 +1450,68 @@ body {
     background: var(--accent);
 }
 
+/* Thesis-style references at the foot of a project page: a numbered
+   entry, the full URL on its own line (never truncated — a reference you
+   can't copy isn't much of a reference), and a note saying why this
+   particular source is here. The <a> is a sibling of the translated
+   <span>s, never nested inside one: these pages swap languages with
+   textContent, which would strip a link living inside a translated node. */
+.doc-refs {
+    margin: 0;
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.doc-refs li {
+    padding-left: 0.3rem;
+    scroll-margin-top: 5rem;
+}
+
+.doc-refs li::marker {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.doc-ref-cite {
+    display: block;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.doc-ref-link {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    /* Long URLs are the classic source of horizontal scroll on a phone. */
+    overflow-wrap: anywhere;
+}
+
+.doc-ref-note {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+/* The [1] marker next to the claim it backs up. */
+.doc-ref-mark {
+    color: var(--accent);
+    font-size: 0.8em;
+    font-weight: 600;
+    text-decoration: none;
+    vertical-align: super;
+}
+
+.doc-ref-mark:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 560px) {
     /* Two columns stop working once the labels have less room than their
        own words need: below this width the label sits above its value. */

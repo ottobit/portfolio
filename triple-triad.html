@@ -26,7 +26,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=5.7">
+    <link rel="stylesheet" href="styles.css?v=5.8">
 </head>
 <body>
     <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -122,6 +122,7 @@
                     <li>
                         <span class="doc-step-name" data-it="L&#x27;avversario è un&#x27;IA dedicata alle regole">The opponent is a dedicated rules AI</span>
                         <span data-it=" — una piccola IA che conosce questo gioco, non un modello generalista e non Claude"> — a small AI that knows this game, not a generalist model and not Claude</span>
+                        <a class="doc-ref-mark" href="#ref-1" aria-label="Reference 1" data-aria-label-it="Riferimento 1">[1]</a>
                     </li>
                     <li>
                         <span class="doc-step-name" data-it="Il progetto è più vecchio dell&#x27;IA generativa">The project predates generative AI</span>
@@ -136,6 +137,16 @@
                         <span data-it=" — Same, Plus, elementali e le altre non sono ancora mappate. Questo è un primo abbozzo, non il disegno finale"> — Same, Plus, elemental and the rest aren&#x27;t mapped out yet. This is a first sketch, not the final design</span>
                     </li>
                 </ul>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Riferimenti">References</h2>
+                <ol class="doc-refs">
+                    <li id="ref-1">
+                        <span class="doc-ref-cite" data-it="Karpathy, A. — ReinforceJS: WaterWorld (demo interattiva). Stanford University.">Karpathy, A. — ReinforceJS: WaterWorld (interactive demo). Stanford University.</span>
+                        <a class="doc-ref-link" href="https://cs.stanford.edu/people/karpathy/reinforcejs/waterworld.html" target="_blank" rel="noopener noreferrer">cs.stanford.edu/people/karpathy/reinforcejs/waterworld.html</a>
+                        <span class="doc-ref-note" data-it="La demo da cui è nata l&#x27;idea di dare a Triple Triad un avversario capace di giocare davvero: un agente che impara per rinforzo, non un modello linguistico.">The demo the idea started from: an agent that learns by reinforcement to play, not a language model.</span>
+                    </li>
+                </ol>
             </section>
         </div>
     </main>
@@ -194,10 +205,12 @@
                 if (!el.dataset.en) el.dataset.en = el.textContent;
                 el.textContent = lang === 'it' ? el.dataset.it : el.dataset.en;
             });
-            if (diagramTrigger) {
-                if (!diagramTrigger.dataset.en) diagramTrigger.dataset.en = diagramTrigger.getAttribute('aria-label');
-                diagramTrigger.setAttribute('aria-label', lang === 'it' ? diagramTrigger.dataset.ariaLabelIt : diagramTrigger.dataset.en);
-            }
+            // Any element carrying data-aria-label-it, not just the diagram
+            // button: the reference marker's label needs translating too.
+            document.querySelectorAll('[data-aria-label-it]').forEach(function (el) {
+                if (!el.dataset.ariaLabelEn) el.dataset.ariaLabelEn = el.getAttribute('aria-label');
+                el.setAttribute('aria-label', lang === 'it' ? el.dataset.ariaLabelIt : el.dataset.ariaLabelEn);
+            });
             updateNavToggleLabel();
         }
 
