@@ -6,68 +6,92 @@
     <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"></path>
     </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"></path>
+    </marker>
   </defs>
 
   <rect x="1" y="1" width="898" height="558" rx="18" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"></rect>
 
-  <text x="24" y="30" font-size="16" font-weight="700" fill="#0f172a">Dot World — ciclo di un dot (abbozzo)</text>
+  <text x="24" y="32" font-size="16" font-weight="700" fill="#0f172a">Dot World — ciclo di un dot</text>
 
-  <!-- News sources: external, feeds every dot's own perception -->
-  <rect x="110" y="48" width="220" height="100" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
-  <text x="320" y="65" font-size="12" fill="#64748b" text-anchor="end">News sources (external)</text>
-  <rect x="140" y="80" width="160" height="50" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="220" y="110" font-size="14" font-weight="600" fill="#0f172a" text-anchor="middle">News feed</text>
+  <!-- Deliberation: an asynchronous branch, not a step in the tick. It is rare
+       and capped; a dot that misses a slot keeps running on code. -->
+  <rect x="580" y="70" width="200" height="56" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 4"></rect>
+  <text x="680" y="95" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Deliberate</text>
+  <text x="680" y="113" font-size="11" fill="#9a3412" text-anchor="middle">one model call, off the tick</text>
 
-  <!-- News feed -> Perceive -->
-  <path d="M220,130 C220,165 190,190 165,218" fill="none" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></path>
+  <!-- Perceive -> Deliberate: only when something is worth thinking about -->
+  <path d="M200,180 C330,110 470,92 576,96" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow-amber)"></path>
+  <rect x="424" y="100" width="132" height="16" fill="#ffffff"></rect>
+  <text x="426" y="112" font-size="12" fill="#ea580c">when it matters</text>
 
-  <!-- start -->
-  <circle cx="30" cy="248" r="7" fill="#0f172a"></circle>
-  <text x="2" y="234" font-size="11" fill="#64748b">tick</text>
-  <line x1="37" y1="248" x2="88" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <!-- Deliberate -> Act: the answer replaces the intention, between ticks -->
+  <path d="M640,128 C610,168 500,158 442,180" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow-amber)"></path>
+  <rect x="470" y="146" width="130" height="16" fill="#ffffff"></rect>
+  <text x="472" y="158" font-size="12" fill="#ea580c">a new intention</text>
 
-  <!-- main pipeline: one dot's own loop -->
-  <rect x="90" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="155" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Perceive</text>
+  <!-- The tick loop: two steps, both pure code -->
+  <circle cx="30" cy="200" r="7" fill="#0f172a"></circle>
+  <text x="2" y="186" font-size="11" fill="#64748b">tick</text>
+  <line x1="37" y1="200" x2="76" y2="200" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
-  <rect x="250" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="315" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Reason</text>
+  <rect x="80" y="172" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="145" y="205" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Perceive</text>
 
-  <rect x="410" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="475" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Decide</text>
+  <rect x="320" y="172" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="385" y="205" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Act</text>
 
-  <rect x="570" y="220" width="130" height="56" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="635" y="253" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Act</text>
+  <line x1="210" y1="200" x2="316" y2="200" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <rect x="216" y="176" width="100" height="16" fill="#ffffff"></rect>
+  <text x="218" y="188" font-size="12" fill="#334155">on its intention</text>
 
-  <line x1="220" y1="248" x2="248" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
-  <line x1="380" y1="248" x2="408" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
-  <line x1="540" y1="248" x2="568" y2="248" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
+  <path d="M385,170 C385,134 145,134 145,170" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
+  <rect x="232" y="128" width="66" height="16" fill="#ffffff"></rect>
+  <text x="234" y="140" font-size="12" fill="#334155">next tick</text>
 
-  <!-- Act loops back to Perceive: the next tick -->
-  <path d="M635,218 C635,170 220,170 155,218" fill="none" stroke="#334155" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow)"></path>
-  <rect x="360" y="164" width="70" height="16" fill="#ffffff"></rect>
-  <text x="365" y="176" font-size="12" fill="#334155">next tick</text>
+  <!-- Shared state: Act proposes, the engine decides. No dot ever writes. -->
+  <rect x="300" y="360" width="230" height="56" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-width="2"></rect>
+  <text x="415" y="385" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">World state (shared)</text>
+  <text x="415" y="403" font-size="11" fill="#6d28d9" text-anchor="middle">only the engine writes to it</text>
 
-  <!-- World state: shared, written by Act, read by every dot's own Perceive -->
-  <rect x="330" y="360" width="220" height="56" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-width="2"></rect>
-  <text x="440" y="393" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">World state (shared)</text>
+  <rect x="580" y="360" width="200" height="56" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-width="2"></rect>
+  <text x="680" y="385" font-size="15" font-weight="600" fill="#0f172a" text-anchor="middle">Marks</text>
+  <text x="680" y="403" font-size="11" fill="#6d28d9" text-anchor="middle">left in place, fading</text>
+  <line x1="530" y1="388" x2="578" y2="388" stroke="#7c3aed" stroke-width="1.8"></line>
+  <text x="680" y="434" font-size="12" fill="#6d28d9" text-anchor="middle">the only channel between dots</text>
 
-  <path d="M635,278 C635,330 550,350 500,362" fill="none" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow-violet)"></path>
-  <rect x="530" y="310" width="36" height="16" fill="#ffffff"></rect>
-  <text x="533" y="322" font-size="12" fill="#7c3aed">writes</text>
+  <path d="M385,230 C385,290 400,320 408,356" fill="none" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow-violet)"></path>
+  <rect x="392" y="276" width="112" height="16" fill="#ffffff"></rect>
+  <text x="394" y="288" font-size="12" fill="#7c3aed">an intent, not a write</text>
 
-  <path d="M330,388 C120,388 90,320 130,280" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow-violet)"></path>
-  <rect x="90" y="330" width="150" height="16" fill="#ffffff"></rect>
-  <text x="93" y="342" font-size="12" fill="#7c3aed">read by every dot</text>
+  <path d="M300,382 C150,376 100,320 118,232" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#arrow-violet)"></path>
+  <rect x="120" y="300" width="126" height="16" fill="#ffffff"></rect>
+  <text x="122" y="312" font-size="12" fill="#7c3aed">read by every dot</text>
 
-  <!-- Legend -->
-  <rect x="20" y="440" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
-  <text x="40" y="468" font-size="13" font-weight="700" fill="#0f172a">Provider-agnostic</text>
-  <text x="40" y="492" font-size="12" fill="#475569">Each dot's Reason step runs its own configurable model —</text>
-  <text x="40" y="512" font-size="12" fill="#475569">local or remote, independently of every other dot.</text>
+  <!-- News reaches the world, not the dot. A dot never sees a headline. -->
+  <rect x="20" y="444" width="330" height="96" rx="14" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+  <text x="34" y="462" font-size="12" fill="#64748b">News sources (external)</text>
+  <rect x="38" y="474" width="118" height="46" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="97" y="502" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">News feed</text>
+  <rect x="192" y="474" width="140" height="46" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
+  <text x="262" y="502" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Enrich, once</text>
+  <line x1="156" y1="497" x2="188" y2="497" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
 
-  <rect x="460" y="440" width="420" height="100" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
-  <text x="480" y="468" font-size="13" font-weight="700" fill="#7c3aed">Still taking shape</text>
-  <text x="480" y="492" font-size="12" fill="#475569">This is a first sketch, not the final design — the world/dot</text>
-  <text x="480" y="512" font-size="12" fill="#475569">interaction model is still being figured out.</text>
+  <path d="M332,484 C368,470 372,440 388,420" fill="none" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow-violet)"></path>
+  <rect x="336" y="446" width="66" height="16" fill="#ffffff"></rect>
+  <text x="338" y="458" font-size="12" fill="#7c3aed">stimulus</text>
+
+  <!-- Legends -->
+  <rect x="392" y="444" width="238" height="96" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="410" y="470" font-size="13" font-weight="700" fill="#0f172a">Provider-agnostic</text>
+  <text x="410" y="492" font-size="12" fill="#475569">Each dot deliberates with its</text>
+  <text x="410" y="510" font-size="12" fill="#475569">own model — local or remote,</text>
+  <text x="410" y="528" font-size="12" fill="#475569">independently of every other.</text>
+
+  <rect x="646" y="444" width="234" height="96" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"></rect>
+  <text x="664" y="470" font-size="13" font-weight="700" fill="#ea580c">On a budget, not every tick</text>
+  <text x="664" y="492" font-size="12" fill="#475569">Almost everything is code.</text>
+  <text x="664" y="510" font-size="12" fill="#475569">Deliberating is rare and capped,</text>
+  <text x="664" y="528" font-size="12" fill="#475569">so more dots do not cost more.</text>
 </svg>
