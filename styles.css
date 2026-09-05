@@ -1067,12 +1067,21 @@ body {
    of blurring the way a scaled bitmap would. */
 .icon-tt-art {
     position: absolute;
-    bottom: 0.16em;
+    bottom: 0.2em;
     left: 50%;
-    transform: translateX(-50%);
-    width: 1em;
+    /* The rotated silhouette is not symmetric about its own box, so
+       centring the box alone leaves it hugging one edge of the card. */
+    transform: translateX(calc(-50% - 0.06em));
+    width: 0.92em;
     height: auto;
     display: block;
+    /* The creature runs at an angle, and its limbs come off that tilted body
+       at right angles — drawing the tilt into the pixels themselves turns
+       every diagonal into a staircase of detached squares at this size, so
+       the sprite is drawn upright and the whole thing is leaned over here.
+       `rotate` is the standalone property, so it composes with the centering
+       transform above instead of replacing it. */
+    rotate: 32deg;
 }
 
 .detail-body h2 {
