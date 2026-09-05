@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — Dot World</title>
-    <meta name="description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta name="description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. A deterministic engine, marks as the only channel between dots, and news entering the world as weather.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ottobit.github.io/portfolio/dot-world.html">
     <meta property="og:title" content="ottobit — Dot World">
-    <meta property="og:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta property="og:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. A deterministic engine, marks as the only channel between dots, and news entering the world as weather.">
     <meta property="og:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ottobit — Dot World">
-    <meta name="twitter:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. First sketch of its state flow.">
+    <meta name="twitter:description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. A deterministic engine, marks as the only channel between dots, and news entering the world as weather.">
     <meta name="twitter:image" content="https://ottobit.github.io/portfolio/og-image.jpg">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <script>
@@ -64,12 +64,12 @@
     <main class="timeline-page" id="main">
         <header class="timeline-intro">
             <h1 data-it="Dot World — ciclo di un dot">Dot World — a dot's cycle</h1>
-            <p data-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Questo è un primo abbozzo, non il disegno finale: il modello di interazione tra i dot e il mondo è ancora in fase di definizione.">A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. This is a first sketch, not the final design: the dot/world interaction model is still being figured out.</p>
+            <p data-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall&#x27;esterno. L&#x27;engine adesso esiste: un core puro e deterministico, un mondo che gira davvero, e un viewer che nella pagina esegue la simulazione stessa, non la registrazione di una simulazione girata altrove.">A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. The engine now exists: a pure, deterministic core, a world that actually runs, and a viewer that runs the simulation itself in the page rather than a recording of one that ran elsewhere.</p>
         </header>
 
         <div class="diagram-page">
-            <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="State diagram of a dot's perceive-reason-decide-act cycle in Dot World — tap to zoom in" data-aria-label-it="Diagramma a stati del ciclo percepisci-ragiona-decidi-agisci di un dot in Dot World — tocca per ingrandire">
-                <img id="diagram-img" src="dot-world-diagram.svg?v=1" alt="">
+            <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="Diagram of a dot's cycle in Dot World: perceive then act inside the tick, deliberate as a rare asynchronous branch off it, intents applied by the engine to the shared world state, marks as the only channel between dots, and news entering as stimuli — tap to zoom in" data-aria-label-it="Diagramma del ciclo di un dot in Dot World: percepisci e agisci dentro il tick, delibera come ramo asincrono e raro fuori dal tick, gli intent applicati dall&#x27;engine allo stato condiviso, le marche come unico canale tra i dot, e le notizie che entrano come stimoli — tocca per ingrandire">
+                <img id="diagram-img" src="dot-world-diagram.svg?v=2" alt="">
             </button>
         </div>
 
@@ -84,11 +84,15 @@
                     <dt data-it="Modelli">Models</dt>
                     <dd data-it="Uno per dot, configurabile indipendentemente da ogni altro dot — locale o remoto">One per dot, configurable independently of every other dot — local or remote</dd>
                     <dt data-it="Input esterni">External input</dt>
-                    <dd data-it="Notizie che il mondo legge dall&#x27;esterno">News the world reads from outside itself</dd>
+                    <dd data-it="Notizie che il mondo legge dall&#x27;esterno — arrivano a un dot come pressione tematica, mai come titolo">News the world reads from outside itself — it reaches a dot as topic pressure, never as a headline</dd>
                     <dt data-it="Stato condiviso">Shared state</dt>
-                    <dd data-it="Uno stato del mondo su cui ogni dot scrive e che ogni dot legge">A world state every dot writes to and every dot reads</dd>
+                    <dd data-it="Uno stato del mondo che scrive soltanto l&#x27;engine: un dot propone un intent, non scrive mai">A world state only the engine writes to: a dot proposes an intent, it never writes</dd>
+                    <dt data-it="Canale tra i dot">Channel between dots</dt>
+                    <dd data-it="Marche lasciate a terra, che sbiadiscono. Non c&#x27;è nient&#x27;altro">Marks left on the ground, fading. There is nothing else</dd>
                     <dt data-it="Stato">Status</dt>
-                    <dd data-it="Primo abbozzo — il disegno è ancora in via di definizione">First sketch — the design is still taking shape</dd>
+                    <dd data-it="Engine funzionante e deterministico, policy scriptata, viewer live. Nessun modello vero ha ancora mosso questo mondo">Running deterministic engine, scripted policy, live viewer. No real model has driven this world yet</dd>
+                    <dt data-it="Codice">Code</dt>
+                    <dd><a class="doc-ref-link" href="https://github.com/ottobit/dot.world" target="_blank" rel="noopener noreferrer">github.com/ottobit/dot.world</a></dd>
                 </dl>
             </section>
             <section class="doc-section">
@@ -96,25 +100,66 @@
                 <ol class="doc-steps">
                     <li>
                         <span class="doc-step-name" data-it="Perceive">Perceive</span>
-                        <span data-it=" — un dot legge le notizie che arrivano dall&#x27;esterno, e lo stato condiviso del mondo com&#x27;è in quel momento"> — a dot reads the news coming in from outside, and the shared state of the world as it stands</span>
-                    </li>
-                    <li>
-                        <span class="doc-step-name" data-it="Reason">Reason</span>
-                        <span data-it=" — ci ragiona sopra con il proprio modello, locale o remoto"> — it thinks that over with its own model, local or remote</span>
-                    </li>
-                    <li>
-                        <span class="doc-step-name" data-it="Decide">Decide</span>
-                        <span data-it=" — sceglie un&#x27;azione"> — it picks an action</span>
+                        <span data-it=" — il dot riceve un percept: i tre topic più forti intorno a sé, i tre dot più vicini, celle invece di coordinate. Quel percept è il prompt, quindi la sua brevità è un vincolo di progetto"> — the dot gets a percept: the three strongest topics around it, the three nearest dots, cells instead of coordinates. That percept is the prompt, so its brevity is a design constraint</span>
                     </li>
                     <li>
                         <span class="doc-step-name" data-it="Act">Act</span>
-                        <span data-it=" — esegue l&#x27;azione e scrive il risultato nello stato condiviso del mondo"> — it carries the action out and writes the result into the shared world state</span>
+                        <span data-it=" — agisce sull&#x27;intenzione che ha già, e ne emette un intent: una proposta valida per questo tick. Non scrive niente da nessuna parte"> — it acts on the intention it already holds, and emits an intent: a proposal for this tick. It writes nothing, anywhere</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;engine applica">The engine applies</span>
+                        <span data-it=" — tutti gli intent di tutti i dot, in un ordine fisso (priorità, poi id del dot). Le scritture concorrenti non si risolvono: non possono esistere"> — every intent from every dot, in a fixed order (priority, then dot id). Concurrent writes are not resolved: they cannot happen</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Delibera, fuori dal tick">Deliberate, off the tick</span>
+                        <span data-it=" — raramente e sotto un tetto: una chiamata al modello sostituisce l&#x27;intenzione, che vale per decine di tick. Il costo è funzione del tetto, non di quanti dot ci sono"> — rarely, and under a cap: one model call replaces the intention, which spans tens of ticks. The cost is a function of the cap, not of how many dots there are</span>
                     </li>
                     <li>
                         <span class="doc-step-name" data-it="Tick successivo">Next tick</span>
-                        <span data-it=" — il mondo avanza e il ciclo ricomincia: ciò che un dot ha scritto è ciò che gli altri percepiranno"> — the world moves on and the cycle starts over: what one dot wrote is what the others will perceive</span>
+                        <span data-it=" — il mondo avanza. Quel che un dot si lascia dietro è una marca che sbiadisce, ed è l&#x27;unica cosa che gli altri percepiranno di lui"> — the world moves on. What a dot leaves behind is a fading mark, and that is the only thing the others will ever perceive of it</span>
                     </li>
                 </ol>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="A che punto è">Where it stands</h2>
+                <ul class="doc-list">
+                    <li>
+                        <span class="doc-step-name" data-it="Deterministico, e verificato tale">Deterministic, and verified as such</span>
+                        <span data-it=" — 1000 tick con seed 42 finiscono all&#x27;hash fdc774c2. Un run registrato si rigioca hash per hash: manomettere il tick 100 viene rilevato al tick 100, non alla fine"> — 1000 ticks at seed 42 end at hash fdc774c2. A recorded run replays hash by hash: tampering with tick 100 is caught at tick 100, not at the end</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;engine non è mai il collo di bottiglia">The engine is never the bottleneck</span>
+                        <span data-it=" — circa 0,15 ms per tick con dodici dot. Vale una riga sola, e per quello che esclude: l&#x27;unico budget che conta sono le chiamate al modello"> — about 0.15 ms per tick with twelve dots. Worth one line, and only for what it rules out: the only budget that matters is model calls</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il primo run completo ha creato zero marche">The first full run created zero marks</span>
+                        <span data-it=" — su 1000 tick. Un dot rinforzava solo dove già sentiva qualcosa, e sentiva qualcosa solo dove una marca c&#x27;era già: nessuno posava mai la prima"> — over 1000 ticks. A dot only reinforced where it already felt something, and only felt something where a mark already was: nobody ever laid the first one</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Le notizie coprivano l&#x27;1,2% del mondo">News covered 1.2% of the world</span>
+                        <span data-it=" — quindi dodici dot praticamente non ne incontravano mai una, ed erano decorazione. Ora ne coprono circa il 14%, e la frazione è tenuta ferma da un test"> — so twelve dots essentially never walked into one, and news was decoration. Now it covers about 14%, and a test holds that fraction in place</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Un quarto delle risposte del modello veniva rifiutato, ed era un nostro bug">A quarter of model replies were rejected, and it was our bug</span>
+                        <span data-it=" — il prompt offriva “segui” a un dot fermo sul picco, dove non c&#x27;è niente da seguire. Dopo la correzione: nessuna risposta rifiutata"> — the prompt offered “follow” to a dot standing on the peak, where there is nowhere to follow. After the fix: none rejected</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="1014 deliberazioni su 1146 spese su dot esausti">1014 of 1146 deliberations went to exhausted dots</span>
+                        <span data-it=" — perché l&#x27;energia bassa era stata messa come trigger prioritario: la domanda meno interessante che esista, visto che la risposta è sempre “riposa”"> — because low energy had been made the top-priority trigger: the least interesting question there is, since the answer is always “rest”</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Non verificato: nessun modello vero ha mosso questo mondo">Not verified: no real model has driven this world</span>
+                        <span data-it=" — i trasporti esistono e ricadono correttamente sulla policy scriptata: senza nulla in ascolto, 106 errori di trasporto, 106 fallback, e un mondo arrivato in fondo. Ma nessuno dei due ha ancora letto una risposta vera"> — the transports exist and fall back to the scripted policy correctly: with nothing listening, 106 transport errors, 106 fallbacks, and a world that ran to the end. But neither has parsed a live response yet</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Non verificato: la latenza del modello non è nascosta">Not verified: model latency is not hidden</span>
+                        <span data-it=" — il tetto limita quante chiamate partono, non quanto il mondo le aspetta. Un modello vero oggi rallenterebbe il mondo invece di lasciare i dot proseguire sul piano che hanno. La forma che lo risolve è progettata, non costruita"> — the cap bounds how many calls are made, not how long the world waits for them. A real model would slow the world today instead of letting dots carry on with the plan they have. The shape that fixes it is designed, not built</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Non verificato: i feed di notizie non sono mai stati letti da qui">Not verified: the news feeds have never been read from here</span>
+                        <span data-it=" — il parsing ricalca URL per URL quello che già gira su questo sito, e delle fixture ne fissano la forma. Nessuno però l&#x27;ha visto leggere una risposta vera"> — the parsing matches, URL for URL, the one already running on this site, and fixtures pin the shapes. Nobody has seen it read a live response</span>
+                    </li>
+                </ul>
             </section>
             <section class="doc-section">
                 <h2 data-it="Scelte e vincoli">Decisions and constraints</h2>
@@ -124,16 +169,24 @@
                         <span data-it=" — con il proprio modello, indipendentemente da ogni altro dot — non c&#x27;è un unico cervello che governa il mondo"> — with its own model, independently of every other dot — there is no single brain running the world</span>
                     </li>
                     <li>
+                        <span class="doc-step-name" data-it="Nessun dot scrive mai nel mondo">No dot ever writes to the world</span>
+                        <span data-it=" — propone un intent, e l&#x27;engine li applica tutti in un ordine deciso prima. È questo che rende mille tick riproducibili al bit, e che toglie di mezzo il problema dei conflitti invece di risolverlo"> — it proposes an intent, and the engine applies them all in an order fixed in advance. That is what makes a thousand ticks reproducible to the bit, and what removes the conflict problem instead of solving it</span>
+                    </li>
+                    <li>
                         <span class="doc-step-name" data-it="I dot non si parlano mai direttamente">Dots never talk to each other directly</span>
-                        <span data-it=" — si influenzano attraverso lo stato condiviso del mondo, e in nessun altro modo"> — they influence one another through the shared world state, and nowhere else</span>
+                        <span data-it=" — lasciano marche a terra che sbiadiscono, ed è l&#x27;unico canale: niente messaggi, niente memoria condivisa, niente telepatia. Di un vicino un dot vede colore e distanza, mai il suo stato interno"> — they leave fading marks on the ground, and that is the only channel: no messages, no shared memory, no telepathy. Of a neighbour a dot sees colour and distance, never its internal state</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Pensare è raro e a budget">Thinking is rare, and on a budget</span>
+                        <span data-it=" — quasi tutto quello che un dot fa è codice. La chiamata al modello è l&#x27;eccezione, con un tetto di richieste in volo; chi non prende lo slot continua sul piano che ha già. Il costo non cresce col numero di dot"> — almost everything a dot does is code. The model call is the exception, capped by how many can be in flight; a dot that misses its slot carries on with the plan it already has. The cost does not grow with the number of dots</span>
                     </li>
                     <li>
                         <span class="doc-step-name" data-it="Il mondo non è chiuso">The world is not sealed off</span>
-                        <span data-it=" — le notizie dall&#x27;esterno alimentano ciò che i dot percepiscono, quindi la simulazione è influenzata da cose realmente accadute"> — news from outside feeds into what the dots perceive, so the simulation is shaped by things that actually happened</span>
+                        <span data-it=" — le notizie vengono arricchite una volta per lotto, non una volta per dot, ed entrano nel mondo come meteo: una pressione tematica che si sente da vicino e svanisce da lontano"> — news is enriched once per batch, not once per dot, and enters the world like weather: topic pressure you feel up close and lose at a distance</span>
                     </li>
                     <li>
-                        <span class="doc-step-name" data-it="Il modello di interazione è ancora aperto">The interaction model is still open</span>
-                        <span data-it=" — come esattamente dot e mondo si influenzano è ancora da definire. Questo è un primo abbozzo, non il disegno finale"> — how exactly dots and world affect each other is being figured out. This is a first sketch, not the final design</span>
+                        <span class="doc-step-name" data-it="Il disegno è fissato, e sta scritto">The design is settled, and written down</span>
+                        <span data-it=" — le decisioni dietro a tutto questo, ciascuna con il suo “cosa NON fare”, vivono in una wiki dentro il repository, non in una chat. Resta aperta una cosa sola: dove pubblicare il mondo che gira"> — the decisions behind all this, each with its own “what NOT to do”, live in a wiki inside the repository rather than in a chat. One thing stays open: where to publish the running world</span>
                     </li>
                 </ul>
             </section>
