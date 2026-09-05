@@ -1070,7 +1070,7 @@ body {
     bottom: 0.16em;
     left: 50%;
     transform: translateX(-50%);
-    width: 0.95em;
+    width: 1em;
     height: auto;
     display: block;
 }
