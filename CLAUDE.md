@@ -52,6 +52,14 @@ completamento automaticamente. Dopo ogni merge:
 Se il deploy fallisce o resta bloccato, dillo esplicitamente invece di
 assumere che sia andato a buon fine.
 
+**Ferma sempre il polling una volta ottenuta la risposta.** Che sia un
+`curl` in loop lanciato in background per aspettare il deploy o qualunque
+altro processo avviato solo per controllare uno stato: appena arriva
+`completed`/`success` (o comunque l'esito), il processo va terminato subito
+— non lasciarlo girare in background "tanto poi finisce da solo". Prima di
+chiudere il giro di lavoro, controlla anche che non sia rimasto altro
+polling/server locale attivo da fermare (`ps aux` se in dubbio).
+
 ## Prima di ogni merge: aggiornati da main
 
 Possono esserci altre sessioni/lavori in corso in parallelo sullo stesso
