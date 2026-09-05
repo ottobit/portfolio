@@ -50,10 +50,10 @@
   <text x="675" y="136" font-size="10" fill="#64748b" text-anchor="middle">only via CLI</text>
 
   <rect x="575" y="140" width="110" height="30" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="630" y="160" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Integrator</text>
+  <text x="630" y="160" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">integrator</text>
 
   <rect x="665" y="205" width="110" height="30" rx="8" fill="#ffffff" stroke="#0d9488" stroke-width="2"></rect>
-  <text x="720" y="225" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">Verifier</text>
+  <text x="720" y="225" font-size="13" font-weight="600" fill="#0f172a" text-anchor="middle">verifier</text>
 
   <!-- Integrator -> Verifier -->
   <line x1="675" y1="170" x2="675" y2="203" stroke="#334155" stroke-width="1.8" marker-end="url(#arrow)"></line>
