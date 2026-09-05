@@ -142,8 +142,10 @@ navLinks.forEach(link => {
     const list = document.getElementById('nav-news-list');
     if (!section || !divider || !list) return;
 
-    document.addEventListener('dotnewshistory', (e) => {
-        const items = e.detail || [];
+    let latestHistory = [];
+
+    function render() {
+        const items = latestHistory.slice(0, getNewsHistoryLimit());
         list.innerHTML = '';
         items.forEach(item => {
             const li = document.createElement('li');
@@ -159,7 +161,16 @@ navLinks.forEach(link => {
         });
         section.hidden = items.length === 0;
         divider.hidden = items.length === 0;
+    }
+
+    document.addEventListener('dotnewshistory', (e) => {
+        latestHistory = e.detail || [];
+        render();
     });
+
+    // Re-render on breakpoint crossing (e.g. rotating a tablet) so the
+    // shown count matches the new limit without waiting for fresh news.
+    window.matchMedia('(max-width: 768px)').addEventListener('change', render);
 })();
 
 // Animated node network in the hero
@@ -1124,11 +1135,20 @@ function getAllNewsItems() {
     return combined;
 }
 
-const NEWS_HISTORY_LIMIT = 3;
+// Truncated with an ellipsis in the nav (see .nav-news-list CSS), so the
+// limit can afford to be breakpoint-aware: more vertical room on desktop
+// than in a mobile dropdown. Same 768px line the rest of the site already
+// treats as the mobile/desktop split (see .hero's max-width:768px rule).
+const NEWS_HISTORY_LIMIT_DESKTOP = 6;
+const NEWS_HISTORY_LIMIT_MOBILE = 4;
+function getNewsHistoryLimit() {
+    return window.matchMedia('(max-width: 768px)').matches ? NEWS_HISTORY_LIMIT_MOBILE : NEWS_HISTORY_LIMIT_DESKTOP;
+}
+
 let notifiedNewsHistory = [];
 
 function recordNotifiedNews(item) {
-    notifiedNewsHistory = [item, ...notifiedNewsHistory.filter(i => i.text !== item.text)].slice(0, NEWS_HISTORY_LIMIT);
+    notifiedNewsHistory = [item, ...notifiedNewsHistory.filter(i => i.text !== item.text)].slice(0, NEWS_HISTORY_LIMIT_DESKTOP);
     document.dispatchEvent(new CustomEvent('dotnewshistory', { detail: notifiedNewsHistory }));
 }
 
