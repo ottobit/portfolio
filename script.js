@@ -156,6 +156,7 @@ navLinks.forEach(link => {
                 content.rel = 'noopener';
             }
             content.textContent = `${item.icon} ${item.text}`;
+            if (item.icon === '💼') content.classList.add('nav-news-job');
             li.appendChild(content);
             list.appendChild(li);
         });
@@ -1169,13 +1170,32 @@ async function fetchCinemaNews() {
     }
 }
 
+// Jobs theme: RemoteOK's public job-board API — real, live remote-tech job
+// postings, no key, no signup. Fits this site's own subject matter (a
+// developer's portfolio) better than a generic hiring-board feed would.
+// The first array element is RemoteOK's own legal notice, not a job — it
+// has no `position`/`company`, so the filter below drops it same as any
+// malformed entry.
+let jobsNewsItems = [];
+async function fetchJobsNews() {
+    try {
+        const jobs = await fetchJson('https://remoteok.com/api');
+        jobsNewsItems = jobs
+            .filter(j => j.position && j.company && j.url)
+            .slice(0, 8)
+            .map(j => ({ text: `hiring remote: ${j.company} — ${j.position}`, url: j.url, icon: '💼' }));
+    } catch (err) {
+        console.warn('[dot] jobs feed failed:', err);
+    }
+}
+
 // All feeds pooled together, not split one-per-dot — every dot pulls from
 // the same combined pool, so nobody has to wait for "the right one" to see
 // a specific source. Round-robin interleaved (not one feed's items
 // exhausted before the next's) so consecutive reveals naturally rotate
 // between sources.
 function getAllNewsItems() {
-    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems];
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems, jobsNewsItems];
     const combined = [];
     const maxLen = lists.reduce((max, l) => Math.max(max, l.length), 0);
     for (let i = 0; i < maxLen; i++) {
@@ -1213,7 +1233,8 @@ async function refetchAllNews() {
         fetchTrendingNews(),
         fetchMusicNews(),
         fetchFashionNews(),
-        fetchCinemaNews()
+        fetchCinemaNews(),
+        fetchJobsNews()
     ]);
 }
 // The initial population doesn't need to happen at parse time — dot's

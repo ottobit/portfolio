@@ -57,6 +57,8 @@
     --text-muted: #666;
     --border: #e0e0e0;
     --glow: rgba(17, 94, 89, 0.35);
+    --job-accent: #b45309;
+    --job-accent-soft: #fef3c7;
 }
 
 /* Light theme is always the default (see script.js) — dark is only
@@ -70,6 +72,8 @@
     --text-muted: #a3a3ad;
     --border: rgba(255, 255, 255, 0.12);
     --glow: rgba(13, 148, 136, 0.4);
+    --job-accent: #fbbf24;
+    --job-accent-soft: rgba(251, 191, 36, 0.18);
 }
 
 html {
@@ -266,6 +270,21 @@ body {
 .nav-news-list a:hover {
     background: var(--accent-soft);
     color: var(--text);
+}
+
+/* Job listings stand out from the rest of the feed — a distinct accent
+   (not the site's own teal, which already means "interactive/hover" here)
+   so they're spottable at a glance among general news. */
+.nav-news-list .nav-news-job {
+    background: var(--job-accent-soft);
+    color: var(--job-accent);
+    font-weight: 600;
+}
+
+.nav-news-list a.nav-news-job:hover {
+    background: var(--job-accent-soft);
+    filter: brightness(0.95);
+    color: var(--job-accent);
 }
 
 .nav-menu-soon {
