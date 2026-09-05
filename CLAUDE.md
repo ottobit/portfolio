@@ -52,6 +52,29 @@ completamento automaticamente. Dopo ogni merge:
 Se il deploy fallisce o resta bloccato, dillo esplicitamente invece di
 assumere che sia andato a buon fine.
 
+## Prima di ogni merge: aggiornati da main
+
+Possono esserci altre sessioni/lavori in corso in parallelo sullo stesso
+repo. Prima di mergiare qualunque PR (sia nel flusso "Concludi" sia
+nell'eccezione dei piani approvati):
+
+1. `git fetch origin main` e confronta con il branch di lavoro
+   (`git diff HEAD origin/main --stat`) per vedere se `main` si è mosso da
+   quando il branch è partito.
+2. Se sì, prova comunque prima il merge della PR — se GitHub non segnala
+   conflitti, va bene così (i due lavori non si toccano).
+3. Se GitHub rifiuta il merge per conflitti reali (non il falso positivo da
+   squash-merge già noto — quello si riconosce da un `git diff HEAD~1
+   origin/main --stat` vuoto), fai `git merge origin/main` sul branch di
+   lavoro, risolvi i conflitti mantenendo l'intento di entrambi i lati
+   quando possibile, riverifica (stessa verifica già fatta per la PR:
+   Playwright/`node --check`/console pulita) sull'albero unito, poi push e
+   merge.
+4. Se `git merge` viene bloccato dal classificatore dei permessi, spiega
+   perché serve e chiedi conferma prima di riprovare — non è un'azione
+   distruttiva (crea un commit di merge, non riscrive storia), ma resta
+   un'azione che tocca git e va confermata come le altre.
+
 ## La timeline è chiusa
 
 `evolution.html` racconta i salti creativi del sito, non il suo changelog,

@@ -1124,7 +1124,7 @@ function getAllNewsItems() {
     return combined;
 }
 
-const NEWS_HISTORY_LIMIT = 5;
+const NEWS_HISTORY_LIMIT = 3;
 let notifiedNewsHistory = [];
 
 function recordNotifiedNews(item) {
