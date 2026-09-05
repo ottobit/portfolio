@@ -446,6 +446,8 @@ body {
     height: calc(7px * var(--mascot-scale, 1));
     border-radius: 50%;
     background: #fff;
+    /* Eased so falling asleep closes them rather than snapping them shut. */
+    transition: height 0.3s ease, border-radius 0.3s ease;
 }
 
 /* A small "I have something to say" indicator — appears once dot has a
@@ -508,6 +510,58 @@ body {
     40% { transform: translate(-50%, -50%) scale(1.35, 0.7); }
     70% { transform: translate(-50%, -50%) scale(0.9, 1.1); }
     100% { transform: translate(-50%, -50%) scale(1, 1); }
+}
+
+/* Left alone long enough, dot nods off: eyes shut, a slow breath, and the
+   odd "z" drifting away. The breathing rides the standalone `scale`
+   property so it composes with .mascot's own transform — which JS drives
+   for squash, rotation and the resting bounce — instead of overwriting it. */
+.mascot.sleeping {
+    animation: mascot-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes mascot-breathe {
+    0%, 100% { scale: 1; }
+    50% { scale: 1.06; }
+}
+
+.mascot.sleeping .mascot-eye {
+    height: calc(2px * var(--mascot-scale, 1));
+    border-radius: 2px;
+}
+
+/* Absolutely positioned on purpose: .mascot is a flex row of two eyes, and
+   an in-flow ::after would become a third flex item and push them apart. */
+.mascot.sleeping::after {
+    content: 'z';
+    position: absolute;
+    top: -4px;
+    right: -2px;
+    font-size: calc(11px * var(--mascot-scale, 1));
+    font-weight: 700;
+    line-height: 1;
+    color: var(--mascot-color, var(--accent));
+    opacity: 0;
+    pointer-events: none;
+    animation: mascot-zzz 3.6s ease-out infinite;
+}
+
+@keyframes mascot-zzz {
+    0% { opacity: 0; translate: 0 0; }
+    20% { opacity: 0.9; }
+    100% { opacity: 0; translate: 7px -20px; }
+}
+
+/* A stretch on the way back up, so waking reads as waking and not as a
+   glitch that simply reopened its eyes. */
+.mascot.waking {
+    animation: mascot-wake 0.46s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+
+@keyframes mascot-wake {
+    0% { scale: 1.06; }
+    45% { scale: 0.93 1.13; }
+    100% { scale: 1; }
 }
 
 .mascot.popping {
@@ -1013,12 +1067,21 @@ body {
    of blurring the way a scaled bitmap would. */
 .icon-tt-art {
     position: absolute;
-    bottom: 0.16em;
+    bottom: 0.2em;
     left: 50%;
-    transform: translateX(-50%);
-    width: 0.88em;
+    /* The rotated silhouette is not symmetric about its own box, so
+       centring the box alone leaves it hugging one edge of the card. */
+    transform: translateX(calc(-50% - 0.06em));
+    width: 0.92em;
     height: auto;
     display: block;
+    /* The creature runs at an angle, and its limbs come off that tilted body
+       at right angles — drawing the tilt into the pixels themselves turns
+       every diagonal into a staircase of detached squares at this size, so
+       the sprite is drawn upright and the whole thing is leaned over here.
+       `rotate` is the standalone property, so it composes with the centering
+       transform above instead of replacing it. */
+    rotate: 32deg;
 }
 
 .detail-body h2 {
