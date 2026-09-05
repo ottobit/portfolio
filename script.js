@@ -156,6 +156,7 @@ navLinks.forEach(link => {
                 content.rel = 'noopener';
             }
             content.textContent = `${item.icon} ${item.text}`;
+            if (item.icon === '💼') content.classList.add('nav-news-job');
             li.appendChild(content);
             list.appendChild(li);
         });
