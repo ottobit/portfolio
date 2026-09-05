@@ -1189,13 +1189,34 @@ async function fetchJobsNews() {
     }
 }
 
+// Italy jobs theme: Arbeitnow's public job-board API, filtered client-side
+// to postings whose location mentions Italy — RemoteOK above has no
+// country filter of its own (nearly every listing there is just "remote
+// worldwide"), so a dedicated, geography-aware source was worth adding
+// rather than filtering RemoteOK down to almost nothing. Same icon as the
+// RemoteOK feed (💼) — both are "jobs", and the nav's job highlight keys
+// off the icon, not the source. No key, no signup.
+let italyJobsNewsItems = [];
+async function fetchItalyJobsNews() {
+    try {
+        const data = await fetchJson('https://www.arbeitnow.com/api/job-board-api');
+        const jobs = (data && data.data) || [];
+        italyJobsNewsItems = jobs
+            .filter(j => j.title && j.company_name && j.url && /italy|italia/i.test(j.location || ''))
+            .slice(0, 8)
+            .map(j => ({ text: `hiring in Italy: ${j.company_name} — ${j.title}`, url: j.url, icon: '💼' }));
+    } catch (err) {
+        console.warn('[dot] Italy jobs feed failed:', err);
+    }
+}
+
 // All feeds pooled together, not split one-per-dot — every dot pulls from
 // the same combined pool, so nobody has to wait for "the right one" to see
 // a specific source. Round-robin interleaved (not one feed's items
 // exhausted before the next's) so consecutive reveals naturally rotate
 // between sources.
 function getAllNewsItems() {
-    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems, jobsNewsItems];
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems, jobsNewsItems, italyJobsNewsItems];
     const combined = [];
     const maxLen = lists.reduce((max, l) => Math.max(max, l.length), 0);
     for (let i = 0; i < maxLen; i++) {
@@ -1234,7 +1255,8 @@ async function refetchAllNews() {
         fetchMusicNews(),
         fetchFashionNews(),
         fetchCinemaNews(),
-        fetchJobsNews()
+        fetchJobsNews(),
+        fetchItalyJobsNews()
     ]);
 }
 // The initial population doesn't need to happen at parse time — dot's
