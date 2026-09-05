@@ -133,6 +133,35 @@ navLinks.forEach(link => {
     updateToggleLabel();
 })();
 
+// Nav menu: accumulated history of the last news items the dots have
+// actually notified, kept in sync via the 'dotnewshistory' event fired
+// from recordNotifiedNews() whenever a mascot's news bubble is shown.
+(() => {
+    const section = document.getElementById('nav-news');
+    const divider = document.getElementById('nav-news-divider');
+    const list = document.getElementById('nav-news-list');
+    if (!section || !divider || !list) return;
+
+    document.addEventListener('dotnewshistory', (e) => {
+        const items = e.detail || [];
+        list.innerHTML = '';
+        items.forEach(item => {
+            const li = document.createElement('li');
+            const content = item.url ? document.createElement('a') : document.createElement('span');
+            if (item.url) {
+                content.href = item.url;
+                content.target = '_blank';
+                content.rel = 'noopener';
+            }
+            content.textContent = `${item.icon} ${item.text}`;
+            li.appendChild(content);
+            list.appendChild(li);
+        });
+        section.hidden = items.length === 0;
+        divider.hidden = items.length === 0;
+    });
+})();
+
 // Animated node network in the hero
 (() => {
     const canvas = document.getElementById('network-canvas');
@@ -1094,6 +1123,15 @@ function getAllNewsItems() {
     }
     return combined;
 }
+
+const NEWS_HISTORY_LIMIT = 5;
+let notifiedNewsHistory = [];
+
+function recordNotifiedNews(item) {
+    notifiedNewsHistory = [item, ...notifiedNewsHistory.filter(i => i.text !== item.text)].slice(0, NEWS_HISTORY_LIMIT);
+    document.dispatchEvent(new CustomEvent('dotnewshistory', { detail: notifiedNewsHistory }));
+}
+
 async function refetchAllNews() {
     await Promise.all([
         fetchGithubNews(),
@@ -1669,6 +1707,7 @@ function createMascotController(mascot, bubble, options = {}) {
         if (!items.length) return;
         const item = items[newsIndex % items.length];
         showBubble(item.icon + ' ' + item.text, 4000, item.url);
+        recordNotifiedNews(item);
         newsIndex++;
         if (newsBadge) newsBadge.hidden = true;
     }
