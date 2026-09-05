@@ -924,7 +924,7 @@ let angerStreakResetTimer = null;
 const ANGER_STREAK_THRESHOLD = 3;
 const ANGER_STREAK_WINDOW_MS = 20000;
 
-// Shared by all six news-feed fetchers below: parses JSON, throws on a
+// Shared by all the news-feed fetchers below: parses JSON, throws on a
 // non-OK response, and — unlike a bare fetch() — actually gives up after a
 // while instead of hanging forever if a request stalls.
 const NEWS_FETCH_TIMEOUT_MS = 8000;
@@ -1118,13 +1118,64 @@ async function fetchTrendingNews() {
     }
 }
 
+// Music theme: Apple's public iTunes RSS feed of top songs. No key, no
+// signup — the same feeds sites embed client-side (Access-Control-Allow-
+// Origin: * on the /json variant).
+let musicNewsItems = [];
+async function fetchMusicNews() {
+    try {
+        const data = await fetchJson('https://itunes.apple.com/us/rss/topsongs/limit=8/json');
+        const entries = (data.feed && data.feed.entry) || [];
+        musicNewsItems = entries
+            .filter(e => e['im:name'] && e['im:name'].label)
+            .map(e => ({
+                text: `top of the charts: ${e['im:artist'].label} — ${e['im:name'].label}`,
+                url: (e.id && e.id.label) || null,
+                icon: '🎵'
+            }));
+    } catch (err) {
+        console.warn('[dot] music feed failed:', err);
+    }
+}
+
+// Fashion theme: reddit.com/r/fashion's public top-of-the-day listing.
+// Same no-key, CORS-open constraint as the other feeds — reddit's .json
+// endpoints serve Access-Control-Allow-Origin: * for public read access.
+let fashionNewsItems = [];
+async function fetchFashionNews() {
+    try {
+        const data = await fetchJson('https://www.reddit.com/r/fashion/top.json?limit=8&t=day');
+        const posts = (data.data && data.data.children) || [];
+        fashionNewsItems = posts
+            .filter(p => p.data && p.data.title)
+            .map(p => ({ text: p.data.title, url: `https://www.reddit.com${p.data.permalink}`, icon: '👗' }));
+    } catch (err) {
+        console.warn('[dot] fashion feed failed:', err);
+    }
+}
+
+// Cinema theme: reddit.com/r/movies' public top-of-the-day listing. Same
+// source/shape as the fashion feed above, different subreddit.
+let cinemaNewsItems = [];
+async function fetchCinemaNews() {
+    try {
+        const data = await fetchJson('https://www.reddit.com/r/movies/top.json?limit=8&t=day');
+        const posts = (data.data && data.data.children) || [];
+        cinemaNewsItems = posts
+            .filter(p => p.data && p.data.title)
+            .map(p => ({ text: p.data.title, url: `https://www.reddit.com${p.data.permalink}`, icon: '🎬' }));
+    } catch (err) {
+        console.warn('[dot] cinema feed failed:', err);
+    }
+}
+
 // All feeds pooled together, not split one-per-dot — every dot pulls from
 // the same combined pool, so nobody has to wait for "the right one" to see
 // a specific source. Round-robin interleaved (not one feed's items
 // exhausted before the next's) so consecutive reveals naturally rotate
 // between sources.
 function getAllNewsItems() {
-    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems];
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems];
     const combined = [];
     const maxLen = lists.reduce((max, l) => Math.max(max, l.length), 0);
     for (let i = 0; i < maxLen; i++) {
@@ -1159,16 +1210,19 @@ async function refetchAllNews() {
         fetchWorldNews(),
         fetchWeatherNews(),
         fetchSpaceNews(),
-        fetchTrendingNews()
+        fetchTrendingNews(),
+        fetchMusicNews(),
+        fetchFashionNews(),
+        fetchCinemaNews()
     ]);
 }
 // The initial population doesn't need to happen at parse time — dot's
 // first news reveal is never before ~25s (see scheduleNews below), so a
-// short delay here is invisible to a visitor but avoids firing 6 requests
-// to external APIs before the page has even finished settling.
+// short delay here is invisible to a visitor but avoids firing a burst of
+// requests to external APIs before the page has even finished settling.
 window.setTimeout(refetchAllNews, 6000);
 // Floor between click-triggered live refetches — mashing clicks shouldn't
-// hammer three rate-limited public APIs at once.
+// hammer a handful of rate-limited public APIs at once.
 const NEWS_REFETCH_COOLDOWN_MS = 20000;
 let lastNewsRefetchAt = 0;
 
@@ -2202,7 +2256,7 @@ function createMascotController(mascot, bubble, options = {}) {
         }
         // Otherwise a click asks dot to go check the feeds live, instead of
         // waiting for the next scheduled cycle — capped so mashing clicks
-        // doesn't hammer three rate-limited public APIs at once. Falls
+        // doesn't hammer the rate-limited public APIs at once. Falls
         // back to the usual random one-liner while on cooldown, so rapid
         // clicking still feels alive instead of doing nothing.
         const now = Date.now();
