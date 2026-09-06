@@ -201,6 +201,14 @@ navLinks.forEach(link => {
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
     const WARP_ZOOM_START = 0.65;
+    // Where the jump actually takes you — a real project page, not just a
+    // visual flourish. evolution.html (the site's own timeline) stays out
+    // of the pool on purpose: it sits under the same "Projects" hub but
+    // isn't a project of its own the way these three are.
+    const WARP_PROJECT_PAGES = ['cerebro.html', 'dot-world.html', 'triple-triad.html'];
+    function pickWarpDestination() {
+        return WARP_PROJECT_PAGES[Math.floor(Math.random() * WARP_PROJECT_PAGES.length)];
+    }
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
     // Scaled during the warp for a "flying through the whole page" feel —
@@ -371,6 +379,7 @@ navLinks.forEach(link => {
                 // it, when the scale is what drives the effect) restores
                 // normal fixed positioning for the rest of the session.
                 if (pageZoomLayer) pageZoomLayer.style.transform = '';
+                window.location.href = pickWarpDestination();
             }
         } else {
             renderNormalFrame();
@@ -384,8 +393,7 @@ navLinks.forEach(link => {
     function triggerWarp() {
         if (warp) return;
         if (reduceMotion) {
-            createNodes();
-            step();
+            window.location.href = pickWarpDestination();
             return;
         }
         if (warpButton) warpButton.classList.add('warping');
