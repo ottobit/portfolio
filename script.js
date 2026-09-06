@@ -197,8 +197,8 @@ navLinks.forEach(link => {
     // fresh one (createNodes()) right as the screen goes white, hiding the
     // cut; phase B just fades the white back out over the new, normally
     // drifting field, so the "jump" reads as arriving somewhere new.
-    const WARP_DURATION_MS = 3000;
-    const WARP_RESET_FRACTION = 0.4;
+    const WARP_DURATION_MS = 4500;
+    const WARP_RESET_FRACTION = 0.5;
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
     const WARP_LABEL = { it: 'Salto a curvatura', en: 'Warp jump' };
@@ -359,6 +359,11 @@ navLinks.forEach(link => {
         }
         if (warpButton) warpButton.classList.add('warping');
         warp = { startTime: performance.now(), resetDone: false };
+        // Lets the full-viewport pass (a separate module, below) mirror this
+        // same timing so the whole page — not just this panel — joins in.
+        document.dispatchEvent(new CustomEvent('warpjump', {
+            detail: { duration: WARP_DURATION_MS, resetFraction: WARP_RESET_FRACTION }
+        }));
     }
 
     if (warpButton) warpButton.addEventListener('click', triggerWarp);
@@ -383,6 +388,119 @@ navLinks.forEach(link => {
     resize();
     createNodes();
     step();
+})();
+
+// Warp jump, full-viewport pass: the hero canvas above plays out the same
+// jump confined to its own panel — this mirrors it (same timing, via the
+// 'warpjump' event it dispatches) across the entire page on a dedicated
+// full-screen canvas, so the whole screen joins the effect rather than just
+// the hero graph. Skips entirely under prefers-reduced-motion, same as the
+// hero canvas's own animated path.
+(() => {
+    const canvas = document.getElementById('warp-overlay');
+    if (!canvas) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = canvas.getContext('2d');
+    const accentColor = '17, 94, 89';
+    const pointCount = 110;
+
+    let width, height, dpr;
+    let points = [];
+    let animationId = null;
+
+    function resize() {
+        dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function seedPoints() {
+        points = Array.from({ length: pointCount }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height
+        }));
+    }
+
+    // Same outward-streak math as the hero canvas's renderWarpOutboundFrame,
+    // scaled to the full viewport instead of one panel.
+    function renderOutbound(accel) {
+        ctx.clearRect(0, 0, width, height);
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const maxDist = Math.hypot(width / 2, height / 2) || 1;
+
+        points.forEach(p => {
+            const dx = p.x - centerX;
+            const dy = p.y - centerY;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const ux = dx / dist;
+            const uy = dy / dist;
+            const speed = (1 + (dist / maxDist) * 26) * accel;
+
+            p.x += ux * speed;
+            p.y += uy * speed;
+
+            const streakLen = speed * 8;
+            ctx.strokeStyle = `rgba(${accentColor}, ${0.4 + 0.4 * accel})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x - ux * streakLen, p.y - uy * streakLen);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+        });
+
+        if (accel > 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, accel * accel)})`;
+            ctx.fillRect(0, 0, width, height);
+        }
+    }
+
+    let startTime = 0;
+    let duration = 0;
+    let resetFraction = 0.5;
+
+    function loop() {
+        const p = Math.min(1, (performance.now() - startTime) / duration);
+
+        if (p < resetFraction) {
+            renderOutbound((p / resetFraction) ** 2);
+        } else {
+            // Nothing left to draw but the fading flash — the burst of
+            // points has already served its purpose and needs no further
+            // updates, unlike the hero canvas which keeps its own field
+            // alive afterward for its normal drifting animation.
+            ctx.clearRect(0, 0, width, height);
+            const fadeP = (p - resetFraction) / (1 - resetFraction);
+            const alpha = 1 - fadeP;
+            if (alpha > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fillRect(0, 0, width, height);
+            }
+        }
+
+        if (p < 1) {
+            animationId = requestAnimationFrame(loop);
+        } else {
+            ctx.clearRect(0, 0, width, height);
+            animationId = null;
+        }
+    }
+
+    document.addEventListener('warpjump', (e) => {
+        resize();
+        seedPoints();
+        startTime = performance.now();
+        duration = (e.detail && e.detail.duration) || 4500;
+        resetFraction = (e.detail && e.detail.resetFraction) || 0.5;
+        if (animationId) cancelAnimationFrame(animationId);
+        loop();
+    });
 })();
 
 // Hub/sub-node graph: dots overlaid on the hero canvas, same layout at every

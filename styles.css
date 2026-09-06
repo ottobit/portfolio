@@ -360,20 +360,29 @@ body {
     opacity: 0.35;
 }
 
+#warp-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 3000;
+    pointer-events: none;
+}
+
 .warp-trigger {
     position: absolute;
-    right: 16px;
-    bottom: 16px;
+    right: 14px;
+    bottom: 14px;
     z-index: 1;
-    width: 40px;
-    height: 40px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    border: 2px solid var(--accent);
+    border: 1.5px solid var(--accent);
     background: var(--surface);
-    font-size: 1.1rem;
+    font-size: 0.7rem;
     line-height: 1;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
