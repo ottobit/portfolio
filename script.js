@@ -500,9 +500,13 @@ navLinks.forEach(link => {
         maxDist = Math.max(...corners.map(([cx, cy]) => Math.hypot(cx - originX, cy - originY))) || 1;
     }
 
-    // A handful of tumbling rocks mixed in with the streaking points —
-    // same cluster-near-origin start and outward flight, but drawn as
-    // filled, irregular, rotating polygons instead of thin streak lines.
+    // A handful of tumbling rocks mixed in with the streaking points — same
+    // outward flight and radial math, but drawn as filled, irregular,
+    // rotating polygons instead of thin streak lines. Unlike the points
+    // (which cluster tight around the origin so the burst reads as
+    // starting AT the canvas), these seed already a good way out toward
+    // the edge — they're meant to read as tumbling in from a distance,
+    // not popping into existence right at the burst's center.
     function makeAsteroidShape(size) {
         const vertexCount = 7 + Math.floor(Math.random() * 3);
         return Array.from({ length: vertexCount }, (_, i) => ({
@@ -514,7 +518,7 @@ navLinks.forEach(link => {
     function seedAsteroids() {
         asteroids = Array.from({ length: asteroidCount }, () => {
             const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 40;
+            const r = maxDist * (0.25 + Math.random() * 0.35);
             const size = 9 + Math.random() * 10;
             return {
                 x: originX + Math.cos(angle) * r,
