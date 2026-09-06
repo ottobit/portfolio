@@ -494,10 +494,42 @@ navLinks.forEach(link => {
         ctx.restore();
     }
 
+    // A handful of concentric rings, staggered so they're always at
+    // different stages of expanding from the origin to the screen edge —
+    // gives the burst a sense of flying through a tunnel/corridor instead
+    // of just a flash growing outward.
+    const ringCount = 10;
+    let rings = [];
+
+    function seedRings() {
+        rings = Array.from({ length: ringCount }, (_, i) => ({ birth: i / ringCount }));
+    }
+
+    function drawTunnelRings(op) {
+        const maxRadius = maxDist * 1.15;
+        rings.forEach(ring => {
+            const life = Math.max(0, (op - ring.birth) / (1 - ring.birth));
+            if (life <= 0 || life >= 1) return;
+            const radius = life * maxRadius;
+            const alpha = Math.sin(life * Math.PI) * op * 0.5;
+            if (alpha <= 0.01) return;
+            ctx.strokeStyle = `rgba(${accentColor}, ${alpha.toFixed(3)})`;
+            ctx.lineWidth = 0.5 + life * 2.5;
+            ctx.beginPath();
+            ctx.arc(originX, originY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+    }
+
     // Same outward-streak math as the hero canvas's renderWarpOutboundFrame,
     // radiating from the canvas's own center instead of the viewport's.
-    function renderOutbound(accel) {
+    // `op` is the raw (non-eased) outbound-phase progress, 0→1 — needed
+    // linear for evenly staggering the tunnel rings, unlike the eased
+    // `accel` the points/asteroids/flash below still use.
+    function renderOutbound(op) {
+        const accel = op * op;
         ctx.clearRect(0, 0, width, height);
+        drawTunnelRings(op);
 
         points.forEach(p => {
             const dx = p.x - originX;
@@ -548,7 +580,7 @@ navLinks.forEach(link => {
         const p = Math.min(1, (performance.now() - startTime) / duration);
 
         if (p < resetFraction) {
-            renderOutbound((p / resetFraction) ** 2);
+            renderOutbound(p / resetFraction);
         } else {
             // Nothing left to draw but the fading flash — the burst of
             // points has already served its purpose and needs no further
@@ -577,6 +609,7 @@ navLinks.forEach(link => {
         originY = (e.detail && e.detail.originY) ?? height / 2;
         seedPoints();
         seedAsteroids();
+        seedRings();
         startTime = performance.now();
         duration = (e.detail && e.detail.duration) || 5500;
         resetFraction = (e.detail && e.detail.resetFraction) || 0.5;
@@ -1009,30 +1042,75 @@ navLinks.forEach(link => {
         return { hx, hy };
     }
 
-    function drawLines(hx, hy, subs) {
+    // Nudges a sub-dot's label down onto a small underline of its own — the
+    // underline runs under the label text only (not the sphere) — and
+    // returns both its ends (map-relative px) so drawLines() can attach the
+    // hub→sub-dot line to whichever one faces the hub.
+    function positionSubLabel(sub) {
+        const originX = parseFloat(sub.style.left) - sub.offsetWidth / 2;
+        const originY = parseFloat(sub.style.top) - sub.offsetHeight / 2;
+        const nodeDot = sub.querySelector('.node-dot');
+        const label = sub.querySelector('.dot-label');
+
+        const textY = originY + nodeDot.offsetTop + nodeDot.offsetHeight + 10;
+        const lLeft = originX + label.offsetLeft;
+        const lRight = lLeft + label.offsetWidth;
+        const lBottom = originY + label.offsetTop + label.offsetHeight;
+        label.style.transform = `translateY(${(textY - lBottom).toFixed(1)}px)`;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', lLeft.toFixed(1));
+        line.setAttribute('y1', textY.toFixed(1));
+        line.setAttribute('x2', lRight.toFixed(1));
+        line.setAttribute('y2', textY.toFixed(1));
+        line.setAttribute('class', 'underline');
+        svg.appendChild(line);
+
+        return { start: { x: lLeft, y: textY }, end: { x: lRight, y: textY } };
+    }
+
+    function drawLines(hub, hx, hy, subs) {
         clearLines();
         if (!svg) return;
 
+        const hubOriginX = hx - hub.offsetWidth / 2;
+        const hubOriginY = hy - hub.offsetHeight / 2;
+        const hubSphere = hub.querySelector('.node-dot');
+        const sphereCenterX = hubOriginX + hubSphere.offsetLeft + hubSphere.offsetWidth / 2;
+        const sphereCenterY = hubOriginY + hubSphere.offsetTop + hubSphere.offsetHeight / 2;
+        const sphereRadius = hubSphere.offsetWidth / 2;
+
         subs.forEach((sub, i) => {
-            const nx = parseFloat(sub.style.left);
-            const ny = parseFloat(sub.style.top);
+            const ends = positionSubLabel(sub);
+            const anchor = sub.classList.contains('label-left') ? ends.end : ends.start;
+
+            // Leave a small gap between the hub's own sphere and the line
+            // departing it — clear of its hover/active glow — instead of
+            // starting at the sphere's dead center.
+            const dx = anchor.x - sphereCenterX;
+            const dy = anchor.y - sphereCenterY;
+            const dist = Math.hypot(dx, dy) || 1;
+            const startGap = sphereRadius + 16;
+            const startX = sphereCenterX + (dx / dist) * startGap;
+            const startY = sphereCenterY + (dy / dist) * startGap;
+
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', hx);
-            line.setAttribute('y1', hy);
-            line.setAttribute('x2', hx);
-            line.setAttribute('y2', hy);
+            line.setAttribute('x1', startX.toFixed(1));
+            line.setAttribute('y1', startY.toFixed(1));
+            line.setAttribute('x2', startX.toFixed(1));
+            line.setAttribute('y2', startY.toFixed(1));
             svg.appendChild(line);
 
             if (reduceMotion) {
-                line.setAttribute('x2', nx);
-                line.setAttribute('y2', ny);
+                line.setAttribute('x2', anchor.x.toFixed(1));
+                line.setAttribute('y2', anchor.y.toFixed(1));
                 return;
             }
 
             requestAnimationFrame(() => {
                 line.style.transition = `x2 0.4s ease ${i * 0.06}s, y2 0.4s ease ${i * 0.06}s`;
-                line.setAttribute('x2', nx);
-                line.setAttribute('y2', ny);
+                line.setAttribute('x2', anchor.x.toFixed(1));
+                line.setAttribute('y2', anchor.y.toFixed(1));
             });
         });
     }
@@ -1073,7 +1151,7 @@ navLinks.forEach(link => {
         subs.forEach((s, i) => {
             window.setTimeout(() => s.classList.add('animate-in'), reduceMotion ? 0 : i * 70);
         });
-        drawLines(hx, hy, subs);
+        drawLines(hub, hx, hy, subs);
         if (networkCanvas) networkCanvas.classList.add('dimmed');
     }
 
@@ -1094,7 +1172,7 @@ navLinks.forEach(link => {
         const hub = hubDots.find(h => h.dataset.hub === openKey);
         const subs = subDotsFor(openKey);
         const { hx, hy } = positionSubDots(hub, subs);
-        drawLines(hx, hy, subs);
+        drawLines(hub, hx, hy, subs);
     });
 
     // --- Nav links + hero CTA: open the right hub from anywhere on the page ---
