@@ -46,7 +46,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=8.5">
+    <link rel="stylesheet" href="styles.css?v=8.6">
 </head>
 <body>
     <a href="#home" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -107,6 +107,11 @@
         </div>
         <div class="hero-visual">
             <canvas id="network-canvas" aria-hidden="true"></canvas>
+
+            <!-- Warp jump: an easter egg that sends the background graph's
+                 particles streaking outward, Star-Trek-jump-to-warp style,
+                 before settling into a fresh layout. Purely decorative. -->
+            <button class="warp-trigger" id="warp-trigger" type="button" aria-label="Warp jump">🚀</button>
 
             <!-- A little animated node that hops around the canvas on its own,
                  reacts to hub/node clicks and is clickable itself. Pure fun,
@@ -225,6 +230,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=7.16"></script>
+    <script src="script.js?v=7.17"></script>
 </body>
 </html>

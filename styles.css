@@ -360,6 +360,47 @@ body {
     opacity: 0.35;
 }
 
+.warp-trigger {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.warp-trigger:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.warp-trigger.warping {
+    animation: warp-pulse 0.5s ease-in-out infinite;
+    cursor: default;
+}
+
+@keyframes warp-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .warp-trigger.warping {
+        animation: none;
+    }
+}
+
 .name {
     font-size: clamp(1.6rem, 5vh, 3.25rem);
     font-weight: 800;

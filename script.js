@@ -189,6 +189,25 @@ navLinks.forEach(link => {
     const linkDistance = isSmallScreen ? 110 : 150;
     const nodeSpeed = 0.25;
 
+    // Warp jump: an easter egg triggered by #warp-trigger. Phase A (0 to
+    // WARP_RESET_FRACTION of the duration) sends every node streaking
+    // radially away from the panel's center — faster the further out it
+    // already is, the same trick a starfield/hyperspace effect uses — while
+    // a white overlay builds toward full white. The field is swapped for a
+    // fresh one (createNodes()) right as the screen goes white, hiding the
+    // cut; phase B just fades the white back out over the new, normally
+    // drifting field, so the "jump" reads as arriving somewhere new.
+    const WARP_DURATION_MS = 3000;
+    const WARP_RESET_FRACTION = 0.4;
+    let warp = null; // { startTime, resetDone } | null
+    const warpButton = document.getElementById('warp-trigger');
+    const WARP_LABEL = { it: 'Salto a curvatura', en: 'Warp jump' };
+    function updateWarpLabel() {
+        if (warpButton) warpButton.setAttribute('aria-label', WARP_LABEL[siteState.getLang()]);
+    }
+    document.addEventListener('langchange', updateWarpLabel);
+    updateWarpLabel();
+
     let width, height, dpr;
     let nodes = [];
     let mouse = { x: null, y: null };
@@ -215,9 +234,7 @@ navLinks.forEach(link => {
         }));
     }
 
-    function step() {
-        ctx.clearRect(0, 0, width, height);
-
+    function renderNormalFrame() {
         nodes.forEach(node => {
             node.x += node.vx;
             node.y += node.vy;
@@ -261,11 +278,90 @@ navLinks.forEach(link => {
             ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
             ctx.fill();
         });
+    }
+
+    function drawWarpOverlay(alpha) {
+        if (alpha <= 0) return;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha)})`;
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    // Phase A of the warp: nodes fly radially outward from the panel's
+    // center, drawn as streaks (a short line trailing back toward center)
+    // rather than dots — length and speed both scale with how far a node
+    // already is from center, and with `accel` (0→1 across the phase) for
+    // the "building up to lightspeed" feel.
+    function renderWarpOutboundFrame(accel) {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const maxDist = Math.hypot(width / 2, height / 2) || 1;
+
+        nodes.forEach(node => {
+            const dx = node.x - centerX;
+            const dy = node.y - centerY;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const ux = dx / dist;
+            const uy = dy / dist;
+            const speed = (1 + (dist / maxDist) * 18) * accel;
+
+            node.x += ux * speed;
+            node.y += uy * speed;
+
+            const streakLen = speed * 7;
+            ctx.strokeStyle = `rgba(${accentColor}, ${0.5 + 0.4 * accel})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(node.x - ux * streakLen, node.y - uy * streakLen);
+            ctx.lineTo(node.x, node.y);
+            ctx.stroke();
+        });
+
+        drawWarpOverlay(accel * accel);
+    }
+
+    function step() {
+        ctx.clearRect(0, 0, width, height);
+
+        if (warp) {
+            const p = Math.min(1, (performance.now() - warp.startTime) / WARP_DURATION_MS);
+
+            if (p < WARP_RESET_FRACTION) {
+                renderWarpOutboundFrame((p / WARP_RESET_FRACTION) ** 2);
+            } else {
+                if (!warp.resetDone) {
+                    createNodes();
+                    warp.resetDone = true;
+                }
+                renderNormalFrame();
+                const fadeP = (p - WARP_RESET_FRACTION) / (1 - WARP_RESET_FRACTION);
+                drawWarpOverlay(1 - fadeP);
+            }
+
+            if (p >= 1) {
+                warp = null;
+                if (warpButton) warpButton.classList.remove('warping');
+            }
+        } else {
+            renderNormalFrame();
+        }
 
         if (!reduceMotion) {
             animationId = requestAnimationFrame(step);
         }
     }
+
+    function triggerWarp() {
+        if (warp) return;
+        if (reduceMotion) {
+            createNodes();
+            step();
+            return;
+        }
+        if (warpButton) warpButton.classList.add('warping');
+        warp = { startTime: performance.now(), resetDone: false };
+    }
+
+    if (warpButton) warpButton.addEventListener('click', triggerWarp);
 
     heroVisual.addEventListener('mousemove', (e) => {
         const rect = heroVisual.getBoundingClientRect();
