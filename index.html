@@ -48,7 +48,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=9.1">
+    <link rel="stylesheet" href="styles.css?v=9.2">
 </head>
 <body>
     <!-- Everything except #warp-overlay lives in this wrapper — the warp
@@ -202,9 +202,9 @@
                 </div>
             </div>
 
-            <!-- Warp jump: an easter egg that sends the background graph's
-                 particles streaking outward, Star-Trek-jump-to-warp style,
-                 before settling into a fresh layout. Purely decorative. -->
+            <!-- Warp jump: sends the background graph's particles streaking
+                 outward, Star-Trek-jump-to-warp style, then lands on a
+                 random project page — a real teleport, not just a visual. -->
             <button class="warp-trigger" id="warp-trigger" type="button" aria-label="Warp jump">🚀</button>
 
             <!-- A little animated node that hops around the canvas on its own,
@@ -253,6 +253,6 @@
          Deliberately outside #page-zoom-layer — see the comment on it. -->
     <canvas id="warp-overlay" aria-hidden="true"></canvas>
 
-    <script src="script.js?v=7.25"></script>
+    <script src="script.js?v=7.26"></script>
 </body>
 </html>
