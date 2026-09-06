@@ -46,9 +46,18 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=9.0">
+    <link rel="stylesheet" href="styles.css?v=9.1">
 </head>
 <body>
+    <!-- Everything except #warp-overlay lives in this wrapper — the warp
+         jump scales the whole page by transforming just this layer, while
+         #warp-overlay (a sibling, not a descendant) stays untouched: it's
+         a fixed full-viewport canvas that needs a stable, unscaled frame
+         of reference for its own tunnel/particle math. Scaling an ancestor
+         also makes it the containing block for any position:fixed
+         descendant (navbar, mascot, detail panel) — here that's the
+         point, they zoom together with the rest of the page. -->
+    <div id="page-zoom-layer">
     <a href="#home" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
 
     <!-- Navigation -->
@@ -106,11 +115,9 @@
             </div>
         </div>
         <div class="hero-visual">
-            <!-- Wraps only the canvas + graph (not the mascot, which roams
-                 the whole page as position:fixed, nor the warp button) so
-                 the warp jump can scale just this layer for a "zooming
-                 through the panel" feel without disturbing anything
-                 position:fixed elsewhere on the page. -->
+            <!-- Plain wrapper around the canvas + graph — the warp jump now
+                 scales the whole page (see #page-zoom-layer in <body>), so
+                 this no longer carries its own transform. -->
             <div class="hero-zoom-layer" id="hero-zoom-layer">
                 <canvas id="network-canvas" aria-hidden="true"></canvas>
 
@@ -194,15 +201,12 @@
 
             <!-- Warp jump: an easter egg that sends the background graph's
                  particles streaking outward, Star-Trek-jump-to-warp style,
-                 before settling into a fresh layout. Purely decorative.
-                 Outside .hero-zoom-layer so its own position is untouched
-                 by the warp's zoom of the canvas/graph behind it. -->
+                 before settling into a fresh layout. Purely decorative. -->
             <button class="warp-trigger" id="warp-trigger" type="button" aria-label="Warp jump">🚀</button>
 
             <!-- A little animated node that hops around the canvas on its own,
                  reacts to hub/node clicks and is clickable itself. Pure fun,
-                 no functional role. position:fixed and roams the whole page,
-                 so it also stays outside .hero-zoom-layer. -->
+                 no functional role. -->
             <button class="mascot" id="mascot" type="button" aria-label="dot">
                 <span class="mascot-eye mascot-eye-l"></span>
                 <span class="mascot-eye mascot-eye-r"></span>
@@ -211,10 +215,6 @@
             <div class="mascot-bubble" id="mascot-bubble" hidden></div>
         </div>
     </section>
-
-    <!-- Full-viewport pass for the warp jump (see #warp-trigger in the hero):
-         empty and invisible outside a jump, drawn onto only while one runs. -->
-    <canvas id="warp-overlay" aria-hidden="true"></canvas>
 
     <div class="detail-backdrop" id="detail-backdrop" hidden></div>
     <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
@@ -243,7 +243,13 @@
             <p>&copy; 2026 ottobit</p>
         </footer>
     </div>
+    </div>
 
-    <script src="script.js?v=7.22"></script>
+    <!-- Full-viewport pass for the warp jump (see #warp-trigger in the hero):
+         empty and invisible outside a jump, drawn onto only while one runs.
+         Deliberately outside #page-zoom-layer — see the comment on it. -->
+    <canvas id="warp-overlay" aria-hidden="true"></canvas>
+
+    <script src="script.js?v=7.23"></script>
 </body>
 </html>
