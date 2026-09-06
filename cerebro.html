@@ -26,7 +26,23 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=9.2">
+    <!-- Warp-jump arrival: only when this page was actually reached via
+         the warp jump (a one-shot sessionStorage flag script.js sets
+         right before navigating) does the page open on a white overlay
+         that then fades — see .warp-arrival in styles.css. Must run
+         synchronously before first paint, like the theme script above,
+         or the page would flash unstyled before the overlay appears. -->
+    <script>
+    (function () {
+        try {
+            if (sessionStorage.getItem('warpArrival')) {
+                sessionStorage.removeItem('warpArrival');
+                document.documentElement.classList.add('warp-arrival');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="styles.css?v=9.3">
 </head>
 <body>
     <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>

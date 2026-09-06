@@ -400,6 +400,34 @@ body {
     pointer-events: none;
 }
 
+/* Warp jump arrival: a brief white-to-page fade on a project page, but
+   only when it was actually reached via the warp jump — the .warp-arrival
+   class is set by that page's own inline head script, from a one-shot
+   sessionStorage flag script.js leaves right before navigating (see
+   markWarpArrival() in script.js). A direct visit or a reload never sets
+   the class, so this rule never fires for those. */
+html.warp-arrival body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #fff;
+    pointer-events: none;
+    animation: warp-arrival-fade 0.6s ease forwards;
+}
+
+@keyframes warp-arrival-fade {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.warp-arrival body::before {
+        animation: none;
+        opacity: 0;
+    }
+}
+
 .warp-trigger {
     position: absolute;
     right: 14px;

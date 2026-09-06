@@ -192,13 +192,14 @@ navLinks.forEach(link => {
     // Warp jump: triggered by #warp-trigger. Phase A (0 to
     // WARP_RESET_FRACTION of the duration) sends every node streaking
     // radially away from the panel's center — faster the further out it
-    // already is, the same trick a starfield/hyperspace effect uses — while
-    // a white overlay builds toward full white and the whole page zooms in.
-    // Right as the screen goes fully white (the same instant the zoom hits
-    // its peak), the page navigates to a random project — no phase B, no
-    // fading back to the home graph first: the white flash IS the cut to
-    // the destination, so the jump reads as landing somewhere new rather
-    // than a round trip back home.
+    // already is, the same trick a starfield/hyperspace effect uses —
+    // while the whole page zooms in. The screen never goes white here:
+    // right at the zoom's peak the page cuts straight to navigating to a
+    // random project, mid-flight, no phase B and no fade back to the
+    // home graph first. The white flash instead happens as a fade-IN on
+    // the destination page (markWarpArrival() below + the .warp-arrival
+    // rule in styles.css), so the jump reads as landing somewhere new
+    // rather than a round trip back home.
     const WARP_DURATION_MS = 5500;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
@@ -210,6 +211,12 @@ navLinks.forEach(link => {
     const WARP_PROJECT_PAGES = ['cerebro.html', 'dot-world.html', 'triple-triad.html'];
     function pickWarpDestination() {
         return WARP_PROJECT_PAGES[Math.floor(Math.random() * WARP_PROJECT_PAGES.length)];
+    }
+    // One-shot signal for the destination page's own inline head script:
+    // read once (then cleared) to show its arrival fade only when actually
+    // reached via the jump — never on a direct visit or a reload.
+    function markWarpArrival() {
+        try { sessionStorage.setItem('warpArrival', '1'); } catch (e) {}
     }
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
@@ -297,12 +304,6 @@ navLinks.forEach(link => {
         });
     }
 
-    function drawWarpOverlay(alpha) {
-        if (alpha <= 0) return;
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, alpha)})`;
-        ctx.fillRect(0, 0, width, height);
-    }
-
     // Phase A of the warp: nodes fly radially outward from the panel's
     // center, drawn as streaks (a short line trailing back toward center)
     // rather than dots — length and speed both scale with how far a node
@@ -332,8 +333,6 @@ navLinks.forEach(link => {
             ctx.lineTo(node.x, node.y);
             ctx.stroke();
         });
-
-        drawWarpOverlay(accel * accel);
     }
 
     function step() {
@@ -354,15 +353,17 @@ navLinks.forEach(link => {
                 const zoomP = op < WARP_ZOOM_START ? 0 : ((op - WARP_ZOOM_START) / (1 - WARP_ZOOM_START)) ** 2;
                 if (pageZoomLayer) pageZoomLayer.style.transform = `scale(${1 + zoomP * WARP_ZOOM_MAX})`;
             } else {
-                // The hidden cut: screen already nearest to full white,
-                // zoom already at its peak — the natural instant to
-                // actually leave, instead of fading back to the home graph
-                // first and only then jumping away a beat later. One last
-                // full-white frame covers the leftover gradient this call's
-                // own clearRect (top of step()) just exposed, then we go —
-                // no need to reset pageZoomLayer's transform or any other
-                // warp state first, since navigating away makes it moot.
-                drawWarpOverlay(1);
+                // The hidden cut: zoom already at its peak — the natural
+                // instant to actually leave, instead of fading back to the
+                // home graph first and only then jumping away a beat
+                // later. The screen never goes white here anymore — that
+                // flash now happens as a fade-IN on the destination page
+                // instead (see markWarpArrival() + the .warp-arrival CSS
+                // in styles.css), so Home just cuts straight to the jump
+                // mid-flight. No need to reset pageZoomLayer's transform
+                // or any other warp state first, since navigating away
+                // makes it moot.
+                markWarpArrival();
                 window.location.href = pickWarpDestination();
                 return;
             }
@@ -378,6 +379,7 @@ navLinks.forEach(link => {
     function triggerWarp() {
         if (warp) return;
         if (reduceMotion) {
+            markWarpArrival();
             window.location.href = pickWarpDestination();
             return;
         }
@@ -557,7 +559,7 @@ navLinks.forEach(link => {
     // radiating from the canvas's own center instead of the viewport's.
     // `op` is the raw (non-eased) outbound-phase progress, 0→1 — needed
     // linear for evenly staggering the tunnel rings, unlike the eased
-    // `accel` the points/asteroids/flash below still use.
+    // `accel` the points/asteroids below still use.
     function renderOutbound(op) {
         const accel = op * op;
         ctx.clearRect(0, 0, width, height);
@@ -597,11 +599,6 @@ navLinks.forEach(link => {
 
             drawAsteroid(a, accel);
         });
-
-        if (accel > 0) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, accel * accel)})`;
-            ctx.fillRect(0, 0, width, height);
-        }
     }
 
     let startTime = 0;
