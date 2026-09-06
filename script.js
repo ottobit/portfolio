@@ -197,7 +197,7 @@ navLinks.forEach(link => {
     // fresh one (createNodes()) right as the screen goes white, hiding the
     // cut; phase B just fades the white back out over the new, normally
     // drifting field, so the "jump" reads as arriving somewhere new.
-    const WARP_DURATION_MS = 4500;
+    const WARP_DURATION_MS = 5500;
     const WARP_RESET_FRACTION = 0.5;
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
@@ -413,9 +413,11 @@ navLinks.forEach(link => {
     const ctx = canvas.getContext('2d');
     const accentColor = '17, 94, 89';
     const pointCount = 110;
+    const asteroidCount = 6;
 
     let width, height, dpr;
     let points = [];
+    let asteroids = [];
     let animationId = null;
     let originX = 0;
     let originY = 0;
@@ -446,6 +448,52 @@ navLinks.forEach(link => {
         maxDist = Math.max(...corners.map(([cx, cy]) => Math.hypot(cx - originX, cy - originY))) || 1;
     }
 
+    // A handful of tumbling rocks mixed in with the streaking points —
+    // same cluster-near-origin start and outward flight, but drawn as
+    // filled, irregular, rotating polygons instead of thin streak lines.
+    function makeAsteroidShape(size) {
+        const vertexCount = 7 + Math.floor(Math.random() * 3);
+        return Array.from({ length: vertexCount }, (_, i) => ({
+            angle: (i / vertexCount) * Math.PI * 2,
+            r: size * (0.65 + Math.random() * 0.35)
+        }));
+    }
+
+    function seedAsteroids() {
+        asteroids = Array.from({ length: asteroidCount }, () => {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 40;
+            const size = 9 + Math.random() * 10;
+            return {
+                x: originX + Math.cos(angle) * r,
+                y: originY + Math.sin(angle) * r,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.12,
+                shape: makeAsteroidShape(size)
+            };
+        });
+    }
+
+    function drawAsteroid(a, accel) {
+        ctx.save();
+        ctx.translate(a.x, a.y);
+        ctx.rotate(a.rotation);
+        ctx.beginPath();
+        a.shape.forEach((v, i) => {
+            const vx = Math.cos(v.angle) * v.r;
+            const vy = Math.sin(v.angle) * v.r;
+            if (i === 0) ctx.moveTo(vx, vy);
+            else ctx.lineTo(vx, vy);
+        });
+        ctx.closePath();
+        ctx.fillStyle = `rgba(71, 85, 105, ${0.55 + 0.35 * accel})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(30, 41, 59, ${0.6 + 0.3 * accel})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    }
+
     // Same outward-streak math as the hero canvas's renderWarpOutboundFrame,
     // radiating from the canvas's own center instead of the viewport's.
     function renderOutbound(accel) {
@@ -469,6 +517,21 @@ navLinks.forEach(link => {
             ctx.moveTo(p.x - ux * streakLen, p.y - uy * streakLen);
             ctx.lineTo(p.x, p.y);
             ctx.stroke();
+        });
+
+        asteroids.forEach(a => {
+            const dx = a.x - originX;
+            const dy = a.y - originY;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const ux = dx / dist;
+            const uy = dy / dist;
+            const speed = (1 + (dist / maxDist) * 22) * accel;
+
+            a.x += ux * speed;
+            a.y += uy * speed;
+            a.rotation += a.rotationSpeed;
+
+            drawAsteroid(a, accel);
         });
 
         if (accel > 0) {
@@ -513,8 +576,9 @@ navLinks.forEach(link => {
         originX = (e.detail && e.detail.originX) ?? width / 2;
         originY = (e.detail && e.detail.originY) ?? height / 2;
         seedPoints();
+        seedAsteroids();
         startTime = performance.now();
-        duration = (e.detail && e.detail.duration) || 4500;
+        duration = (e.detail && e.detail.duration) || 5500;
         resetFraction = (e.detail && e.detail.resetFraction) || 0.5;
         if (animationId) cancelAnimationFrame(animationId);
         loop();
