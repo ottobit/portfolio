@@ -352,6 +352,14 @@ body {
     min-height: 0;
 }
 
+/* Scaled during the warp jump for a "zooming through the panel" feel —
+   .hero-visual's own overflow:hidden clips it, so nothing else is needed
+   here. Excludes the mascot/warp button on purpose (see index.html). */
+.hero-zoom-layer {
+    position: absolute;
+    inset: 0;
+}
+
 #network-canvas {
     position: absolute;
     inset: 0;
