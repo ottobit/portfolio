@@ -1036,28 +1036,87 @@ navLinks.forEach(link => {
             return t;
         }
 
-        const points = subs.map((sub, i) => {
-            const angleDeg = count === 1 ? -90 : startAngle + angleStep * i;
+        // Distance a moon can reach along a given angle before it would
+        // touch another planet or the panel edge — same raycast as before,
+        // just factored out so the angle search below can try it at
+        // several candidate angles instead of only the fixed one.
+        function raycastDistance(angleDeg, sizeW, sizeH) {
             const angle = (angleDeg * Math.PI) / 180;
             const dx = Math.cos(angle), dy = Math.sin(angle);
-
-            const clearance = sizes[i].w / 2 + gap;
+            const clearance = sizeW / 2 + gap;
             let obstacleMax = Infinity;
             for (const ob of otherHubObstacles) {
                 const d = rayBoxEnterDistance(hx, hy, dx, dy, ob) - clearance;
                 if (d < obstacleMax) obstacleMax = d;
             }
-            const marginX = sizes[i].w / 2 + 10, marginY = sizes[i].h / 2 + 10;
+            // 14px, not just enough to clear the chip itself (+10) — a
+            // moon at the very edge of its safe reach used to land close
+            // enough to the panel boundary to read as touching/intersecting
+            // it rather than leaving open space around it.
+            const marginX = sizeW / 2 + 14, marginY = sizeH / 2 + 14;
             const edgeMax = rayExitDistance(hx, hy, dx, dy, marginX, panelWidth - marginX, marginY, panelHeight - marginY);
-            obstacleMax = Math.min(obstacleMax, edgeMax);
+            return { dx, dy, obstacleMax: Math.min(obstacleMax, edgeMax) };
+        }
 
-            let radius = Math.min(maxRadiusCeiling, obstacleMax);
-            radius = Math.max(radius, Math.min(minRadius, obstacleMax)); // never past obstacleMax
+        // A moon doesn't have to point exactly at its evenly-spaced base
+        // angle — it can lean within a small window to reach further into
+        // open space (e.g. a diagonal corner) instead of stopping short
+        // because its fixed angle happens to point straight at a nearby
+        // edge. Two neighbors can each lean toward each other though, so
+        // the window toward each neighbor is capped by how much they can
+        // converge before their actual chips (sized per moon, not a flat
+        // fraction of the angle step) would need to overlap to do it — a
+        // generic angle-only buffer was still letting two moons with wide
+        // chips lean far enough toward each other to collide at the radius
+        // they actually settle at.
+        const baseRadius = subs.map((sub, i) => {
+            const baseAngle = count === 1 ? -90 : startAngle + angleStep * i;
+            const cand = raycastDistance(baseAngle, sizes[i].w, sizes[i].h);
+            let r = Math.min(maxRadiusCeiling, cand.obstacleMax);
+            return Math.max(r, Math.min(minRadius, cand.obstacleMax));
+        });
+
+        // Minimum angular gap (deg) between moons i and j so their chips
+        // (approximated as circles circumscribing each chip box, for a
+        // margin that covers both width and height) don't need to overlap
+        // at the smaller of their two base radii — the tighter, more
+        // conservative side of the pair.
+        function requiredAngleGapDeg(i, j) {
+            const need = Math.hypot(sizes[i].w / 2, sizes[i].h / 2) + Math.hypot(sizes[j].w / 2, sizes[j].h / 2) + gap;
+            const r = Math.min(baseRadius[i], baseRadius[j]);
+            const ratio = Math.min(1, need / (2 * r));
+            return (2 * Math.asin(ratio) * 180) / Math.PI;
+        }
+
+        const angleSamples = 9;
+
+        const points = subs.map((sub, i) => {
+            const baseAngle = count === 1 ? -90 : startAngle + angleStep * i;
+
+            const angleWindowHalf = count > 1
+                ? Math.min(20, Math.max(0, angleStep - requiredAngleGapDeg(i, (i - 1 + count) % count)) / 2, Math.max(0, angleStep - requiredAngleGapDeg(i, (i + 1) % count)) / 2)
+                : 0;
+
+            let best = null;
+            for (let s = 0; s < angleSamples; s++) {
+                const t = angleWindowHalf === 0 ? 0 : -angleWindowHalf + (2 * angleWindowHalf * s) / (angleSamples - 1);
+                const cand = raycastDistance(baseAngle + t, sizes[i].w, sizes[i].h);
+                if (!best || cand.obstacleMax > best.obstacleMax + 2 ||
+                    (cand.obstacleMax > best.obstacleMax - 2 && Math.abs(t) < Math.abs(best.t))) {
+                    best = { ...cand, t };
+                }
+            }
+
+            let radius = Math.min(maxRadiusCeiling, best.obstacleMax);
+            radius = Math.max(radius, Math.min(minRadius, best.obstacleMax)); // never past obstacleMax
 
             return {
                 sub,
-                x: hx + radius * dx,
-                y: hy + radius * dy,
+                x: hx + radius * best.dx,
+                y: hy + radius * best.dy,
+                dx: best.dx,
+                dy: best.dy,
+                obstacleMax: best.obstacleMax,
                 w: sizes[i].w,
                 h: sizes[i].h
             };
@@ -1092,8 +1151,19 @@ navLinks.forEach(link => {
         // than the sub-vs-sub-only case needed, since a dense ring (e.g.
         // About's 6 sub-dots) fighting a fixed hub obstacle on a short
         // mobile panel takes longer to settle.
-        for (let pass = 0; pass < 24; pass++) {
+        //
+        // This also caps how far a push can rotate a moon off its own
+        // assigned direction (see maxDriftDeg below), so it reads as
+        // "reaching a bit more/less" rather than "pointing somewhere else"
+        // — but only for a moon that ISN'T currently overlapping anything:
+        // never touching another planet is the one non-negotiable rule
+        // here, so a moon still mid-collision is left free to move however
+        // far it needs to (drift and all) to actually clear it, and only
+        // gets reeled back toward its own direction once it's no longer
+        // overlapping anything.
+        for (let pass = 0; pass < 40; pass++) {
             let moved = false;
+            const overlapping = new Set();
             for (let i = 0; i < points.length; i++) {
                 for (let j = i + 1; j < points.length; j++) {
                     const a = points[i];
@@ -1103,6 +1173,7 @@ navLinks.forEach(link => {
                     let dx = b.x - a.x;
                     let dy = b.y - a.y;
                     if (Math.abs(dx) >= minDx || Math.abs(dy) >= minDy) continue;
+                    overlapping.add(i); overlapping.add(j);
                     if (dx === 0 && dy === 0) dx = 0.01;
                     const overlapX = minDx - Math.abs(dx);
                     const overlapY = minDy - Math.abs(dy);
@@ -1122,6 +1193,7 @@ navLinks.forEach(link => {
                     const dx = p.x - ob.x;
                     const dy = p.y - ob.y;
                     if (Math.abs(dx) >= minDx || Math.abs(dy) >= minDy) continue;
+                    overlapping.add(i);
                     const overlapX = minDx - Math.abs(dx);
                     const overlapY = minDy - Math.abs(dy);
                     // Obstacle is fixed, so resolve along whichever axis
@@ -1141,20 +1213,79 @@ navLinks.forEach(link => {
                 }
             }
 
+            // The separation pushes above are a 2D nudge with no notion of
+            // "direction" — on a dense hub (About's 6 moons) they can, pass
+            // after pass, walk a moon dozens of degrees away from the
+            // direction its raycast was actually computed for, which is
+            // exactly what let a moon end up on the opposite side of where
+            // it should visually reach (confirmed by comparing against
+            // this same hub before this round's changes: the drift already
+            // happened there too — it's the relax pass itself, not the
+            // raycast, that was silently relocating moons). Cap how far a
+            // moon can drift off its own assigned direction (its fixed
+            // dx/dy from the raycast above) — pushes can still adjust how
+            // FAR it reaches, and nudge it a bit sideways to clear a
+            // neighbor, but never rotate it into essentially a different
+            // direction.
+            const maxDriftDeg = 40;
+            const maxDriftRad = (maxDriftDeg * Math.PI) / 180;
+            for (let i = 0; i < points.length; i++) {
+                if (overlapping.has(i)) continue; // still mid-collision — leave it free to move
+                const p = points[i];
+                const vx = p.x - hx, vy = p.y - hy;
+                const dist = Math.hypot(vx, vy) || 1;
+                const ownAngle = Math.atan2(p.dy, p.dx);
+                const curAngle = Math.atan2(vy, vx);
+                let diff = curAngle - ownAngle;
+                diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // wrap to [-π, π]
+                if (Math.abs(diff) > maxDriftRad) {
+                    const clampedAngle = ownAngle + Math.sign(diff) * maxDriftRad;
+                    p.x = hx + dist * Math.cos(clampedAngle);
+                    p.y = hy + dist * Math.sin(clampedAngle);
+                    moved = true;
+                }
+            }
+
             // Chips are fixed (no pan to reach ones past the edge), so clamp
             // each point within the panel at the end of every pass — not
             // just once at the very end — otherwise a push that resolves an
             // overlap by landing outside the panel gets pulled back by the
             // final clamp with no chance to re-relax, silently undoing the
-            // fix on short mobile panels.
+            // fix on short mobile panels. This is the same absolute
+            // panel-margin clamp the relax pass has always used — a
+            // tighter per-direction clamp here (re-raycasting each pass)
+            // was tried and made the pass fight this same separation step
+            // in a loop that could still be unresolved after many passes on
+            // tightly-cornered hubs; the per-moon safe reach is instead
+            // enforced once, after this loop settles, below.
             for (const p of points) {
-                const marginX = p.w / 2 + 10;
-                const marginY = p.h / 2 + 10;
+                const marginX = p.w / 2 + 14;
+                const marginY = p.h / 2 + 14;
                 p.x = Math.max(marginX, Math.min(panelWidth - marginX, p.x));
                 p.y = Math.max(marginY, Math.min(panelHeight - marginY, p.y));
             }
 
             if (!moved) break;
+        }
+
+        // One-time (not per-pass) pull-back along each point's CURRENT
+        // direction from the hub, re-raycast for wherever the relax pass
+        // above actually left it: a separation push can shift a point past
+        // the safe reach found for its original angle without ever being
+        // caught by the loop's own (looser, absolute) panel clamp — this is
+        // what let a moon end up flush against the panel edge or, in a
+        // tighter direction, uncomfortably close to another planet. Doing
+        // it once here, after the relax pass has already settled overlaps,
+        // avoids the two fighting each other pass after pass.
+        for (const p of points) {
+            const vx = p.x - hx, vy = p.y - hy;
+            const dist = Math.hypot(vx, vy) || 1;
+            const cand = raycastDistance((Math.atan2(vy, vx) * 180) / Math.PI, p.w, p.h);
+            if (dist > cand.obstacleMax) {
+                const scale = cand.obstacleMax / dist;
+                p.x = hx + vx * scale;
+                p.y = hy + vy * scale;
+            }
         }
 
         points.forEach(p => {
