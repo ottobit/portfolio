@@ -969,32 +969,95 @@ navLinks.forEach(link => {
         // avoids a rigid N/E/S/W cross at 4 nodes without needing any
         // per-node jitter, which read as messy rather than organic and let
         // the hub→moon lines below cross each other.
-        // Radius must respect BOTH panel dimensions: on mobile the panel is
-        // full-width but short, so a width-only radius overshoots the real
-        // vertical clearance and rings end up overlapping a neighboring hub.
-        // On desktop panelHeight is always far larger than needed here, so
-        // this reduces to the previous width-only behavior unchanged.
-        const widthRadius = Math.min(240, Math.max(110, panelWidth * 0.36));
-        const heightRadius = Math.max(70, panelHeight * 0.5);
-        const capRadius = Math.min(widthRadius, heightRadius);
-        // A dense hub (e.g. About's 6 sub-dots) needs a wider ring so its own
-        // sub-dots don't collide with each other — but growing that ring at
-        // the same rate when the panel is height-capped (mobile) just pushes
-        // the ring into a neighboring hub instead. Grow it more gently in
-        // that case and let the relax pass below (which now also pushes
-        // clear of other hubs' chips) settle the rest.
-        const growthPerExtra = capRadius === heightRadius ? 8 : 16;
-        const baseRadius = capRadius + Math.max(0, count - 3) * growthPerExtra;
         const angleStep = count > 1 ? 360 / count : 0;
         const startAngle = -45; // diagonal, not straight up — avoids a N/E/S/W cross
+
+        // Each moon reaches as far as the open space in its own direction
+        // allows, instead of every moon on the same hub sharing one radius —
+        // a shared radius wide enough to use open space in one direction was
+        // also wide enough to send the leader line straight through another
+        // planet in a direction that happened to point at one. A per-moon
+        // raycast from the hub, stopped at the first obstacle, fixes that at
+        // the source instead of just cleaning up the chip's box afterward
+        // (the relax pass below still does that part, for sub-dot-vs-sub-dot
+        // spacing and its own hub's label — but no longer for other hubs).
+        const minRadius = 70 + Math.max(0, count - 3) * 8;
+        const maxRadiusCeiling = Math.min(panelWidth, panelHeight) * 0.45;
+
+        // Only the OTHER planets are obstacles here — this hub's own moons
+        // are never visible at the same time as another hub's (openHub()
+        // always closes every other hub first), so there's nothing of
+        // theirs on screen to avoid.
+        const otherHubObstacles = hubDots
+            .filter(h => h !== hub)
+            .map(h => ({
+                x: (parseFloat(h.dataset.x) / 100) * panelWidth,
+                y: (parseFloat(h.dataset.y) / 100) * panelHeight,
+                w: (h.offsetWidth || 90) * 1.15,
+                h: (h.offsetHeight || 36) * 1.15
+            }));
+
+        // Slab-method raycast: distance along the ray from (ox,oy) in
+        // direction (dx,dy) to where it first enters axis-aligned `box`
+        // (given as {x,y,w,h}, x/y its center) — Infinity if the ray misses
+        // it entirely or the box is behind the origin.
+        function rayBoxEnterDistance(ox, oy, dx, dy, box) {
+            const minX = box.x - box.w / 2, maxX = box.x + box.w / 2;
+            const minY = box.y - box.h / 2, maxY = box.y + box.h / 2;
+            let tMinX = -Infinity, tMaxX = Infinity;
+            if (dx !== 0) {
+                const t1 = (minX - ox) / dx, t2 = (maxX - ox) / dx;
+                tMinX = Math.min(t1, t2); tMaxX = Math.max(t1, t2);
+            } else if (ox < minX || ox > maxX) {
+                return Infinity;
+            }
+            let tMinY = -Infinity, tMaxY = Infinity;
+            if (dy !== 0) {
+                const t1 = (minY - oy) / dy, t2 = (maxY - oy) / dy;
+                tMinY = Math.min(t1, t2); tMaxY = Math.max(t1, t2);
+            } else if (oy < minY || oy > maxY) {
+                return Infinity;
+            }
+            const tEnter = Math.max(tMinX, tMinY);
+            const tExit = Math.min(tMaxX, tMaxY);
+            if (tEnter > tExit || tExit < 0) return Infinity;
+            return Math.max(tEnter, 0);
+        }
+
+        // Distance along the ray at which it exits a rectangle that
+        // CONTAINS the origin — used for the panel's own inset edge, which
+        // the hub is always inside of.
+        function rayExitDistance(ox, oy, dx, dy, minX, maxX, minY, maxY) {
+            let t = Infinity;
+            if (dx > 0) t = Math.min(t, (maxX - ox) / dx);
+            else if (dx < 0) t = Math.min(t, (minX - ox) / dx);
+            if (dy > 0) t = Math.min(t, (maxY - oy) / dy);
+            else if (dy < 0) t = Math.min(t, (minY - oy) / dy);
+            return t;
+        }
 
         const points = subs.map((sub, i) => {
             const angleDeg = count === 1 ? -90 : startAngle + angleStep * i;
             const angle = (angleDeg * Math.PI) / 180;
+            const dx = Math.cos(angle), dy = Math.sin(angle);
+
+            const clearance = sizes[i].w / 2 + gap;
+            let obstacleMax = Infinity;
+            for (const ob of otherHubObstacles) {
+                const d = rayBoxEnterDistance(hx, hy, dx, dy, ob) - clearance;
+                if (d < obstacleMax) obstacleMax = d;
+            }
+            const marginX = sizes[i].w / 2 + 10, marginY = sizes[i].h / 2 + 10;
+            const edgeMax = rayExitDistance(hx, hy, dx, dy, marginX, panelWidth - marginX, marginY, panelHeight - marginY);
+            obstacleMax = Math.min(obstacleMax, edgeMax);
+
+            let radius = Math.min(maxRadiusCeiling, obstacleMax);
+            radius = Math.max(radius, Math.min(minRadius, obstacleMax)); // never past obstacleMax
+
             return {
                 sub,
-                x: hx + baseRadius * Math.cos(angle),
-                y: hy + baseRadius * Math.sin(angle),
+                x: hx + radius * dx,
+                y: hy + radius * dy,
                 w: sizes[i].w,
                 h: sizes[i].h
             };
