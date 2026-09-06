@@ -974,8 +974,8 @@ navLinks.forEach(link => {
         // vertical clearance and rings end up overlapping a neighboring hub.
         // On desktop panelHeight is always far larger than needed here, so
         // this reduces to the previous width-only behavior unchanged.
-        const widthRadius = Math.min(170, Math.max(95, panelWidth * 0.3));
-        const heightRadius = Math.max(60, panelHeight * 0.42);
+        const widthRadius = Math.min(240, Math.max(110, panelWidth * 0.36));
+        const heightRadius = Math.max(70, panelHeight * 0.5);
         const capRadius = Math.min(widthRadius, heightRadius);
         // A dense hub (e.g. About's 6 sub-dots) needs a wider ring so its own
         // sub-dots don't collide with each other — but growing that ring at
