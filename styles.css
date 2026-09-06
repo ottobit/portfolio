@@ -361,10 +361,22 @@ body {
 }
 
 /* The whole-page wrapper the warp jump scales (see the comment on it in
-   index.html). No layout rules needed here — it stays a normal block box
-   in flow (display:contents would remove its own box and make it
-   untransformable, defeating the point); script.js sets transform-origin
+   index.html). Mirrors body's own flex column + min-height so the
+   elements now nested one level deeper (.navbar, .hero, .container) keep
+   behaving exactly as they did as direct children of body — in
+   particular .hero's flex:1 1 auto/min-height:0 (below) relies on its
+   parent being a flex container to shrink-to-fit the viewport and let
+   .hero-text's own overflow-y:auto absorb extra content instead of the
+   whole page growing a scrollbar. display:contents would dodge that but
+   also remove this element's own box, making it untransformable and
+   defeating the point of the wrapper; script.js sets transform-origin
    inline right before each jump starts. */
+#page-zoom-layer {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
 
 #network-canvas {
     position: absolute;
