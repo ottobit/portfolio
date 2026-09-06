@@ -46,7 +46,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="styles.css?v=8.9">
+    <link rel="stylesheet" href="styles.css?v=9.0">
 </head>
 <body>
     <a href="#home" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
@@ -106,25 +106,16 @@
             </div>
         </div>
         <div class="hero-visual">
-            <canvas id="network-canvas" aria-hidden="true"></canvas>
+            <!-- Wraps only the canvas + graph (not the mascot, which roams
+                 the whole page as position:fixed, nor the warp button) so
+                 the warp jump can scale just this layer for a "zooming
+                 through the panel" feel without disturbing anything
+                 position:fixed elsewhere on the page. -->
+            <div class="hero-zoom-layer" id="hero-zoom-layer">
+                <canvas id="network-canvas" aria-hidden="true"></canvas>
 
-            <!-- Warp jump: an easter egg that sends the background graph's
-                 particles streaking outward, Star-Trek-jump-to-warp style,
-                 before settling into a fresh layout. Purely decorative. -->
-            <button class="warp-trigger" id="warp-trigger" type="button" aria-label="Warp jump">🚀</button>
-
-            <!-- A little animated node that hops around the canvas on its own,
-                 reacts to hub/node clicks and is clickable itself. Pure fun,
-                 no functional role. -->
-            <button class="mascot" id="mascot" type="button" aria-label="dot">
-                <span class="mascot-eye mascot-eye-l"></span>
-                <span class="mascot-eye mascot-eye-r"></span>
-                <span class="mascot-news-badge" aria-hidden="true" hidden>💬</span>
-            </button>
-            <div class="mascot-bubble" id="mascot-bubble" hidden></div>
-
-            <!-- Hub/sub-node chips overlaid directly on the animated canvas, fixed at every breakpoint -->
-            <div class="hub-overlay" id="hub-overlay">
+                <!-- Hub/sub-node chips overlaid on the animated canvas, fixed at every breakpoint -->
+                <div class="hub-overlay" id="hub-overlay">
                 <svg class="graph-lines" id="graph-lines"></svg>
 
                 <button class="hub-dot" data-hub="about" data-x="30" data-y="26" aria-expanded="false">
@@ -198,7 +189,26 @@
                     <span class="node-dot"></span>
                     <span class="dot-label">Email</span>
                 </a>
+                </div>
             </div>
+
+            <!-- Warp jump: an easter egg that sends the background graph's
+                 particles streaking outward, Star-Trek-jump-to-warp style,
+                 before settling into a fresh layout. Purely decorative.
+                 Outside .hero-zoom-layer so its own position is untouched
+                 by the warp's zoom of the canvas/graph behind it. -->
+            <button class="warp-trigger" id="warp-trigger" type="button" aria-label="Warp jump">🚀</button>
+
+            <!-- A little animated node that hops around the canvas on its own,
+                 reacts to hub/node clicks and is clickable itself. Pure fun,
+                 no functional role. position:fixed and roams the whole page,
+                 so it also stays outside .hero-zoom-layer. -->
+            <button class="mascot" id="mascot" type="button" aria-label="dot">
+                <span class="mascot-eye mascot-eye-l"></span>
+                <span class="mascot-eye mascot-eye-r"></span>
+                <span class="mascot-news-badge" aria-hidden="true" hidden>💬</span>
+            </button>
+            <div class="mascot-bubble" id="mascot-bubble" hidden></div>
         </div>
     </section>
 
@@ -234,6 +244,6 @@
         </footer>
     </div>
 
-    <script src="script.js?v=7.21"></script>
+    <script src="script.js?v=7.22"></script>
 </body>
 </html>

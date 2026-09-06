@@ -199,8 +199,13 @@ navLinks.forEach(link => {
     // drifting field, so the "jump" reads as arriving somewhere new.
     const WARP_DURATION_MS = 5500;
     const WARP_RESET_FRACTION = 0.5;
+    const WARP_ZOOM_MAX = 3;
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
+    // Scaled during the warp for a "zooming through the panel" feel —
+    // excludes the mascot/warp button on purpose (see index.html), so
+    // this stays purely a visual crop/scale of the canvas + graph layer.
+    const heroZoomLayer = document.getElementById('hero-zoom-layer');
     const WARP_LABEL = { it: 'Salto a curvatura', en: 'Warp jump' };
     function updateWarpLabel() {
         if (warpButton) warpButton.setAttribute('aria-label', WARP_LABEL[siteState.getLang()]);
@@ -326,10 +331,17 @@ navLinks.forEach(link => {
             const p = Math.min(1, (performance.now() - warp.startTime) / WARP_DURATION_MS);
 
             if (p < WARP_RESET_FRACTION) {
-                renderWarpOutboundFrame((p / WARP_RESET_FRACTION) ** 2);
+                const accel = (p / WARP_RESET_FRACTION) ** 2;
+                renderWarpOutboundFrame(accel);
+                if (heroZoomLayer) heroZoomLayer.style.transform = `scale(${1 + accel * WARP_ZOOM_MAX})`;
             } else {
                 if (!warp.resetDone) {
                     createNodes();
+                    // Same hidden-cut trick as the field swap: reset the
+                    // zoom back to 1x at the exact instant the screen is
+                    // nearest to full white, so the jump reads as arriving
+                    // somewhere new rather than snapping back smaller.
+                    if (heroZoomLayer) heroZoomLayer.style.transform = 'scale(1)';
                     warp.resetDone = true;
                 }
                 renderNormalFrame();
@@ -899,12 +911,10 @@ navLinks.forEach(link => {
             h: (sub.offsetHeight || 32) + 20
         }));
         // Full 360° star: sub-nodes ring the hub on every side, like a real
-        // star-topology diagram — but a perfectly even split (esp. at 4
-        // nodes: N/E/S/W) reads as a rigid cross. A diagonal base angle plus
-        // a small, deterministic per-node jitter (stable across re-renders,
-        // not random each time) breaks that symmetry into something more
-        // organic without ever overlapping — the relax pass below still
-        // has the final say.
+        // star-topology diagram — a diagonal base angle (not straight up)
+        // avoids a rigid N/E/S/W cross at 4 nodes without needing any
+        // per-node jitter, which read as messy rather than organic and let
+        // the hub→moon lines below cross each other.
         // Radius must respect BOTH panel dimensions: on mobile the panel is
         // full-width but short, so a width-only radius overshoots the real
         // vertical clearance and rings end up overlapping a neighboring hub.
@@ -924,23 +934,13 @@ navLinks.forEach(link => {
         const angleStep = count > 1 ? 360 / count : 0;
         const startAngle = -45; // diagonal, not straight up — avoids a N/E/S/W cross
 
-        function seededUnit(seed) {
-            let h = 0;
-            for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-            return (h % 1000) / 1000; // deterministic, 0..1
-        }
-
-        const hubKey = hub.dataset.hub || '';
         const points = subs.map((sub, i) => {
-            const angleJitter = (seededUnit(`${hubKey}-${i}-a`) - 0.5) * 2 * 20; // ±20°
-            const radiusJitter = 0.85 + seededUnit(`${hubKey}-${i}-r`) * 0.35; // 85%–120%
-            const angleDeg = count === 1 ? -90 : startAngle + angleStep * i + angleJitter;
+            const angleDeg = count === 1 ? -90 : startAngle + angleStep * i;
             const angle = (angleDeg * Math.PI) / 180;
-            const radius = baseRadius * radiusJitter;
             return {
                 sub,
-                x: hx + radius * Math.cos(angle),
-                y: hy + radius * Math.sin(angle),
+                x: hx + baseRadius * Math.cos(angle),
+                y: hy + baseRadius * Math.sin(angle),
                 w: sizes[i].w,
                 h: sizes[i].h
             };
