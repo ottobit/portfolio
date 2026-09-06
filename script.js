@@ -361,8 +361,17 @@ navLinks.forEach(link => {
         warp = { startTime: performance.now(), resetDone: false };
         // Lets the full-viewport pass (a separate module, below) mirror this
         // same timing so the whole page — not just this panel — joins in.
+        // The origin point (this panel's own center, in viewport coordinates)
+        // is what makes that pass visibly burst out FROM the canvas instead
+        // of appearing everywhere on the page at once.
+        const heroRect = heroVisual.getBoundingClientRect();
         document.dispatchEvent(new CustomEvent('warpjump', {
-            detail: { duration: WARP_DURATION_MS, resetFraction: WARP_RESET_FRACTION }
+            detail: {
+                duration: WARP_DURATION_MS,
+                resetFraction: WARP_RESET_FRACTION,
+                originX: heroRect.left + heroRect.width / 2,
+                originY: heroRect.top + heroRect.height / 2
+            }
         }));
     }
 
@@ -408,6 +417,9 @@ navLinks.forEach(link => {
     let width, height, dpr;
     let points = [];
     let animationId = null;
+    let originX = 0;
+    let originY = 0;
+    let maxDist = 1;
 
     function resize() {
         dpr = window.devicePixelRatio || 1;
@@ -420,24 +432,28 @@ navLinks.forEach(link => {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
+    // Every point starts in a tight cluster around the origin (the hero
+    // canvas's own center) rather than scattered across the page — that's
+    // what makes the burst visibly start AT the canvas and grow outward to
+    // fill the screen, instead of appearing everywhere at once.
     function seedPoints() {
-        points = Array.from({ length: pointCount }, () => ({
-            x: Math.random() * width,
-            y: Math.random() * height
-        }));
+        points = Array.from({ length: pointCount }, () => {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 40;
+            return { x: originX + Math.cos(angle) * r, y: originY + Math.sin(angle) * r };
+        });
+        const corners = [[0, 0], [width, 0], [0, height], [width, height]];
+        maxDist = Math.max(...corners.map(([cx, cy]) => Math.hypot(cx - originX, cy - originY))) || 1;
     }
 
     // Same outward-streak math as the hero canvas's renderWarpOutboundFrame,
-    // scaled to the full viewport instead of one panel.
+    // radiating from the canvas's own center instead of the viewport's.
     function renderOutbound(accel) {
         ctx.clearRect(0, 0, width, height);
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const maxDist = Math.hypot(width / 2, height / 2) || 1;
 
         points.forEach(p => {
-            const dx = p.x - centerX;
-            const dy = p.y - centerY;
+            const dx = p.x - originX;
+            const dy = p.y - originY;
             const dist = Math.hypot(dx, dy) || 0.001;
             const ux = dx / dist;
             const uy = dy / dist;
@@ -494,6 +510,8 @@ navLinks.forEach(link => {
 
     document.addEventListener('warpjump', (e) => {
         resize();
+        originX = (e.detail && e.detail.originX) ?? width / 2;
+        originY = (e.detail && e.detail.originY) ?? height / 2;
         seedPoints();
         startTime = performance.now();
         duration = (e.detail && e.detail.duration) || 4500;
