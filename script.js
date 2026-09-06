@@ -361,6 +361,16 @@ navLinks.forEach(link => {
             if (p >= 1) {
                 warp = null;
                 if (warpButton) warpButton.classList.remove('warping');
+                // Any transform other than none — even the inert scale(1)
+                // left by the reset above — turns this layer into the
+                // containing block for every position:fixed descendant
+                // (mascot, its bubble, navbar, detail panel), which also
+                // makes them clip against .hero-visual's overflow:hidden
+                // instead of floating free over the whole page. Clearing
+                // the inline style once the jump is fully done (not during
+                // it, when the scale is what drives the effect) restores
+                // normal fixed positioning for the rest of the session.
+                if (pageZoomLayer) pageZoomLayer.style.transform = '';
             }
         } else {
             renderNormalFrame();
