@@ -1568,6 +1568,38 @@ async function fetchCinemaNews() {
     }
 }
 
+// International politics theme: reddit.com/r/worldnews' public
+// top-of-the-day listing. Same no-key, CORS-open source/shape as the
+// fashion/cinema feeds above, different subreddit.
+let politicsNewsItems = [];
+async function fetchPoliticsNews() {
+    try {
+        const data = await fetchJson('https://www.reddit.com/r/worldnews/top.json?limit=8&t=day');
+        const posts = (data.data && data.data.children) || [];
+        politicsNewsItems = posts
+            .filter(p => p.data && p.data.title)
+            .map(p => ({ text: p.data.title, url: `https://www.reddit.com${p.data.permalink}`, icon: '🗳️' }));
+    } catch (err) {
+        console.warn('[dot] politics feed failed:', err);
+    }
+}
+
+// Finance theme: reddit.com/r/economics' public top-of-the-day listing.
+// Same source/shape again — economics over investing/stocks, since it
+// reads as actual financial news rather than trading chatter.
+let financeNewsItems = [];
+async function fetchFinanceNews() {
+    try {
+        const data = await fetchJson('https://www.reddit.com/r/economics/top.json?limit=8&t=day');
+        const posts = (data.data && data.data.children) || [];
+        financeNewsItems = posts
+            .filter(p => p.data && p.data.title)
+            .map(p => ({ text: p.data.title, url: `https://www.reddit.com${p.data.permalink}`, icon: '💹' }));
+    } catch (err) {
+        console.warn('[dot] finance feed failed:', err);
+    }
+}
+
 // Jobs theme: Arbeitnow's public job-board API, filtered client-side to
 // postings located in Europe. RemoteOK (tried first) turned out to skew
 // heavily American even on "remote worldwide" listings — not useful for
@@ -1607,7 +1639,7 @@ async function fetchJobsNews() {
 // exhausted before the next's) so consecutive reveals naturally rotate
 // between sources.
 function getAllNewsItems() {
-    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems, jobsNewsItems];
+    const lists = [githubNewsItems, aiNewsItems, worldNewsItems, weatherNewsItems, spaceNewsItems, trendingNewsItems, musicNewsItems, fashionNewsItems, cinemaNewsItems, politicsNewsItems, financeNewsItems, jobsNewsItems];
     const combined = [];
     const maxLen = lists.reduce((max, l) => Math.max(max, l.length), 0);
     for (let i = 0; i < maxLen; i++) {
@@ -1646,6 +1678,8 @@ async function refetchAllNews() {
         fetchMusicNews(),
         fetchFashionNews(),
         fetchCinemaNews(),
+        fetchPoliticsNews(),
+        fetchFinanceNews(),
         fetchJobsNews()
     ]);
 }
