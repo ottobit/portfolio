@@ -200,6 +200,7 @@ navLinks.forEach(link => {
     const WARP_DURATION_MS = 5500;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
+    const WARP_ZOOM_START = 0.65;
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
     // Scaled during the warp for a "flying through the whole page" feel —
@@ -332,9 +333,16 @@ navLinks.forEach(link => {
             const p = Math.min(1, (performance.now() - warp.startTime) / WARP_DURATION_MS);
 
             if (p < WARP_RESET_FRACTION) {
-                const accel = (p / WARP_RESET_FRACTION) ** 2;
+                const op = p / WARP_RESET_FRACTION;
+                const accel = op ** 2;
                 renderWarpOutboundFrame(accel);
-                if (pageZoomLayer) pageZoomLayer.style.transform = `scale(${1 + accel * WARP_ZOOM_MAX})`;
+                // Zoom only kicks in once the asteroid/particle flyby is
+                // mostly done, so the two beats read as sequential — first
+                // the field streaks past, then the page itself lurches
+                // forward — rather than zooming while the flyby is still
+                // happening.
+                const zoomP = op < WARP_ZOOM_START ? 0 : ((op - WARP_ZOOM_START) / (1 - WARP_ZOOM_START)) ** 2;
+                if (pageZoomLayer) pageZoomLayer.style.transform = `scale(${1 + zoomP * WARP_ZOOM_MAX})`;
             } else {
                 if (!warp.resetDone) {
                     createNodes();
