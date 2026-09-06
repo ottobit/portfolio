@@ -428,6 +428,24 @@ navLinks.forEach(link => {
         if (reduceMotion) step();
     });
 
+    // A back/forward-cache restore (reliable in Safari, common in Chrome
+    // too) can bring this page back exactly as it was mid-jump — a frozen,
+    // zoomed-in frame, .warping still set on the button, a stale rAF loop
+    // that may or may not resume on its own — since none of that gets
+    // reset until a jump actually completes. A persisted pageshow means
+    // we're not really still mid-jump, so put everything back to a clean
+    // idle state instead of leaving whatever the jump last drew on screen.
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        if (animationId) cancelAnimationFrame(animationId);
+        warp = null;
+        if (warpButton) warpButton.classList.remove('warping');
+        if (pageZoomLayer) pageZoomLayer.style.transform = '';
+        resize();
+        createNodes();
+        step();
+    });
+
     resize();
     createNodes();
     step();
@@ -644,6 +662,17 @@ navLinks.forEach(link => {
         resetFraction = (e.detail && e.detail.resetFraction) || 0.5;
         if (animationId) cancelAnimationFrame(animationId);
         loop();
+    });
+
+    // Same bfcache-restore concern as the hero canvas's own reset above —
+    // this canvas could come back mid-burst, still drawing tunnel rings or
+    // a leftover flash. Clear it and drop any stale loop rather than
+    // leaving that on screen.
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        if (animationId) cancelAnimationFrame(animationId);
+        animationId = null;
+        ctx.clearRect(0, 0, width, height);
     });
 })();
 
