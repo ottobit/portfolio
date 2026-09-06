@@ -202,10 +202,11 @@ navLinks.forEach(link => {
     const WARP_ZOOM_MAX = 3;
     let warp = null; // { startTime, resetDone } | null
     const warpButton = document.getElementById('warp-trigger');
-    // Scaled during the warp for a "zooming through the panel" feel —
-    // excludes the mascot/warp button on purpose (see index.html), so
-    // this stays purely a visual crop/scale of the canvas + graph layer.
-    const heroZoomLayer = document.getElementById('hero-zoom-layer');
+    // Scaled during the warp for a "flying through the whole page" feel —
+    // everything except #warp-overlay lives inside it (see index.html),
+    // so the entire page zooms while that full-viewport canvas stays a
+    // stable, unscaled frame of reference for its own tunnel/particle math.
+    const pageZoomLayer = document.getElementById('page-zoom-layer');
     const WARP_LABEL = { it: 'Salto a curvatura', en: 'Warp jump' };
     function updateWarpLabel() {
         if (warpButton) warpButton.setAttribute('aria-label', WARP_LABEL[siteState.getLang()]);
@@ -333,7 +334,7 @@ navLinks.forEach(link => {
             if (p < WARP_RESET_FRACTION) {
                 const accel = (p / WARP_RESET_FRACTION) ** 2;
                 renderWarpOutboundFrame(accel);
-                if (heroZoomLayer) heroZoomLayer.style.transform = `scale(${1 + accel * WARP_ZOOM_MAX})`;
+                if (pageZoomLayer) pageZoomLayer.style.transform = `scale(${1 + accel * WARP_ZOOM_MAX})`;
             } else {
                 if (!warp.resetDone) {
                     createNodes();
@@ -341,7 +342,7 @@ navLinks.forEach(link => {
                     // zoom back to 1x at the exact instant the screen is
                     // nearest to full white, so the jump reads as arriving
                     // somewhere new rather than snapping back smaller.
-                    if (heroZoomLayer) heroZoomLayer.style.transform = 'scale(1)';
+                    if (pageZoomLayer) pageZoomLayer.style.transform = 'scale(1)';
                     warp.resetDone = true;
                 }
                 renderNormalFrame();
@@ -377,12 +378,20 @@ navLinks.forEach(link => {
         // is what makes that pass visibly burst out FROM the canvas instead
         // of appearing everywhere on the page at once.
         const heroRect = heroVisual.getBoundingClientRect();
+        const originX = heroRect.left + heroRect.width / 2;
+        const originY = heroRect.top + heroRect.height / 2;
+        // #page-zoom-layer can be taller than the viewport (it's the whole
+        // page), so its own transform-origin needs page coordinates, not
+        // just the viewport-relative ones the 'warpjump' event below uses.
+        if (pageZoomLayer) {
+            pageZoomLayer.style.transformOrigin = `${originX}px ${originY + window.scrollY}px`;
+        }
         document.dispatchEvent(new CustomEvent('warpjump', {
             detail: {
                 duration: WARP_DURATION_MS,
                 resetFraction: WARP_RESET_FRACTION,
-                originX: heroRect.left + heroRect.width / 2,
-                originY: heroRect.top + heroRect.height / 2
+                originX,
+                originY
             }
         }));
     }

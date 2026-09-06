@@ -352,13 +352,19 @@ body {
     min-height: 0;
 }
 
-/* Scaled during the warp jump for a "zooming through the panel" feel —
-   .hero-visual's own overflow:hidden clips it, so nothing else is needed
-   here. Excludes the mascot/warp button on purpose (see index.html). */
+/* Plain positioning wrapper for the canvas + graph — no longer scales
+   itself during the warp jump (see #page-zoom-layer, which now scales
+   the whole page instead). */
 .hero-zoom-layer {
     position: absolute;
     inset: 0;
 }
+
+/* The whole-page wrapper the warp jump scales (see the comment on it in
+   index.html). No layout rules needed here — it stays a normal block box
+   in flow (display:contents would remove its own box and make it
+   untransformable, defeating the point); script.js sets transform-origin
+   inline right before each jump starts. */
 
 #network-canvas {
     position: absolute;
