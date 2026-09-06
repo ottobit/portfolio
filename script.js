@@ -189,14 +189,16 @@ navLinks.forEach(link => {
     const linkDistance = isSmallScreen ? 110 : 150;
     const nodeSpeed = 0.25;
 
-    // Warp jump: an easter egg triggered by #warp-trigger. Phase A (0 to
+    // Warp jump: triggered by #warp-trigger. Phase A (0 to
     // WARP_RESET_FRACTION of the duration) sends every node streaking
     // radially away from the panel's center — faster the further out it
     // already is, the same trick a starfield/hyperspace effect uses — while
-    // a white overlay builds toward full white. The field is swapped for a
-    // fresh one (createNodes()) right as the screen goes white, hiding the
-    // cut; phase B just fades the white back out over the new, normally
-    // drifting field, so the "jump" reads as arriving somewhere new.
+    // a white overlay builds toward full white and the whole page zooms in.
+    // Right as the screen goes fully white (the same instant the zoom hits
+    // its peak), the page navigates to a random project — no phase B, no
+    // fading back to the home graph first: the white flash IS the cut to
+    // the destination, so the jump reads as landing somewhere new rather
+    // than a round trip back home.
     const WARP_DURATION_MS = 5500;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
@@ -352,34 +354,17 @@ navLinks.forEach(link => {
                 const zoomP = op < WARP_ZOOM_START ? 0 : ((op - WARP_ZOOM_START) / (1 - WARP_ZOOM_START)) ** 2;
                 if (pageZoomLayer) pageZoomLayer.style.transform = `scale(${1 + zoomP * WARP_ZOOM_MAX})`;
             } else {
-                if (!warp.resetDone) {
-                    createNodes();
-                    // Same hidden-cut trick as the field swap: reset the
-                    // zoom back to 1x at the exact instant the screen is
-                    // nearest to full white, so the jump reads as arriving
-                    // somewhere new rather than snapping back smaller.
-                    if (pageZoomLayer) pageZoomLayer.style.transform = 'scale(1)';
-                    warp.resetDone = true;
-                }
-                renderNormalFrame();
-                const fadeP = (p - WARP_RESET_FRACTION) / (1 - WARP_RESET_FRACTION);
-                drawWarpOverlay(1 - fadeP);
-            }
-
-            if (p >= 1) {
-                warp = null;
-                if (warpButton) warpButton.classList.remove('warping');
-                // Any transform other than none — even the inert scale(1)
-                // left by the reset above — turns this layer into the
-                // containing block for every position:fixed descendant
-                // (mascot, its bubble, navbar, detail panel), which also
-                // makes them clip against .hero-visual's overflow:hidden
-                // instead of floating free over the whole page. Clearing
-                // the inline style once the jump is fully done (not during
-                // it, when the scale is what drives the effect) restores
-                // normal fixed positioning for the rest of the session.
-                if (pageZoomLayer) pageZoomLayer.style.transform = '';
+                // The hidden cut: screen already nearest to full white,
+                // zoom already at its peak — the natural instant to
+                // actually leave, instead of fading back to the home graph
+                // first and only then jumping away a beat later. One last
+                // full-white frame covers the leftover gradient this call's
+                // own clearRect (top of step()) just exposed, then we go —
+                // no need to reset pageZoomLayer's transform or any other
+                // warp state first, since navigating away makes it moot.
+                drawWarpOverlay(1);
                 window.location.href = pickWarpDestination();
+                return;
             }
         } else {
             renderNormalFrame();
