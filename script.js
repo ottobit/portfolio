@@ -500,9 +500,12 @@ navLinks.forEach(link => {
         maxDist = Math.max(...corners.map(([cx, cy]) => Math.hypot(cx - originX, cy - originY))) || 1;
     }
 
-    // A handful of tumbling rocks mixed in with the streaking points —
-    // same cluster-near-origin start and outward flight, but drawn as
-    // filled, irregular, rotating polygons instead of thin streak lines.
+    // A handful of tumbling rocks mixed in with the streaking points — same
+    // cluster-near-origin start and outward flight as the points, but drawn
+    // as filled, irregular, rotating polygons instead of thin streak lines.
+    // The "arriving from a distance" read comes from drawAsteroid() scaling
+    // them up as accel grows (tiny/distant at first, full size once they're
+    // close), not from where they spawn.
     function makeAsteroidShape(size) {
         const vertexCount = 7 + Math.floor(Math.random() * 3);
         return Array.from({ length: vertexCount }, (_, i) => ({
@@ -530,6 +533,11 @@ navLinks.forEach(link => {
         ctx.save();
         ctx.translate(a.x, a.y);
         ctx.rotate(a.rotation);
+        // Tiny at the start, full size by the time accel nears 1 — the
+        // asteroid reads as approaching from far away rather than popping
+        // into existence at whatever size it happened to be given.
+        const scale = 0.12 + 0.88 * accel;
+        ctx.scale(scale, scale);
         ctx.beginPath();
         a.shape.forEach((v, i) => {
             const vx = Math.cos(v.angle) * v.r;
