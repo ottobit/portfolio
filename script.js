@@ -890,9 +890,13 @@ navLinks.forEach(link => {
         // already be display:flex — opacity can still be 0) instead of
         // assuming a fixed width, or dense groups (e.g. Social's 4 links)
         // end up overlapping.
+        // +20 accounts for the label being nudged below the sphere onto its
+        // own underline (positionSubLabel) — extra footprint the box below
+        // doesn't know about otherwise, letting a tight ring visually run
+        // the nudged label/underline into a neighboring chip.
         const sizes = subs.map(sub => ({
             w: sub.offsetWidth || 120,
-            h: sub.offsetHeight || 32
+            h: (sub.offsetHeight || 32) + 20
         }));
         // Full 360° star: sub-nodes ring the hub on every side, like a real
         // star-topology diagram — but a perfectly even split (esp. at 4
@@ -953,13 +957,16 @@ navLinks.forEach(link => {
         // 1.08 left a couple of small edge/corner touches on the
         // shortest mobile panels — a wider pad gives the relax pass a bit
         // more room to push clear where the panel has space to spare.
+        // The current hub is included too now (it used to be excluded,
+        // relying on the ring radius alone to clear its own label) — a
+        // tight mobile ring could still land a sub-dot's nudged-down label
+        // right on top of the hub's own, unrelated to the ring math above.
         const hubObstacles = hubDots
-            .filter(h => h !== hub)
             .map(h => ({
                 x: (parseFloat(h.dataset.x) / 100) * panelWidth,
                 y: (parseFloat(h.dataset.y) / 100) * panelHeight,
-                w: (h.offsetWidth || 90) * 1.15,
-                h: (h.offsetHeight || 36) * 1.15
+                w: (h.offsetWidth || 90) * (h === hub ? 1 : 1.15),
+                h: (h.offsetHeight || 36) * (h === hub ? 1 : 1.15)
             }));
 
         // Relax any remaining overlap (e.g. tight radius on small panels)
