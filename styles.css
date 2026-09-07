@@ -1496,7 +1496,7 @@ html.warp-arrival body::before {
     }
 
     .sub-dot .dot-label {
-        font-size: clamp(0.58rem, 1.55vh, 0.66rem);
+        font-size: clamp(0.66rem, 1.8vh, 0.76rem);
     }
 }
 
