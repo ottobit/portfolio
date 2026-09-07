@@ -53,12 +53,51 @@
     // The "arriving from a distance" read comes from drawAsteroid() scaling
     // them up as accel grows (tiny/distant at first, full size once they're
     // close), not from where they spawn.
-    function makeAsteroidShape(size) {
-        const vertexCount = 7 + Math.floor(Math.random() * 3);
+    // Shared by the rock's own outline and its craters — irregular, jagged
+    // vertices (angle jitter + wide radius variance) instead of a near-even
+    // radius at every angle, which used to read as a smooth round blob
+    // (an "olive", per one very accurate review) rather than a rock.
+    function makeIrregularBlob(vertexCount, jagMin, jagMax) {
+        const spacing = (Math.PI * 2) / vertexCount;
         return Array.from({ length: vertexCount }, (_, i) => ({
-            angle: (i / vertexCount) * Math.PI * 2,
-            r: size * (0.65 + Math.random() * 0.35)
+            angle: i * spacing + (Math.random() - 0.5) * spacing * 0.5,
+            jag: jagMin + Math.random() * (jagMax - jagMin)
         }));
+    }
+
+    function makeAsteroidShape(size) {
+        const vertexCount = 6 + Math.floor(Math.random() * 4);
+        const blob = makeIrregularBlob(vertexCount, 0.45, 1.05);
+        // An elongation axis (random per rock) stretches the whole blob
+        // along one direction — real asteroids read as oblong chunks far
+        // more often than as round ones.
+        const stretchAngle = Math.random() * Math.PI;
+        const stretch = 0.15 + Math.random() * 0.35;
+        return blob.map(v => ({
+            angle: v.angle,
+            r: size * v.jag * (1 + stretch * Math.cos(2 * (v.angle - stretchAngle)))
+        }));
+    }
+
+    // A few dark pits scattered across the silhouette (including near its
+    // edge, not clustered dead-center — the giveaway that made the first
+    // pass look like a stuffed olive), each drawn as its own small jagged
+    // blob rather than a perfect circle. Plus a light source fixed to the
+    // rock's own rotation (see drawAsteroid) — together they give an
+    // otherwise flat, single-color polygon a pitted, three-dimensional feel.
+    function makeAsteroidCraters(size) {
+        const count = 3 + Math.floor(Math.random() * 3);
+        return Array.from({ length: count }, () => {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = size * (0.15 + Math.random() * 0.6);
+            const r = size * (0.12 + Math.random() * 0.22);
+            return {
+                x: Math.cos(angle) * dist,
+                y: Math.sin(angle) * dist,
+                r,
+                blob: makeIrregularBlob(5 + Math.floor(Math.random() * 2), 0.6, 1.1)
+            };
+        });
     }
 
     function seedAsteroids() {
@@ -71,7 +110,8 @@
                 y: originY + Math.sin(angle) * r,
                 rotation: Math.random() * Math.PI * 2,
                 rotationSpeed: (Math.random() - 0.5) * 0.12,
-                shape: makeAsteroidShape(size)
+                shape: makeAsteroidShape(size),
+                craters: makeAsteroidCraters(size)
             };
         });
     }
@@ -97,16 +137,65 @@
         const rush = 1 + rushT * rushT * TUNNEL_RUSH_BOOST;
         const scale = (0.12 + 0.88 * accel) * rush;
         ctx.scale(scale, scale);
-        ctx.beginPath();
-        a.shape.forEach((v, i) => {
-            const vx = Math.cos(v.angle) * v.r;
-            const vy = Math.sin(v.angle) * v.r;
-            if (i === 0) ctx.moveTo(vx, vy);
-            else ctx.lineTo(vx, vy);
+
+        const points = a.shape.map(v => ({ x: Math.cos(v.angle) * v.r, y: Math.sin(v.angle) * v.r }));
+        function traceSilhouette() {
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.closePath();
+        }
+
+        // Low-poly flat shading: fan-triangulated from the center to each
+        // edge of the outline, each triangle its own solid color (no
+        // gradient, no blending between them) based on how much it faces a
+        // light direction fixed to the rock's own rotation. Reads as a
+        // faceted chunk of rock catching light unevenly across its planes,
+        // instead of a flat 2D cutout with a smooth gradient painted over it.
+        const LIGHT_ANGLE = -Math.PI * 0.7; // upper-left, in the rock's own local space
+        const baseAlpha = 0.7 + 0.3 * accel;
+        for (let i = 0; i < points.length; i++) {
+            const p1 = points[i];
+            const p2 = points[(i + 1) % points.length];
+            const facetAngle = Math.atan2((p1.y + p2.y) / 2, (p1.x + p2.x) / 2);
+            const facing = Math.cos(facetAngle - LIGHT_ANGLE); // -1 (away from light) .. 1 (toward it)
+            const shade = 0.5 + facing * 0.35; // flat per facet, no smoothing across the surface
+            const c = Math.round(45 + shade * 130);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(${c}, ${c + 10}, ${c + 25}, ${baseAlpha})`;
+            ctx.fill();
+        }
+
+        // Craters clipped to the silhouette so they never poke past its
+        // edge, each with a thin dark rim and a faint highlight on the
+        // light-facing side — a pockmarked surface instead of a smooth one.
+        ctx.save();
+        traceSilhouette();
+        ctx.clip();
+        (a.craters || []).forEach(c => {
+            ctx.beginPath();
+            c.blob.forEach((v, i) => {
+                const px = c.x + Math.cos(v.angle) * c.r * v.jag;
+                const py = c.y + Math.sin(v.angle) * c.r * v.jag;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.closePath();
+            ctx.fillStyle = `rgba(30, 41, 59, ${0.45 + 0.25 * accel})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(c.x - c.r * 0.3, c.y - c.r * 0.3, c.r * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(148, 163, 184, ${0.25 + 0.15 * accel})`;
+            ctx.fill();
         });
-        ctx.closePath();
-        ctx.fillStyle = `rgba(71, 85, 105, ${0.55 + 0.35 * accel})`;
-        ctx.fill();
+        ctx.restore();
+
         ctx.strokeStyle = `rgba(30, 41, 59, ${0.6 + 0.3 * accel})`;
         ctx.lineWidth = 1;
         ctx.stroke();
@@ -212,6 +301,7 @@
                 a.rotation = Math.random() * Math.PI * 2;
                 a.rotationSpeed = (Math.random() - 0.5) * 0.12;
                 a.shape = makeAsteroidShape(size);
+                a.craters = makeAsteroidCraters(size);
             }
         });
     }

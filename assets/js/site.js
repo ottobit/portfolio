@@ -5,7 +5,7 @@
 import './site/theme-lang.js?v=1';
 import './site/nav.js?v=1';
 import './site/hero-canvas.js?v=1';
-import './site/warp-overlay.js?v=1';
+import './site/warp-overlay.js?v=4';
 import './site/hub-graph.js?v=1';
 import './site/text-parting.js?v=1';
 import './site/news-feed.js?v=1';
