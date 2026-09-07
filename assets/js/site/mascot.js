@@ -1,5 +1,10 @@
-import { reduceMotion, wordRects, updateTextParting } from './text-parting.js';
-import { getAllNewsItems, recordNotifiedNews } from './news-feed.js';
+import { reduceMotion, wordRects, updateTextParting } from './text-parting.js?v=1';
+import { getAllNewsItems, recordNotifiedNews, refetchAllNews, NEWS_REFETCH_COOLDOWN_MS } from './news-feed.js?v=1';
+
+// Floor between click-triggered live refetches (see the click handler
+// below) — shared module-level state, one cooldown across every mascot
+// instance and clone, not per-instance.
+let lastNewsRefetchAt = 0;
 
 // A little animated node that gets excited on graph interaction, can be
 // picked up and dragged around, and "pops" if you mash clicks on it —

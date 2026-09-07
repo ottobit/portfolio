@@ -1,4 +1,4 @@
-import { getLang } from './theme-lang.js';
+import { getLang } from './theme-lang.js?v=1';
 
 // Hub/sub-node graph: dots overlaid on the hero canvas, same layout at every
 // breakpoint (just larger tap targets on small screens), sharing one detail

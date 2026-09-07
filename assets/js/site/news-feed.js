@@ -342,7 +342,7 @@ export function recordNotifiedNews(item) {
     document.dispatchEvent(new CustomEvent('dotnewshistory', { detail: notifiedNewsHistory }));
 }
 
-async function refetchAllNews() {
+export async function refetchAllNews() {
     await Promise.all([
         fetchGithubNews(),
         fetchAiNews(),
@@ -364,9 +364,9 @@ async function refetchAllNews() {
 // requests to external APIs before the page has even finished settling.
 window.setTimeout(refetchAllNews, 6000);
 // Floor between click-triggered live refetches — mashing clicks shouldn't
-// hammer a handful of rate-limited public APIs at once.
-const NEWS_REFETCH_COOLDOWN_MS = 20000;
-let lastNewsRefetchAt = 0;
+// hammer a handful of rate-limited public APIs at once. The cooldown
+// timestamp itself lives in mascot.js, the only place that reads/writes it.
+export const NEWS_REFETCH_COOLDOWN_MS = 20000;
 
 // Where "dot" is born: the dot right after "ottobit." in the big hero
 // heading (.name), not the small one in the sticky header logo. Falls back

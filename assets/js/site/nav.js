@@ -1,5 +1,5 @@
-import { getLang } from './theme-lang.js';
-import { getNewsHistoryLimit } from './news-feed.js';
+import { getLang } from './theme-lang.js?v=1';
+import { getNewsHistoryLimit } from './news-feed.js?v=1';
 
 // Smooth scroll for navigation
 const navLinks = document.querySelectorAll('.nav-menu a');
