@@ -384,6 +384,14 @@ navLinks.forEach(link => {
             return;
         }
         if (warpButton) warpButton.classList.add('warping');
+        // #page-zoom-layer scales up to 4x its normal size during the jump
+        // (see WARP_ZOOM_MAX below) via a CSS transform — transforms don't
+        // reflow layout, but most browsers still grow the document's
+        // scrollable overflow to cover the visually-enlarged content unless
+        // something clips it. That growth (and the scrollbar/viewport-width
+        // change that comes with it) is what read as the screen itself
+        // shifting mid-jump. Pin scrolling for the duration instead.
+        document.documentElement.classList.add('warping');
         warp = { startTime: performance.now(), resetDone: false };
         // Lets the full-viewport pass (a separate module, below) mirror this
         // same timing so the whole page — not just this panel — joins in.
@@ -440,6 +448,7 @@ navLinks.forEach(link => {
         if (animationId) cancelAnimationFrame(animationId);
         warp = null;
         if (warpButton) warpButton.classList.remove('warping');
+        document.documentElement.classList.remove('warping');
         if (pageZoomLayer) pageZoomLayer.style.transform = '';
         resize();
         createNodes();
