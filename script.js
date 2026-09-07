@@ -200,10 +200,10 @@ navLinks.forEach(link => {
     // the destination page (markWarpArrival() below + the .warp-arrival
     // rule in styles.css), so the jump reads as landing somewhere new
     // rather than a round trip back home.
-    const WARP_DURATION_MS = 5500;
+    const WARP_DURATION_MS = 7500;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
-    const WARP_ZOOM_START = 0.65;
+    const WARP_ZOOM_START = 0.75;
     // Where the jump actually takes you — a real project page, not just a
     // visual flourish. evolution.html (the site's own timeline) stays out
     // of the pool on purpose: it sits under the same "Projects" hub but
@@ -332,6 +332,21 @@ navLinks.forEach(link => {
             ctx.moveTo(node.x - ux * streakLen, node.y - uy * streakLen);
             ctx.lineTo(node.x, node.y);
             ctx.stroke();
+
+            // Respawn once a node has flown past the visible edge instead of
+            // leaving it to travel offscreen forever — with the phase now
+            // longer, a single burst would thin out and leave the screen
+            // empty well before the zoom kicks in. Scattered across most of
+            // the radius (not clustered back at the origin like the initial
+            // spawn) so the field reads as surrounding the viewer once it's
+            // underway, instead of repeatedly bursting from a single point.
+            const dist2 = Math.hypot(node.x - centerX, node.y - centerY);
+            if (dist2 > maxDist * 1.15) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * maxDist * 0.7;
+                node.x = centerX + Math.cos(angle) * r;
+                node.y = centerY + Math.sin(angle) * r;
+            }
         });
     }
 
@@ -474,7 +489,7 @@ navLinks.forEach(link => {
     const ctx = canvas.getContext('2d');
     const accentColor = '17, 94, 89';
     const pointCount = 110;
-    const asteroidCount = 6;
+    const asteroidCount = 10;
 
     let width, height, dpr;
     let points = [];
@@ -618,6 +633,19 @@ navLinks.forEach(link => {
             ctx.moveTo(p.x - ux * streakLen, p.y - uy * streakLen);
             ctx.lineTo(p.x, p.y);
             ctx.stroke();
+
+            // Same respawn-when-offscreen as the hero canvas's own nodes —
+            // keeps a steady stream flowing past instead of one burst that
+            // thins out over the (now longer) phase. Scattered across most
+            // of the radius, not clustered back at the origin, so the field
+            // reads as surrounding the viewer instead of repeatedly
+            // bursting from a single point.
+            if (Math.hypot(p.x - originX, p.y - originY) > maxDist * 1.15) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * maxDist * 0.7;
+                p.x = originX + Math.cos(angle) * r;
+                p.y = originY + Math.sin(angle) * r;
+            }
         });
 
         asteroids.forEach(a => {
@@ -633,6 +661,23 @@ navLinks.forEach(link => {
             a.rotation += a.rotationSpeed;
 
             drawAsteroid(a, accel);
+
+            // Respawned with a fresh shape/rotation too, not just position —
+            // otherwise the same rock reappearing with its old silhouette
+            // would read as teleporting rather than as a new asteroid
+            // arriving. Scattered across most of the radius, not clustered
+            // at the origin, so the field surrounds the viewer instead of
+            // repeatedly bursting from a single point.
+            if (Math.hypot(a.x - originX, a.y - originY) > maxDist * 1.15) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * maxDist * 0.7;
+                const size = 9 + Math.random() * 10;
+                a.x = originX + Math.cos(angle) * r;
+                a.y = originY + Math.sin(angle) * r;
+                a.rotation = Math.random() * Math.PI * 2;
+                a.rotationSpeed = (Math.random() - 0.5) * 0.12;
+                a.shape = makeAsteroidShape(size);
+            }
         });
     }
 
