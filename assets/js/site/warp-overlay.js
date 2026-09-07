@@ -76,14 +76,26 @@
         });
     }
 
-    function drawAsteroid(a, accel) {
+    // In the final stretch of phase A, every asteroid still in flight
+    // balloons rapidly on top of its normal accel-driven growth — reads as
+    // rushing past close, like flying through a tunnel, right before the
+    // hidden cut to the destination page. Tied to `op` (the phase's own
+    // linear progress), not to any one asteroid's position, so it's a
+    // guaranteed beat everyone shares near the end rather than something
+    // that depends on which asteroids happen to be far out at the time.
+    const TUNNEL_RUSH_START = 0.72; // fraction of phase A where the rush begins
+    const TUNNEL_RUSH_BOOST = 3.5;
+
+    function drawAsteroid(a, accel, op) {
         ctx.save();
         ctx.translate(a.x, a.y);
         ctx.rotate(a.rotation);
         // Tiny at the start, full size by the time accel nears 1 — the
         // asteroid reads as approaching from far away rather than popping
         // into existence at whatever size it happened to be given.
-        const scale = 0.12 + 0.88 * accel;
+        const rushT = Math.max(0, (op - TUNNEL_RUSH_START) / (1 - TUNNEL_RUSH_START));
+        const rush = 1 + rushT * rushT * TUNNEL_RUSH_BOOST;
+        const scale = (0.12 + 0.88 * accel) * rush;
         ctx.scale(scale, scale);
         ctx.beginPath();
         a.shape.forEach((v, i) => {
@@ -183,7 +195,7 @@
             a.y += uy * speed;
             a.rotation += a.rotationSpeed;
 
-            drawAsteroid(a, accel);
+            drawAsteroid(a, accel, op);
 
             // Respawned with a fresh shape/rotation too, not just position —
             // otherwise the same rock reappearing with its old silhouette
