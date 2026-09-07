@@ -6,22 +6,22 @@
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://ottobit.github.io/portfolio/evolution.html</loc>
+        <loc>https://ottobit.github.io/portfolio/projects/evolution/</loc>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
-        <loc>https://ottobit.github.io/portfolio/cerebro.html</loc>
+        <loc>https://ottobit.github.io/portfolio/projects/cerebro/</loc>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
-        <loc>https://ottobit.github.io/portfolio/dot-world.html</loc>
+        <loc>https://ottobit.github.io/portfolio/projects/dot-world/</loc>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <url>
-        <loc>https://ottobit.github.io/portfolio/triple-triad.html</loc>
+        <loc>https://ottobit.github.io/portfolio/projects/triple-triad/</loc>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>

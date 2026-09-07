@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ottobit — Triple Triad</title>
+    <meta name="description" content="Triple Triad — the Final Fantasy VIII card minigame, rebuilt from scratch with a dedicated rules AI as the opponent. First sketch of a match's flow.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ottobit.github.io/portfolio/projects/triple-triad/">
+    <meta property="og:title" content="ottobit — Triple Triad">
+    <meta property="og:description" content="Triple Triad — the Final Fantasy VIII card minigame, rebuilt from scratch with a dedicated rules AI as the opponent. First sketch of a match's flow.">
+    <meta property="og:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ottobit — Triple Triad">
+    <meta name="twitter:description" content="Triple Triad — the Final Fantasy VIII card minigame, rebuilt from scratch with a dedicated rules AI as the opponent. First sketch of a match's flow.">
+    <meta name="twitter:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg">
+    <link rel="icon" href="../../assets/images/favicon.svg" type="image/svg+xml">
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <!-- Warp-jump arrival: only when this page was actually reached via
+         the warp jump (a one-shot sessionStorage flag hero-canvas.js sets
+         right before navigating) does the page open on a white overlay
+         that then fades — see .warp-arrival in styles.css. Must run
+         synchronously before first paint, like the theme script above,
+         or the page would flash unstyled before the overlay appears. -->
+    <script>
+    (function () {
+        try {
+            if (sessionStorage.getItem('warpArrival')) {
+                sessionStorage.removeItem('warpArrival');
+                document.documentElement.classList.add('warp-arrival');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=9.8">
+</head>
+<body>
+    <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="../../index.html#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="../../index.html#home">Home</a></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="timeline-page" id="main">
+        <header class="timeline-intro">
+            <h1 data-it="Triple Triad — flusso di una partita">Triple Triad — a match's flow</h1>
+            <p data-it="Il minigioco di carte di Final Fantasy VIII — un progetto iniziato anni prima dell'arrivo dell'IA generativa, riscritto da zero. L'avversario è un'IA dedicata che conosce le regole del gioco, non un modello generalista e non Claude. Questo è un primo abbozzo, non il disegno finale: le regole di cattura (Same, Plus, elementali...) non sono ancora definite.">The card minigame from Final Fantasy VIII — a project started years before generative AI came along, rebuilt from scratch. The opponent is a dedicated AI that knows the game's rules, not a generalist model and not Claude. This is a first sketch, not the final design: capture rules (Same, Plus, elemental...) aren't mapped out yet.</p>
+        </header>
+
+        <div class="diagram-page">
+            <button class="diagram-trigger" id="diagram-trigger" type="button" aria-label="Flow diagram of a Triple Triad match — tap to zoom in" data-aria-label-it="Diagramma di flusso di una partita a Triple Triad — tocca per ingrandire">
+                <img id="diagram-img" src="diagram.svg?v=1" alt="">
+            </button>
+        </div>
+
+        <div class="doc-sections">
+            <section class="doc-section">
+                <h2 data-it="In breve">At a glance</h2>
+                <dl class="doc-facts">
+                    <dt data-it="Tipo">Type</dt>
+                    <dd data-it="Il minigioco di carte di Final Fantasy VIII, riscritto da zero">The card minigame from Final Fantasy VIII, rebuilt from scratch</dd>
+                    <dt data-it="Avversario">Opponent</dt>
+                    <dd data-it="Un&#x27;IA dedicata che conosce le regole di questo gioco — non un modello generalista, e non Claude">A dedicated AI that knows this game&#x27;s rules — not a generalist model, and not Claude</dd>
+                    <dt data-it="Origine">Origin</dt>
+                    <dd data-it="Iniziato anni prima che arrivasse l&#x27;IA generativa">Started years before generative AI came along</dd>
+                    <dt data-it="Stato">Status</dt>
+                    <dd data-it="Primo abbozzo — le regole di cattura non sono ancora mappate">First sketch — the capture rules aren&#x27;t mapped out yet</dd>
+                </dl>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Come si svolge una partita">How a match runs</h2>
+                <ol class="doc-steps">
+                    <li>
+                        <span class="doc-step-name" data-it="Nuova partita">New match</span>
+                        <span data-it=" — il tavolo parte vuoto"> — the board starts empty</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Turno del giocatore">Player turn</span>
+                        <span data-it=" — il giocatore piazza una carta sul tavolo"> — the player places a card on the board</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Risoluzione delle catture">Resolve captures</span>
+                        <span data-it=" — i ranghi sui lati che si toccano vengono confrontati, e le carte che perdono si girano"> — the ranks on the touching sides are compared, and the cards that lose flip over</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Tavolo pieno?">Board full?</span>
+                        <span data-it=" — se non lo è, il turno passa all&#x27;avversario; se lo è, la partita finisce"> — if it isn&#x27;t, play passes to the opponent; if it is, the match ends</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Turno dell&#x27;IA avversaria">Opponent AI turn</span>
+                        <span data-it=" — l&#x27;IA dedicata piazza una carta e le sue catture si risolvono allo stesso modo, poi tocca di nuovo al giocatore"> — the dedicated AI places a card and its captures are resolved the same way, then it&#x27;s the player&#x27;s turn again</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Conteggio e vincitore">Tally and winner</span>
+                        <span data-it=" — le carte vengono contate e viene dichiarato il vincitore"> — the cards are counted and the winner is declared</span>
+                    </li>
+                </ol>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Scelte e vincoli">Decisions and constraints</h2>
+                <ul class="doc-list">
+                    <li>
+                        <span class="doc-step-name" data-it="L&#x27;avversario è un&#x27;IA dedicata alle regole">The opponent is a dedicated rules AI</span>
+                        <span data-it=" — una piccola IA che conosce questo gioco, non un modello generalista e non Claude"> — a small AI that knows this game, not a generalist model and not Claude</span>
+                        <a class="doc-ref-mark" href="#ref-1" aria-label="Reference 1" data-aria-label-it="Riferimento 1">[1]</a>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Il progetto è più vecchio dell&#x27;IA generativa">The project predates generative AI</span>
+                        <span data-it=" — è stato iniziato anni prima e viene riscritto da zero, non rattoppato sul vecchio"> — it was started years earlier and is being rebuilt from scratch, not patched onto the old one</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Una sola risoluzione delle catture per entrambi">One capture resolution for both sides</span>
+                        <span data-it=" — la mossa del giocatore e quella dell&#x27;IA passano dallo stesso passaggio — un solo insieme di regole, non uno per parte"> — the player&#x27;s move and the AI&#x27;s move go through the same step — one rule set, not one per side</span>
+                    </li>
+                    <li>
+                        <span class="doc-step-name" data-it="Le regole di cattura sono ancora aperte">The capture rules are still open</span>
+                        <span data-it=" — Same, Plus, elementali e le altre non sono ancora mappate. Questo è un primo abbozzo, non il disegno finale"> — Same, Plus, elemental and the rest aren&#x27;t mapped out yet. This is a first sketch, not the final design</span>
+                    </li>
+                </ul>
+            </section>
+            <section class="doc-section">
+                <h2 data-it="Riferimenti">References</h2>
+                <ol class="doc-refs">
+                    <li id="ref-1">
+                        <span class="doc-ref-cite" data-it="Karpathy, A. — ReinforceJS: WaterWorld (demo interattiva). Stanford University.">Karpathy, A. — ReinforceJS: WaterWorld (interactive demo). Stanford University.</span>
+                        <a class="doc-ref-link" href="https://cs.stanford.edu/people/karpathy/reinforcejs/waterworld.html" target="_blank" rel="noopener noreferrer">cs.stanford.edu/people/karpathy/reinforcejs/waterworld.html</a>
+                        <span class="doc-ref-note" data-it="La demo da cui è nata l&#x27;idea di dare a Triple Triad un avversario capace di giocare davvero: un agente che impara per rinforzo, non un modello linguistico.">The demo the idea started from: an agent that learns by reinforcement to play, not a language model.</span>
+                    </li>
+                </ol>
+            </section>
+        </div>
+    </main>
+
+    <div class="diagram-zoom-overlay" id="diagram-zoom-overlay" hidden>
+        <button class="diagram-zoom-close" id="diagram-zoom-close" type="button" aria-label="Chiudi">✕</button>
+        <img id="diagram-zoom-img" src="" alt="">
+    </div>
+
+    <div class="container">
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 ottobit</p>
+        </footer>
+    </div>
+
+    <script type="module" src="page.js"></script>
+</body>
+</html>
