@@ -26,10 +26,10 @@ import { getLang } from './theme-lang.js';
     // the destination page (markWarpArrival() below + the .warp-arrival
     // rule in styles.css), so the jump reads as landing somewhere new
     // rather than a round trip back home.
-    const WARP_DURATION_MS = 8500;
+    const WARP_DURATION_MS = 9200;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
-    const WARP_ZOOM_START = 0.8;
+    const WARP_ZOOM_START = 0.84;
     // Where the jump actually takes you — a real project page, not just a
     // visual flourish. evolution.html (the site's own timeline) stays out
     // of the pool on purpose: it sits under the same "Projects" hub but
