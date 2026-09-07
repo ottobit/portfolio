@@ -200,10 +200,10 @@ navLinks.forEach(link => {
     // the destination page (markWarpArrival() below + the .warp-arrival
     // rule in styles.css), so the jump reads as landing somewhere new
     // rather than a round trip back home.
-    const WARP_DURATION_MS = 7500;
+    const WARP_DURATION_MS = 8500;
     const WARP_RESET_FRACTION = 0.5;
     const WARP_ZOOM_MAX = 3;
-    const WARP_ZOOM_START = 0.75;
+    const WARP_ZOOM_START = 0.8;
     // Where the jump actually takes you — a real project page, not just a
     // visual flourish. evolution.html (the site's own timeline) stays out
     // of the pool on purpose: it sits under the same "Projects" hub but
@@ -1033,8 +1033,8 @@ navLinks.forEach(link => {
         // of which way it points. An ellipse — the same radius formula as
         // before, just evaluated separately per axis — lets a
         // mostly-sideways moon (like Gaming or Film Addicted) reach out
-        // into that spare width while a mostly-vertical one (like Creative)
-        // only reaches as far as the height actually allows, instead of
+        // into that spare width while a mostly-vertical one (like Anime &
+        // Manga) only reaches as far as the height actually allows, instead of
         // every direction being squeezed down to the tighter axis's limit.
         // Still one shared, identical rule for every moon — just two radii
         // instead of one, both driven by the panel's own real shape.
