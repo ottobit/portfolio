@@ -1,5 +1,5 @@
-import '../../assets/js/site/theme-lang.js';
-import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js';
+import '../../assets/js/site/theme-lang.js?v=1';
+import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
 
 // Only the nav-menu half applies here (no diagram on this page — the
 // diagram-zoom half no-ops safely when it finds no diagram elements).

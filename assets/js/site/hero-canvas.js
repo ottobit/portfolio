@@ -1,4 +1,4 @@
-import { getLang } from './theme-lang.js';
+import { getLang } from './theme-lang.js?v=1';
 
 // Animated node network in the hero
 (() => {

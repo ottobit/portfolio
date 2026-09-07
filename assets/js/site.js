@@ -2,11 +2,11 @@
 // smaller page.js instead (see projects/<name>/page.js). Each import below
 // runs its setup once, at module-evaluation time, exactly like the IIFEs
 // this file used to contain directly before the split into assets/js/site/.
-import './site/theme-lang.js';
-import './site/nav.js';
-import './site/hero-canvas.js';
-import './site/warp-overlay.js';
-import './site/hub-graph.js';
-import './site/text-parting.js';
-import './site/news-feed.js';
-import './site/mascot.js';
+import './site/theme-lang.js?v=1';
+import './site/nav.js?v=1';
+import './site/hero-canvas.js?v=1';
+import './site/warp-overlay.js?v=1';
+import './site/hub-graph.js?v=1';
+import './site/text-parting.js?v=1';
+import './site/news-feed.js?v=1';
+import './site/mascot.js?v=1';

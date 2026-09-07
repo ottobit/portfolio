@@ -2,7 +2,7 @@
 // dot-world, triple-triad): the hamburger nav-menu toggle and the
 // tap-to-zoom overlay for the diagram image. Both used to be duplicated,
 // nearly verbatim, inside each page's own inline bootstrap script.
-import { getLang } from '../site/theme-lang.js';
+import { getLang } from '../site/theme-lang.js?v=1';
 
 const NAV_TOGGLE_TEXT = {
     it: { open: 'Apri menu', close: 'Chiudi menu' },
