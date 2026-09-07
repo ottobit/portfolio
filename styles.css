@@ -84,6 +84,16 @@ html {
     scroll-behavior: smooth;
 }
 
+/* During the warp jump, #page-zoom-layer scales up to 4x via a CSS
+   transform (see script.js) — transforms don't reflow layout, but the
+   visually-enlarged content still grows the document's scrollable
+   overflow unless something clips it, which showed up as the whole
+   screen shifting/jittering mid-jump as a scrollbar came and went.
+   Toggled on <html> for the jump's duration only. */
+html.warping {
+    overflow: hidden;
+}
+
 html, body {
     height: 100%;
 }
