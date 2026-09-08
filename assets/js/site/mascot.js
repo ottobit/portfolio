@@ -178,6 +178,21 @@ function createMascotController(mascot, bubble, options = {}) {
         getColor: () => mascotColor,
         hasPendingNews: () => !!(newsBadge && !newsBadge.hidden),
         getNewsIndex: () => newsIndex,
+        // Warp jump: pulls this instance toward the jump's origin without
+        // touching pos.x/pos.y (the resting position physics/drag/hop all
+        // read from) — a separate pair of CSS custom properties composed
+        // into .mascot's own transform (see styles.css) carries the pull
+        // instead, so nothing here has to unwind afterwards. There's
+        // nothing to reset when the jump ends either: the hidden-cut
+        // navigation (hero-canvas.js) leaves the page before that matters.
+        applyWarpSuck(dx, dy, scale) {
+            if (this.removed) return;
+            mascot.style.setProperty('--warp-suck-x', dx.toFixed(1) + 'px');
+            mascot.style.setProperty('--warp-suck-y', dy.toFixed(1) + 'px');
+            mascot.style.setProperty('--warp-suck-scale', scale.toFixed(3));
+            mascot.style.opacity = String(scale);
+            if (!bubble.hidden) bubble.hidden = true;
+        },
         absorb(otherHandle) {
             if (otherHandle.removed) return;
             const combinedCount = Math.min(POP_THRESHOLD - 1, clickTimes.length + otherHandle.streak() + 1);
@@ -1587,3 +1602,35 @@ function createMascotController(mascot, bubble, options = {}) {
 }
 
 createMascotController(document.getElementById('mascot'), document.getElementById('mascot-bubble'));
+
+// --- Salto a curvatura: risucchia dot e i suoi eventuali cloni verso il centro ---
+// Reuses hero-canvas.js's own 'warpjump' timing (phase A = duration *
+// resetFraction) and origin (the hero panel's own center, in viewport
+// coordinates — the same space .mascot's fixed position/left/top already
+// live in, so no unit conversion is needed). Ease-out curve (not the op²
+// used for the outward canvas/asteroid burst) so the pull starts right
+// away instead of hiding in the final instant before the cut — see the
+// same choice made for the hub graph. Never dispatched under
+// prefers-reduced-motion (triggerWarp() navigates immediately instead),
+// so this code simply never runs in that case.
+document.addEventListener('warpjump', (e) => {
+    const { duration, resetFraction, originX, originY } = e.detail;
+    const phaseDuration = duration * resetFraction;
+
+    const targets = activeMascots
+        .filter(h => !h.removed)
+        .map(h => {
+            const p = h.getPos();
+            return { handle: h, dx: originX - p.x, dy: originY - p.y };
+        });
+    if (!targets.length) return;
+
+    const startTime = performance.now();
+    function frame() {
+        const p = Math.min(1, (performance.now() - startTime) / phaseDuration);
+        const accel = 1 - (1 - p) ** 2;
+        targets.forEach(({ handle, dx, dy }) => handle.applyWarpSuck(dx * accel, dy * accel, 1 - accel));
+        if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+});

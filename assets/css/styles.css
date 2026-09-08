@@ -588,7 +588,9 @@ html.warp-arrival body::before {
     transform: translate(-50%, -50%)
         translateY(var(--mascot-rest-bounce, 0px))
         rotate(var(--mascot-rotate, 0deg))
-        scale(var(--mascot-squash-x, 1), var(--mascot-squash-y, 1));
+        scale(var(--mascot-squash-x, 1), var(--mascot-squash-y, 1))
+        translate(var(--warp-suck-x, 0px), var(--warp-suck-y, 0px))
+        scale(var(--warp-suck-scale, 1));
     display: flex;
     align-items: center;
     justify-content: center;
