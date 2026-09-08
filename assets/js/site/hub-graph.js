@@ -222,7 +222,7 @@ import { getLang } from './theme-lang.js?v=1';
             detailSpeakIcon.textContent = '⏹';
             detailSpeakLabel.textContent = LINK_TEXT[lang].stop;
             speakSentences(
-                `${detailTitle.textContent}. ${detailText.textContent}`,
+                detailText.textContent,
                 { lang: bcp47, voice, rate: 0.95, pitch: 1 },
                 stopSpeech
             );
