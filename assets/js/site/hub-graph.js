@@ -564,4 +564,75 @@ import { getLang } from './theme-lang.js?v=1';
     document.querySelectorAll('.nav-menu a[data-hub], .cta-buttons a[data-hub]').forEach(el => {
         el.addEventListener('click', () => openHub(el.dataset.hub));
     });
+
+    // --- Salto a curvatura: risucchia pianeti/lune/linee verso il centro ---
+    // Reuses hero-canvas.js's own 'warpjump' timing (phase A = duration *
+    // resetFraction) instead of a separate constant, and the same
+    // accel = op² easing already used for the outward burst elsewhere in the
+    // jump, so the graph joins the same beat rather than sitting static
+    // while canvas/asteroids animate around it. Never dispatched under
+    // prefers-reduced-motion (triggerWarp() navigates immediately instead),
+    // so this code simply never runs in that case.
+    document.addEventListener('warpjump', (e) => {
+        suckInHubGraph(e.detail.duration * e.detail.resetFraction);
+    });
+
+    function suckInHubGraph(phaseDuration) {
+        const panelRect = heroVisual.getBoundingClientRect();
+        const centerX = panelRect.width / 2;
+        const centerY = panelRect.height / 2;
+
+        // Always the hub-dots; plus whichever hub's sub-dots/lines are
+        // currently open, if any — hero text/nav/mascot stay untouched.
+        const dotEls = hubDots.slice();
+        if (openKey) {
+            subDotsFor(openKey).forEach(s => { if (s.classList.contains('visible')) dotEls.push(s); });
+        }
+        // getBoundingClientRect() instead of reading left/top directly:
+        // hub-dots are positioned in %, sub-dots in px — this sidesteps the
+        // difference and always gives the real on-screen position.
+        const dots = dotEls.map(el => {
+            const rect = el.getBoundingClientRect();
+            const elX = rect.left - panelRect.left + rect.width / 2;
+            const elY = rect.top - panelRect.top + rect.height / 2;
+            return { el, dx: centerX - elX, dy: centerY - elY };
+        });
+
+        const lines = svg ? Array.from(svg.children).map(line => {
+            line.style.transition = 'none'; // defeat drawLines()'s entrance transition
+            return {
+                line,
+                x1: parseFloat(line.getAttribute('x1')) || 0,
+                y1: parseFloat(line.getAttribute('y1')) || 0,
+                x2: parseFloat(line.getAttribute('x2')) || 0,
+                y2: parseFloat(line.getAttribute('y2')) || 0
+            };
+        }) : [];
+
+        const startTime = performance.now();
+        function frame() {
+            const p = Math.min(1, (performance.now() - startTime) / phaseDuration);
+            const accel = p ** 2;
+
+            dots.forEach(({ el, dx, dy }) => {
+                // translate(-50%, -50%) is the base centering transform
+                // already set in CSS for .hub-dot/.sub-dot — recomposed
+                // here, not overwritten, or the chip loses its centering.
+                el.style.transform = `translate(-50%, -50%) translate(${(dx * accel).toFixed(1)}px, ${(dy * accel).toFixed(1)}px) scale(${(1 - accel).toFixed(3)})`;
+                el.style.opacity = String(1 - accel);
+            });
+
+            lines.forEach(({ line, x1, y1, x2, y2 }) => {
+                line.setAttribute('x1', (x1 + (centerX - x1) * accel).toFixed(1));
+                line.setAttribute('y1', (y1 + (centerY - y1) * accel).toFixed(1));
+                line.setAttribute('x2', (x2 + (centerX - x2) * accel).toFixed(1));
+                line.setAttribute('y2', (y2 + (centerY - y2) * accel).toFixed(1));
+            });
+
+            // No explicit cleanup: the hidden-cut navigation at phase A's end
+            // (hero-canvas.js) ends the page before p ever reaches 1 here.
+            if (p < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    }
 })();
