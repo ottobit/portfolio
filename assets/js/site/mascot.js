@@ -1607,12 +1607,25 @@ createMascotController(document.getElementById('mascot'), document.getElementByI
 // Reuses hero-canvas.js's own 'warpjump' timing (phase A = duration *
 // resetFraction) and origin (the hero panel's own center, in viewport
 // coordinates — the same space .mascot's fixed position/left/top already
-// live in, so no unit conversion is needed). Ease-out curve (not the op²
-// used for the outward canvas/asteroid burst) so the pull starts right
-// away instead of hiding in the final instant before the cut — see the
-// same choice made for the hub graph. Never dispatched under
-// prefers-reduced-motion (triggerWarp() navigates immediately instead),
-// so this code simply never runs in that case.
+// live in, so no unit conversion is needed).
+//
+// The pull doesn't start at the very top of phase A: it waits until the
+// asteroids are already rushing past close to the viewer — the same
+// TUNNEL_RUSH_START = 0.72 threshold warp-overlay.js uses for its own
+// close-up rush — so dot only gets swept in once the scene actually reads
+// as "getting sucked toward something", instead of drifting for the whole
+// phase while the asteroids are still far away. Duplicated here rather
+// than imported: these warp-jump modules coordinate only through the
+// shared 'warpjump' event/timing, never through direct imports of each
+// other.
+//
+// Ease-out curve (not the op² used for the outward canvas/asteroid burst)
+// over the remaining time after that threshold, so once it starts the pull
+// itself is still immediately visible rather than hiding in the final
+// instant before the cut. Never dispatched under prefers-reduced-motion
+// (triggerWarp() navigates immediately instead), so this code simply
+// never runs in that case.
+const WARP_SUCK_START = 0.72;
 document.addEventListener('warpjump', (e) => {
     const { duration, resetFraction, originX, originY } = e.detail;
     const phaseDuration = duration * resetFraction;
@@ -1628,8 +1641,11 @@ document.addEventListener('warpjump', (e) => {
     const startTime = performance.now();
     function frame() {
         const p = Math.min(1, (performance.now() - startTime) / phaseDuration);
-        const accel = 1 - (1 - p) ** 2;
-        targets.forEach(({ handle, dx, dy }) => handle.applyWarpSuck(dx * accel, dy * accel, 1 - accel));
+        if (p >= WARP_SUCK_START) {
+            const q = (p - WARP_SUCK_START) / (1 - WARP_SUCK_START);
+            const accel = 1 - (1 - q) ** 2;
+            targets.forEach(({ handle, dx, dy }) => handle.applyWarpSuck(dx * accel, dy * accel, 1 - accel));
+        }
         if (p < 1) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
