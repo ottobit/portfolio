@@ -48,7 +48,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="assets/css/styles.css?v=9.9">
+    <link rel="stylesheet" href="assets/css/styles.css?v=10.0">
 </head>
 <body>
     <!-- Everything except #warp-overlay lives in this wrapper — the warp
@@ -127,71 +127,71 @@
                 <div class="hub-overlay" id="hub-overlay">
                 <svg class="graph-lines" id="graph-lines"></svg>
 
-                <button class="hub-dot" data-hub="about" data-x="36" data-y="26" aria-expanded="false">
-                    <span class="node-dot"></span>
-                    <span class="dot-label" data-it="Chi sono">About me</span>
+                <button class="hub-node" data-hub="about" data-x="36" data-y="26" aria-expanded="false">
+                    <span class="node-sphere"></span>
+                    <span class="node-label" data-it="Chi sono">About me</span>
                 </button>
-                <button class="hub-dot" data-hub="projects" data-x="74" data-y="40" aria-expanded="false">
-                    <span class="node-dot"></span>
-                    <span class="dot-label" data-it="Progetti">Projects</span>
+                <button class="hub-node" data-hub="projects" data-x="74" data-y="40" aria-expanded="false">
+                    <span class="node-sphere"></span>
+                    <span class="node-label" data-it="Progetti">Projects</span>
                 </button>
-                <button class="hub-dot" data-hub="social" data-x="48" data-y="76" aria-expanded="false">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Social</span>
-                </button>
-
-                <button class="sub-dot" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents." data-detail-it="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">AI Enthusiast</span>
-                </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎮" data-title="Gaming" data-angle="45" data-radius-scale="0.68" data-detail="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-it="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Gaming</span>
-                </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎵" data-title="Music" data-detail="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound." data-detail-it="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Music</span>
-                </button>
-                <button class="sub-dot" data-parent="about" data-icon="🎬" data-title="Film Addicted" data-detail="A film buff at heart: from the classics to niche discoveries, cinema is another creative escape, much like music." data-detail-it="Cinefilo per passione: dai classici alle scoperte di nicchia, il cinema è un'altra fuga creativa, come la musica.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Film Addicted</span>
-                </button>
-                <button class="sub-dot" data-parent="about" data-icon="📚" data-title="Anime &amp; Manga" data-angle="210" data-detail="Grew up on anime and manga, a world I keep exploring — from classic series to the newest releases." data-detail-it="Cresciuto tra anime e manga, un mondo che continuo a esplorare — dalle serie storiche alle nuove uscite.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Anime &amp; Manga</span>
-                </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🕸️" data-title="This site" data-title-it="Questo sito" data-page="projects/evolution/" data-detail="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>." data-detail-it="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label" data-it="Questo sito">This site</span>
-                </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-page="projects/cerebro/" data-detail="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models." data-detail-it="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Cerebro Engine</span>
-                </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🎴" data-icon-html="<span class='icon-tt-card' aria-hidden='true'><span class='icon-tt-ranks'><span class='icon-tt-rank tt-top'>A</span><span class='icon-tt-rank tt-left'>8</span><span class='icon-tt-rank tt-right'>5</span><span class='icon-tt-rank tt-bottom'>3</span></span><svg class='icon-tt-art' viewBox='0 0 7 14' width='7' height='14' shape-rendering='crispEdges' fill='currentColor' aria-hidden='true'><rect x='3' y='0' width='1' height='1'/><rect x='2' y='1' width='3' height='1'/><rect x='2' y='2' width='3' height='1'/><rect x='2' y='3' width='3' height='1'/><rect x='2' y='4' width='3' height='1'/><rect x='2' y='5' width='3' height='1'/><rect x='2' y='6' width='3' height='1'/><rect x='2' y='7' width='3' height='1'/><rect x='1' y='8' width='5' height='1'/><rect x='0' y='9' width='7' height='1'/><rect x='1' y='10' width='5' height='1'/><rect x='3' y='11' width='1' height='1'/><rect x='3' y='12' width='1' height='1'/><rect x='2' y='13' width='3' height='1'/></svg></span>" data-title="Triple Triad" data-page="projects/triple-triad/" data-detail="The card minigame from Final Fantasy VIII — a project started years before generative AI came along, rebuilt from scratch. The opponent will be a dedicated AI that knows the game's rules, not a generalist model and not Claude. Integration still in progress." data-detail-it="Il minigioco di carte di Final Fantasy VIII — un progetto iniziato anni prima dell'arrivo dell'IA generativa, riscritto da zero. L'avversario sarà un'IA dedicata che conosce le regole del gioco, non un modello generalista e non Claude. Integrazione ancora in corso.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Triple Triad</span>
-                </button>
-                <button class="sub-dot" data-parent="projects" data-icon="🌍" data-icon-html="🌍<span class='icon-dot-trio' aria-hidden='true'><span></span><span></span><span></span></span>" data-title="Dot World" data-page="projects/dot-world/" data-detail="A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. Still in progress." data-detail-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Ancora in corso.">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Dot World</span>
+                <button class="hub-node" data-hub="social" data-x="48" data-y="76" aria-expanded="false">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Social</span>
                 </button>
 
-                <a class="sub-dot sub-link" data-parent="social" href="https://github.com/ottobit" target="_blank" rel="noopener noreferrer">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">GitHub</span>
+                <button class="sub-node" data-parent="about" data-icon="🤖" data-title="AI Enthusiast" data-detail="I design architectures for intelligent systems, with a particular interest in communication and coordination between AI agents." data-detail-it="Progetto architetture per sistemi intelligenti, con particolare interesse per la comunicazione e il coordinamento tra agenti AI.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">AI Enthusiast</span>
+                </button>
+                <button class="sub-node" data-parent="about" data-icon="🎮" data-title="Gaming" data-angle="45" data-radius-scale="0.68" data-detail="Hardcore gamer. From epic stories to strategic puzzles, video games are my second world. Favorites: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom." data-detail-it="Gamer incallito. Dalle storie epiche ai puzzle strategici, i videogiochi sono il mio secondo mondo. Preferiti: Final Fantasy VIII, Expedition 33, Zelda: Breath of the Wild, Zelda: Tears of the Kingdom.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Gaming</span>
+                </button>
+                <button class="sub-node" data-parent="about" data-icon="🎵" data-title="Music" data-detail="Music is my creative escape. A genre explorer and passionate listener, always chasing the perfect sound." data-detail-it="La musica è la mia fuga creativa. Esploratore di generi, ascoltatore appassionato, sempre alla ricerca del suono perfetto.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Music</span>
+                </button>
+                <button class="sub-node" data-parent="about" data-icon="🎬" data-title="Film Addicted" data-detail="A film buff at heart: from the classics to niche discoveries, cinema is another creative escape, much like music." data-detail-it="Cinefilo per passione: dai classici alle scoperte di nicchia, il cinema è un'altra fuga creativa, come la musica.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Film Addicted</span>
+                </button>
+                <button class="sub-node" data-parent="about" data-icon="📚" data-title="Anime &amp; Manga" data-angle="210" data-detail="Grew up on anime and manga, a world I keep exploring — from classic series to the newest releases." data-detail-it="Cresciuto tra anime e manga, un mondo che continuo a esplorare — dalle serie storiche alle nuove uscite.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Anime &amp; Manga</span>
+                </button>
+                <button class="sub-node" data-parent="projects" data-icon="🕸️" data-title="This site" data-title-it="Questo sito" data-page="projects/evolution/" data-detail="The first project I'm showing here — one of several built together with an AI assistant: one iteration at a time, from the interactive graph in the hero to this very panel, which you can now also listen to thanks to the browser's <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a>." data-detail-it="Il primo progetto che mostro qui — uno dei tanti realizzati insieme a un assistente AI: un'iterazione alla volta, dal grafo interattivo nell'hero a questo pannello, che ora puoi anche ascoltare grazie alla <a href='https://developer.mozilla.org/docs/Web/API/Web_Speech_API' target='_blank' rel='noopener noreferrer' class='inline-link'>Web Speech API</a> del browser.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label" data-it="Questo sito">This site</span>
+                </button>
+                <button class="sub-node" data-parent="projects" data-icon="🧠" data-title="Cerebro Engine" data-page="projects/cerebro/" data-detail="A multi-agent engine (LangGraph) that turns a task description into a reviewed, evaluated deliverable, autonomously: it clarifies ambiguities, plans, designs, implements, reviews — and when hooked to a real project, integrates the code and verifies the result. From a structured task, each agent runs and executes on independently configurable providers and models." data-detail-it="Un motore multi-agente (LangGraph) che trasforma una descrizione di task in un deliverable revisionato e valutato, in autonomia: chiarisce le ambiguità, pianifica, progetta, implementa, rivede — e se agganciato a un progetto reale, integra il codice e ne verifica il risultato. Da un task strutturato, ogni agente gira ed esegue su provider e modelli configurabili indipendentemente.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Cerebro Engine</span>
+                </button>
+                <button class="sub-node" data-parent="projects" data-icon="🎴" data-icon-html="<span class='icon-tt-card' aria-hidden='true'><span class='icon-tt-ranks'><span class='icon-tt-rank tt-top'>A</span><span class='icon-tt-rank tt-left'>8</span><span class='icon-tt-rank tt-right'>5</span><span class='icon-tt-rank tt-bottom'>3</span></span><svg class='icon-tt-art' viewBox='0 0 7 14' width='7' height='14' shape-rendering='crispEdges' fill='currentColor' aria-hidden='true'><rect x='3' y='0' width='1' height='1'/><rect x='2' y='1' width='3' height='1'/><rect x='2' y='2' width='3' height='1'/><rect x='2' y='3' width='3' height='1'/><rect x='2' y='4' width='3' height='1'/><rect x='2' y='5' width='3' height='1'/><rect x='2' y='6' width='3' height='1'/><rect x='2' y='7' width='3' height='1'/><rect x='1' y='8' width='5' height='1'/><rect x='0' y='9' width='7' height='1'/><rect x='1' y='10' width='5' height='1'/><rect x='3' y='11' width='1' height='1'/><rect x='3' y='12' width='1' height='1'/><rect x='2' y='13' width='3' height='1'/></svg></span>" data-title="Triple Triad" data-page="projects/triple-triad/" data-detail="The card minigame from Final Fantasy VIII — a project started years before generative AI came along, rebuilt from scratch. The opponent will be a dedicated AI that knows the game's rules, not a generalist model and not Claude. Integration still in progress." data-detail-it="Il minigioco di carte di Final Fantasy VIII — un progetto iniziato anni prima dell'arrivo dell'IA generativa, riscritto da zero. L'avversario sarà un'IA dedicata che conosce le regole del gioco, non un modello generalista e non Claude. Integrazione ancora in corso.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Triple Triad</span>
+                </button>
+                <button class="sub-node" data-parent="projects" data-icon="🌍" data-icon-html="🌍<span class='icon-dot-trio' aria-hidden='true'><span></span><span></span><span></span></span>" data-title="Dot World" data-page="projects/dot-world/" data-detail="A small world starring dot, populated by many dots, each able to decide and reason on its own, with inference handled by local or remote models — a world shaped by the news it reads from the outside. Still in progress." data-detail-it="Un piccolo mondo con dot protagonista, popolato da tanti dot, ognuno capace di decidere e ragionare in autonomia, con inferenza affidata a modelli locali o remoti — un mondo che si lascia influenzare dalle notizie che legge dall'esterno. Ancora in corso.">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Dot World</span>
+                </button>
+
+                <a class="sub-node sub-link" data-parent="social" href="https://github.com/ottobit" target="_blank" rel="noopener noreferrer">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">GitHub</span>
                 </a>
-                <a class="sub-dot sub-link" data-parent="social" href="https://www.linkedin.com/in/giuseppequartarone" target="_blank" rel="noopener noreferrer">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">LinkedIn</span>
+                <a class="sub-node sub-link" data-parent="social" href="https://www.linkedin.com/in/giuseppequartarone" target="_blank" rel="noopener noreferrer">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">LinkedIn</span>
                 </a>
-                <a class="sub-dot sub-link" data-parent="social" href="https://www.instagram.com/skypassenger" target="_blank" rel="noopener noreferrer">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Instagram</span>
+                <a class="sub-node sub-link" data-parent="social" href="https://www.instagram.com/skypassenger" target="_blank" rel="noopener noreferrer">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Instagram</span>
                 </a>
-                <a class="sub-dot sub-link" data-parent="social" href="mailto:giuseppequartarone.work@gmail.com">
-                    <span class="node-dot"></span>
-                    <span class="dot-label">Email</span>
+                <a class="sub-node sub-link" data-parent="social" href="mailto:giuseppequartarone.work@gmail.com">
+                    <span class="node-sphere"></span>
+                    <span class="node-label">Email</span>
                 </a>
                 </div>
             </div>
@@ -247,6 +247,6 @@
          Deliberately outside #page-zoom-layer — see the comment on it. -->
     <canvas id="warp-overlay" aria-hidden="true"></canvas>
 
-    <script type="module" src="assets/js/site.js?v=9.0"></script>
+    <script type="module" src="assets/js/site.js?v=9.1"></script>
 </body>
 </html>

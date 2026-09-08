@@ -17,7 +17,7 @@
 /* Visible only for the pointer/keyboard interactions that actually
    warrant an indicator — a mouse click doesn't need a ring around
    whatever it just clicked, but Tab-ing through the page does. Applied
-   to every custom interactive element (hub-dot/sub-dot/mascot/toggles/
+   to every custom interactive element (hub-node/sub-node/mascot/toggles/
    detail-panel buttons); native ones already get a sane default. */
 :focus-visible {
     outline: 3px solid var(--accent);
@@ -841,7 +841,7 @@ html.warp-arrival body::before {
    landing back at its starting orientation) and settles. Uses the
    standalone `rotate` property rather than `transform` so it composes
    safely with whatever transform the element already has for its own
-   positioning (e.g. .hub-dot/.sub-dot's translate(-50%, -50%)) instead of
+   positioning (e.g. .hub-node/.sub-node's translate(-50%, -50%)) instead of
    overwriting it. Purely visual — content/handlers are untouched. */
 .page-hit {
     animation: page-hit-spin 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -996,13 +996,13 @@ html.warp-arrival body::before {
     opacity: 0.6;
 }
 
-/* Hub-dot = "planet", sub-dot = "moon": a shaded sphere (.node-dot) with
+/* Hub-node = "planet", sub-node = "moon": a shaded sphere (.node-sphere) with
    plain text beside it — no pill background/border. The label gets a
    soft background-colored halo (text-shadow) so a graph line or the
    animated hero canvas passing behind it doesn't visually cut through
    the letters. */
-.hub-dot,
-.sub-dot {
+.hub-node,
+.sub-node {
     position: absolute;
     left: 0;
     top: 0;
@@ -1019,20 +1019,20 @@ html.warp-arrival body::before {
     pointer-events: auto;
 }
 
-.node-dot {
+.node-sphere {
     border-radius: 50%;
     flex-shrink: 0;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 4px 16px var(--glow);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
 
-.hub-dot .node-dot {
+.hub-node .node-sphere {
     width: clamp(24px, 3.2vw, 32px);
     height: clamp(24px, 3.2vw, 32px);
     background: var(--planet-grad);
 }
 
-.dot-label {
+.node-label {
     font-size: 0.85rem;
     font-weight: 700;
     color: var(--text);
@@ -1040,45 +1040,45 @@ html.warp-arrival body::before {
     text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 5px var(--bg), 0 0 5px var(--bg);
 }
 
-.hub-dot:hover .node-dot,
-.hub-dot.active .node-dot {
+.hub-node:hover .node-sphere,
+.hub-node.active .node-sphere {
     transform: scale(1.15);
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 6px 26px var(--glow), 0 0 0 6px var(--glow);
 }
 
-.sub-dot {
+.sub-node {
     display: none;
     opacity: 0;
     z-index: 1;
     transition: opacity 0.35s ease, transform 0.25s ease;
 }
 
-.sub-dot .node-dot {
+.sub-node .node-sphere {
     width: clamp(11px, 1.6vw, 15px);
     height: clamp(11px, 1.6vw, 15px);
     background: var(--moon-grad);
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset, 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.sub-dot .dot-label {
+.sub-node .node-label {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
 }
 
-.sub-dot.visible {
+.sub-node.visible {
     display: flex;
 }
 
-.sub-dot.label-left {
+.sub-node.label-left {
     flex-direction: row-reverse;
 }
 
-.sub-dot.animate-in {
+.sub-node.animate-in {
     opacity: 1;
 }
 
-.sub-dot:hover .node-dot {
+.sub-node:hover .node-sphere {
     transform: scale(1.15);
 }
 
@@ -1485,29 +1485,29 @@ html.warp-arrival body::before {
        with the available vertical space instead of a fixed value — the
        hero-visual panel is much shorter here than on desktop, so chips need
        their own vh-clamped sizing like the rest of this block. */
-    .hub-dot {
+    .hub-node {
         gap: clamp(0.3rem, 1vh, 0.4rem);
     }
 
-    .sub-dot {
+    .sub-node {
         gap: clamp(0.2rem, 0.7vh, 0.3rem);
     }
 
-    .hub-dot .node-dot {
+    .hub-node .node-sphere {
         width: clamp(20px, 6vh, 28px);
         height: clamp(20px, 6vh, 28px);
     }
 
-    .sub-dot .node-dot {
+    .sub-node .node-sphere {
         width: clamp(7px, 2.4vh, 10px);
         height: clamp(7px, 2.4vh, 10px);
     }
 
-    .hub-dot .dot-label {
+    .hub-node .node-label {
         font-size: clamp(0.78rem, 2.3vh, 0.92rem);
     }
 
-    .sub-dot .dot-label {
+    .sub-node .node-label {
         font-size: clamp(0.72rem, 2vh, 0.82rem);
     }
 }
@@ -1600,21 +1600,21 @@ html.warp-arrival body::before {
         --mascot-base: 26px;
     }
 
-    .hub-dot .node-dot {
+    .hub-node .node-sphere {
         width: clamp(16px, 5vh, 22px);
         height: clamp(16px, 5vh, 22px);
     }
 
-    .sub-dot .node-dot {
+    .sub-node .node-sphere {
         width: clamp(8px, 2.6vh, 11px);
         height: clamp(8px, 2.6vh, 11px);
     }
 
-    .hub-dot .dot-label {
+    .hub-node .node-label {
         font-size: clamp(0.72rem, 2vh, 0.85rem);
     }
 
-    .sub-dot .dot-label {
+    .sub-node .node-label {
         font-size: clamp(0.65rem, 1.7vh, 0.75rem);
     }
 }

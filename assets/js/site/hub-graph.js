@@ -1,6 +1,6 @@
 import { getLang } from './theme-lang.js?v=1';
 
-// Hub/sub-node graph: dots overlaid on the hero canvas, same layout at every
+// Hub/sub-node graph: nodes overlaid on the hero canvas, same layout at every
 // breakpoint (just larger tap targets on small screens), sharing one detail
 // panel shown as a fixed overlay anchored to the bottom of the viewport (no
 // scrolling needed).
@@ -237,30 +237,30 @@ import { getLang } from './theme-lang.js?v=1';
     });
     updateCloseLabel();
 
-    // --- Dots overlaid directly on the hero canvas, same at every breakpoint ---
+    // --- Nodes overlaid directly on the hero canvas, same at every breakpoint ---
     const heroVisual = document.querySelector('.hero-visual');
     const overlay = document.getElementById('hub-overlay');
     const svg = document.getElementById('graph-lines');
     const networkCanvas = document.getElementById('network-canvas');
-    const hubDots = overlay ? Array.from(overlay.querySelectorAll('.hub-dot')) : [];
+    const hubNodes = overlay ? Array.from(overlay.querySelectorAll('.hub-node')) : [];
     let openKey = null;
 
-    function positionHubDots() {
-        hubDots.forEach(hub => {
+    function positionHubNodes() {
+        hubNodes.forEach(hub => {
             hub.style.left = hub.dataset.x + '%';
             hub.style.top = hub.dataset.y + '%';
         });
     }
 
-    function subDotsFor(key) {
-        return overlay ? Array.from(overlay.querySelectorAll(`.sub-dot[data-parent="${key}"]`)) : [];
+    function subNodesFor(key) {
+        return overlay ? Array.from(overlay.querySelectorAll(`.sub-node[data-parent="${key}"]`)) : [];
     }
 
     function clearLines() {
         if (svg) while (svg.firstChild) svg.removeChild(svg.firstChild);
     }
 
-    function positionSubDots(hub, subs) {
+    function positionSubNodes(hub, subs) {
         const panelWidth = heroVisual.clientWidth;
         const panelHeight = heroVisual.clientHeight;
         const hx = (parseFloat(hub.dataset.x) / 100) * panelWidth;
@@ -324,11 +324,11 @@ import { getLang } from './theme-lang.js?v=1';
             };
         });
 
-        // Other hubs' own chips never move, but a sub-dot ring can still
+        // Other hubs' own chips never move, but a sub-node ring can still
         // reach far enough to sit on top of one on short mobile panels —
         // treat them (not the current hub, which the ring is meant to
         // radiate close to) as fixed obstacles in the relax pass below.
-        // Active/hovered hub-dots render 8% larger (`.hub-dot.active`/
+        // Active/hovered hub-nodes render 8% larger (`.hub-node.active`/
         // `:hover` scale transform) without changing offsetWidth/Height, so
         // pad the obstacle box to match what's actually painted — otherwise
         // the collision math clears a gap the scaled-up chip still overlaps.
@@ -337,9 +337,9 @@ import { getLang } from './theme-lang.js?v=1';
         // more room to push clear where the panel has space to spare.
         // The current hub is included too now (it used to be excluded,
         // relying on the ring radius alone to clear its own label) — a
-        // tight mobile ring could still land a sub-dot's nudged-down label
+        // tight mobile ring could still land a sub-node's nudged-down label
         // right on top of the hub's own, unrelated to the ring math above.
-        const hubObstacles = hubDots
+        const hubObstacles = hubNodes
             .map(h => ({
                 x: (parseFloat(h.dataset.x) / 100) * panelWidth,
                 y: (parseFloat(h.dataset.y) / 100) * panelHeight,
@@ -351,7 +351,7 @@ import { getLang } from './theme-lang.js?v=1';
         // by nudging colliding pairs apart along their separation vector,
         // and pushing any point clear of another hub's chip. More passes
         // than the sub-vs-sub-only case needed, since a dense ring (e.g.
-        // About's 6 sub-dots) fighting a fixed hub obstacle on a short
+        // About's 6 sub-nodes) fighting a fixed hub obstacle on a short
         // mobile panel takes longer to settle.
         for (let pass = 0; pass < 24; pass++) {
             let moved = false;
@@ -387,9 +387,9 @@ import { getLang } from './theme-lang.js?v=1';
                     const overlapY = minDy - Math.abs(dy);
                     // Obstacle is fixed, so resolve along whichever axis
                     // needs the smaller nudge (minimum-translation push)
-                    // instead of a diagonal step. Two hub-dots close enough
+                    // instead of a diagonal step. Two hub-nodes close enough
                     // together can each demand a full push on opposite Y
-                    // sides, which would bounce a sub-dot forever between
+                    // sides, which would bounce a sub-node forever between
                     // them — damping the step lets the passes above settle
                     // toward a resting point that minimizes overlap instead
                     // of oscillating between two full corrections.
@@ -427,17 +427,17 @@ import { getLang } from './theme-lang.js?v=1';
         return { hx, hy };
     }
 
-    // Nudges a sub-dot's label down onto a small underline of its own — the
+    // Nudges a sub-node's label down onto a small underline of its own — the
     // underline runs under the label text only (not the sphere) — and
     // returns both its ends (map-relative px) so drawLines() can attach the
-    // hub→sub-dot line to whichever one faces the hub.
+    // hub→sub-node line to whichever one faces the hub.
     function positionSubLabel(sub) {
         const originX = parseFloat(sub.style.left) - sub.offsetWidth / 2;
         const originY = parseFloat(sub.style.top) - sub.offsetHeight / 2;
-        const nodeDot = sub.querySelector('.node-dot');
-        const label = sub.querySelector('.dot-label');
+        const sphere = sub.querySelector('.node-sphere');
+        const label = sub.querySelector('.node-label');
 
-        const textY = originY + nodeDot.offsetTop + nodeDot.offsetHeight + 10;
+        const textY = originY + sphere.offsetTop + sphere.offsetHeight + 10;
         const lLeft = originX + label.offsetLeft;
         const lRight = lLeft + label.offsetWidth;
         const lBottom = originY + label.offsetTop + label.offsetHeight;
@@ -460,7 +460,7 @@ import { getLang } from './theme-lang.js?v=1';
 
         const hubOriginX = hx - hub.offsetWidth / 2;
         const hubOriginY = hy - hub.offsetHeight / 2;
-        const hubSphere = hub.querySelector('.node-dot');
+        const hubSphere = hub.querySelector('.node-sphere');
         const sphereCenterX = hubOriginX + hubSphere.offsetLeft + hubSphere.offsetWidth / 2;
         const sphereCenterY = hubOriginY + hubSphere.offsetTop + hubSphere.offsetHeight / 2;
         const sphereRadius = hubSphere.offsetWidth / 2;
@@ -503,16 +503,16 @@ import { getLang } from './theme-lang.js?v=1';
     function closeHub(hub) {
         hub.classList.remove('active');
         hub.setAttribute('aria-expanded', 'false');
-        subDotsFor(hub.dataset.hub).forEach(s => s.classList.remove('visible', 'animate-in'));
+        subNodesFor(hub.dataset.hub).forEach(s => s.classList.remove('visible', 'animate-in'));
         clearLines();
     }
 
     function openHub(key) {
-        const hub = hubDots.find(h => h.dataset.hub === key);
+        const hub = hubNodes.find(h => h.dataset.hub === key);
         if (!hub) return;
         const alreadyOpen = hub.classList.contains('active');
 
-        hubDots.forEach(h => {
+        hubNodes.forEach(h => {
             if (h !== hub) closeHub(h);
         });
 
@@ -530,9 +530,9 @@ import { getLang } from './theme-lang.js?v=1';
         closeDetail();
         document.dispatchEvent(new CustomEvent('graphinteraction'));
 
-        const subs = subDotsFor(key);
+        const subs = subNodesFor(key);
         subs.forEach(s => s.classList.add('visible'));
-        const { hx, hy } = positionSubDots(hub, subs);
+        const { hx, hy } = positionSubNodes(hub, subs);
         subs.forEach((s, i) => {
             window.setTimeout(() => s.classList.add('animate-in'), reduceMotion ? 0 : i * 70);
         });
@@ -540,23 +540,23 @@ import { getLang } from './theme-lang.js?v=1';
         if (networkCanvas) networkCanvas.classList.add('dimmed');
     }
 
-    positionHubDots();
+    positionHubNodes();
 
-    hubDots.forEach(hub => {
+    hubNodes.forEach(hub => {
         hub.addEventListener('click', () => openHub(hub.dataset.hub));
     });
 
     if (overlay) {
-        overlay.querySelectorAll('.sub-dot:not(.sub-link)').forEach(sub => {
+        overlay.querySelectorAll('.sub-node:not(.sub-link)').forEach(sub => {
             sub.addEventListener('click', () => openDetail(sub));
         });
     }
 
     window.addEventListener('resize', () => {
         if (!openKey) return;
-        const hub = hubDots.find(h => h.dataset.hub === openKey);
-        const subs = subDotsFor(openKey);
-        const { hx, hy } = positionSubDots(hub, subs);
+        const hub = hubNodes.find(h => h.dataset.hub === openKey);
+        const subs = subNodesFor(openKey);
+        const { hx, hy } = positionSubNodes(hub, subs);
         drawLines(hub, hx, hy, subs);
     });
 

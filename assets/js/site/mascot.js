@@ -1243,7 +1243,7 @@ function createMascotController(mascot, bubble, options = {}) {
     // back at its original orientation) and the mascot bounces off it —
     // nothing is ever removed or altered in the DOM, so the site stays
     // fully usable during and after.
-    const HITTABLE_SELECTOR = '.role, .btn, .logo, .nav-menu a, .footer a, .hub-dot, .sub-dot';
+    const HITTABLE_SELECTOR = '.role, .btn, .logo, .nav-menu a, .footer a, .hub-node, .sub-node';
     const HIT_COOLDOWN_MS = 500;
     const HIT_RESTITUTION = 0.4; // weaker than a wall — the element isn't rigid
     const hitCooldowns = new Map();
