@@ -567,12 +567,16 @@ import { getLang } from './theme-lang.js?v=1';
 
     // --- Salto a curvatura: risucchia pianeti/lune/linee verso il centro ---
     // Reuses hero-canvas.js's own 'warpjump' timing (phase A = duration *
-    // resetFraction) instead of a separate constant, and the same
-    // accel = op² easing already used for the outward burst elsewhere in the
-    // jump, so the graph joins the same beat rather than sitting static
-    // while canvas/asteroids animate around it. Never dispatched under
-    // prefers-reduced-motion (triggerWarp() navigates immediately instead),
-    // so this code simply never runs in that case.
+    // resetFraction) instead of a separate constant, so the graph joins the
+    // same beat as canvas/asteroids instead of running on its own schedule.
+    // Its own easing is deliberately NOT the op² used for the outward
+    // burst, though: that curve keeps almost all of the motion crammed into
+    // the last instant before the cut, which read as no motion at all for
+    // small chips that are also fading out — an ease-out curve here instead
+    // moves the chips right away and eases into the center, so the pull is
+    // visible for (most of) the whole phase, not just its final beat. Never
+    // dispatched under prefers-reduced-motion (triggerWarp() navigates
+    // immediately instead), so this code simply never runs in that case.
     document.addEventListener('warpjump', (e) => {
         suckInHubGraph(e.detail.duration * e.detail.resetFraction);
     });
@@ -612,7 +616,10 @@ import { getLang } from './theme-lang.js?v=1';
         const startTime = performance.now();
         function frame() {
             const p = Math.min(1, (performance.now() - startTime) / phaseDuration);
-            const accel = p ** 2;
+            // Ease-out (quadratic): fast right out of the gate, easing into
+            // the center — the opposite shape from op², chosen so the pull
+            // reads clearly instead of hiding in the final instant.
+            const accel = 1 - (1 - p) ** 2;
 
             dots.forEach(({ el, dx, dy }) => {
                 // translate(-50%, -50%) is the base centering transform
