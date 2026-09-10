@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ottobit — News</title>
+    <meta name="description" content="Occasional updates from ottobit about ongoing work and projects.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ottobit.github.io/portfolio/news/">
+    <link rel="canonical" href="https://ottobit.github.io/portfolio/news/">
+    <meta property="og:title" content="ottobit — News">
+    <meta property="og:description" content="Occasional updates from ottobit about ongoing work and projects.">
+    <meta property="og:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ottobit — News">
+    <meta name="twitter:description" content="Occasional updates from ottobit about ongoing work and projects.">
+    <meta name="twitter:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "News",
+        "description": "Occasional updates from ottobit about ongoing work and projects.",
+        "url": "https://ottobit.github.io/portfolio/news/",
+        "author": {
+            "@type": "Person",
+            "name": "Giuseppe Quartarone",
+            "alternateName": "ottobit",
+            "url": "https://ottobit.github.io/portfolio/"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "ottobit", "item": "https://ottobit.github.io/portfolio/" },
+            { "@type": "ListItem", "position": 2, "name": "News", "item": "https://ottobit.github.io/portfolio/news/" }
+        ]
+    }
+    </script>
+    <link rel="icon" href="../assets/images/favicon.svg" type="image/svg+xml">
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="../assets/css/styles.css?v=10.2">
+    <script defer data-domain="ottobit.github.io" src="https://plausible.io/js/script.js"></script>
+</head>
+<body>
+    <a href="#main" class="skip-link" data-it="Vai al contenuto">Skip to content</a>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="../index.html#home" class="logo">ottobit<span class="dot">.</span></a>
+            <div class="nav-menu-wrap">
+                <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                    <span class="nav-toggle-bar"></span>
+                </button>
+                <ul class="nav-menu" id="nav-menu">
+                    <li><a href="../index.html#home">Home</a></li>
+                    <li><a href="../projects/index.html" data-it="Progetti">Projects</a></li>
+                    <li><a href="index.html" data-it="Novità">News</a></li>
+                    <li class="nav-menu-divider"></li>
+                    <li>
+                        <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Dark theme</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-menu-action" id="lang-toggle" type="button" aria-pressed="false">
+                            <span aria-hidden="true">🌐</span>
+                            <span id="lang-toggle-label">Italiano</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="timeline-page" id="main">
+        <header class="timeline-intro">
+            <h1 data-it="Novità">News</h1>
+            <p data-it="Ogni tanto qualcosa sul lavoro in corso e sui progetti — niente di regolare, solo quando c'è davvero qualcosa da raccontare.">Every so often, something about ongoing work and projects — nothing on a schedule, only when there's actually something worth telling.</p>
+        </header>
+
+        <div class="card-grid">
+            <p class="card-grid-empty" data-it="Non ci sono ancora novità — torna presto.">No updates yet — check back soon.</p>
+        </div>
+    </main>
+
+    <div class="container">
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 ottobit</p>
+        </footer>
+    </div>
+
+    <script type="module">
+    import '../assets/js/site/theme-lang.js?v=1';
+    import { initDiagramPage } from '../assets/js/shared/diagram-nav.js?v=1';
+    initDiagramPage();
+    </script>
+</body>
+</html>
