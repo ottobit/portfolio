@@ -286,6 +286,14 @@ body {
     color: var(--text);
 }
 
+/* A transitory line, not a real news item — reads visually as "still
+   waiting" rather than as a dead link (it isn't one: no href at all). */
+.nav-news-list .nav-news-loading {
+    font-style: italic;
+    opacity: 0.85;
+    cursor: default;
+}
+
 /* Job listings stand out from the rest of the feed — a distinct accent
    (not the site's own teal, which already means "interactive/hover" here)
    so they're spottable at a glance among general news. */

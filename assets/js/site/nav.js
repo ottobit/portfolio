@@ -81,9 +81,30 @@ navLinks.forEach(link => {
 
     let latestHistory = [];
 
+    // dot's first news reveal is never before ~25-40s after page load
+    // (see scheduleNews()/refetchAllNews() in news-feed.js) — until then
+    // this section used to just be absent from the menu, with nothing
+    // telling a visitor that news were coming at all. A placeholder line
+    // keeps the section visible from the very first render instead.
+    const NEWS_LOADING_TEXT = {
+        it: 'dot sta ancora leggendo le notizie…',
+        en: 'dot is still reading the news…'
+    };
+
     function render() {
         const items = latestHistory.slice(0, getNewsHistoryLimit());
         list.innerHTML = '';
+        if (items.length === 0) {
+            const li = document.createElement('li');
+            const placeholder = document.createElement('span');
+            placeholder.className = 'nav-news-loading';
+            placeholder.textContent = NEWS_LOADING_TEXT[getLang()];
+            li.appendChild(placeholder);
+            list.appendChild(li);
+            section.hidden = false;
+            divider.hidden = false;
+            return;
+        }
         items.forEach(item => {
             const li = document.createElement('li');
             const content = item.url ? document.createElement('a') : document.createElement('span');
@@ -97,8 +118,8 @@ navLinks.forEach(link => {
             li.appendChild(content);
             list.appendChild(li);
         });
-        section.hidden = items.length === 0;
-        divider.hidden = items.length === 0;
+        section.hidden = false;
+        divider.hidden = false;
     }
 
     document.addEventListener('dotnewshistory', (e) => {
@@ -109,4 +130,9 @@ navLinks.forEach(link => {
     // Re-render on breakpoint crossing (e.g. rotating a tablet) so the
     // shown count matches the new limit without waiting for fresh news.
     window.matchMedia('(max-width: 768px)').addEventListener('change', render);
+    // Re-translate the loading placeholder (or re-render real items, a
+    // no-op content-wise) when the language toggle flips.
+    document.addEventListener('langchange', render);
+
+    render();
 })();
