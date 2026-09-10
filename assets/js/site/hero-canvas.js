@@ -31,8 +31,8 @@ import { getLang } from './theme-lang.js?v=1';
     const WARP_ZOOM_MAX = 3;
     const WARP_ZOOM_START = 0.84;
     // Where the jump actually takes you — a real project page, not just a
-    // visual flourish. evolution.html (the site's own timeline) stays out
-    // of the pool on purpose: it sits under the same "Projects" hub but
+    // visual flourish. projects/evolution/ (the site's own timeline) stays
+    // out of the pool on purpose: it sits under the same "Projects" hub but
     // isn't a project of its own the way these three are.
     const WARP_PROJECT_PAGES = ['projects/cerebro/', 'projects/dot-world/', 'projects/triple-triad/'];
     function pickWarpDestination() {

@@ -87,9 +87,9 @@ import { getLang } from './theme-lang.js?v=1';
         en: { repo: 'Code', link: 'Live demo', listen: 'Listen', stop: 'Stop', closePanel: 'Close detail' }
     };
 
-    // Dedicated sub-pages linked from the detail panel (evolution.html's
-    // timeline, cerebro.html's diagram) — icon/label per target page, keyed
-    // by the same href set in data-page.
+    // Dedicated sub-pages linked from the detail panel (projects/evolution/'s
+    // timeline, projects/cerebro/'s diagram) — icon/label per target page,
+    // keyed by the same href set in data-page.
     const PAGE_LINK_TEXT = {
         'projects/evolution/': { icon: '🕰️', it: 'Timeline', en: 'Timeline' },
         'projects/cerebro/': { icon: '🔗', it: 'Progetto', en: 'Project' },
