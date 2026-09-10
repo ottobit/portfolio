@@ -1832,6 +1832,78 @@ html.warp-arrival body::before {
     }
 }
 
+/* A symmetric card grid, shared by the Projects and News overview pages
+   (projects/index.html, news/index.html) in place of .doc-sections —
+   those read as a document, these read as a set of equal-weight entries
+   to scan and pick from. auto-fit + minmax lets it reflow from 1 to 3
+   columns without a breakpoint of its own. */
+.card-grid {
+    max-width: 960px;
+    margin: 3rem auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+}
+
+.info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.info-card:hover,
+a.info-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.info-card-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.info-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.info-card-date {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* Clamped instead of truncated with an ellipsis mid-word — 3 lines keeps
+   every card the same height ("simmetriche") regardless of how long each
+   project's or entry's excerpt happens to be. */
+.info-card-excerpt {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-grid-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
 .timeline-wrap {
     position: relative;
     max-width: 720px;
