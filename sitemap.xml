@@ -2,26 +2,31 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://ottobit.github.io/portfolio/</loc>
+        <lastmod>2026-09-10</lastmod>
         <changefreq>monthly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
         <loc>https://ottobit.github.io/portfolio/projects/evolution/</loc>
+        <lastmod>2026-09-10</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
         <loc>https://ottobit.github.io/portfolio/projects/cerebro/</loc>
+        <lastmod>2026-09-10</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
         <loc>https://ottobit.github.io/portfolio/projects/dot-world/</loc>
+        <lastmod>2026-09-10</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <url>
         <loc>https://ottobit.github.io/portfolio/projects/triple-triad/</loc>
+        <lastmod>2026-09-10</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
