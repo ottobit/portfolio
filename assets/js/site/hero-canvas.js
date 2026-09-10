@@ -217,6 +217,90 @@ import { getLang } from './theme-lang.js?v=1';
         }
     }
 
+    // A Star Trek-style "engage" cue: a rising whoosh into a sustained
+    // warp-engine drone, faded out right before the hidden-cut navigation
+    // instead of getting abruptly chopped off by the page unload. Pure Web
+    // Audio synthesis — oscillators and filtered noise, the same approach
+    // mascot.js's own sound effects use — so there's nothing to load. The
+    // click that calls triggerWarp() is itself a real user gesture, so the
+    // AudioContext can be created and used right away here, unlike
+    // mascot.js's automatic sounds which need their own unlock dance.
+    function playWarpSound(durationMs) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const now = ctx.currentTime;
+        const duration = durationMs / 1000;
+
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0, now);
+        master.gain.linearRampToValueAtTime(1, now + 0.05);
+        const fadeOutAt = Math.max(0.05, duration - 0.3);
+        master.gain.setValueAtTime(1, now + fadeOutAt);
+        master.gain.linearRampToValueAtTime(0, now + duration);
+        master.connect(ctx.destination);
+
+        // The initial punch: a bandpass-filtered noise burst sweeping
+        // upward — the "whoosh" under the engage tone.
+        const noiseBuffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.8), ctx.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.Q.value = 0.8;
+        noiseFilter.frequency.setValueAtTime(200, now);
+        noiseFilter.frequency.exponentialRampToValueAtTime(3200, now + 0.7);
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.5, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        noise.connect(noiseFilter).connect(noiseGain).connect(master);
+        noise.start(now);
+
+        // The rising two-tone chirp familiar from warp-engage effects — a
+        // sawtooth sweeping up a couple of octaves over the first second.
+        const sweep = ctx.createOscillator();
+        sweep.type = 'sawtooth';
+        sweep.frequency.setValueAtTime(90, now);
+        sweep.frequency.exponentialRampToValueAtTime(520, now + 1.0);
+        const sweepGain = ctx.createGain();
+        sweepGain.gain.setValueAtTime(0.001, now);
+        sweepGain.gain.exponentialRampToValueAtTime(0.35, now + 0.25);
+        sweepGain.gain.exponentialRampToValueAtTime(0.05, now + 1.1);
+        sweep.connect(sweepGain).connect(master);
+        sweep.start(now);
+        sweep.stop(now + 1.2);
+
+        // The engine drone underneath: a low sawtooth with slow vibrato,
+        // sustained for the whole ride.
+        const drone = ctx.createOscillator();
+        drone.type = 'sawtooth';
+        drone.frequency.setValueAtTime(65, now);
+        const droneFilter = ctx.createBiquadFilter();
+        droneFilter.type = 'lowpass';
+        droneFilter.frequency.value = 400;
+        const droneGain = ctx.createGain();
+        droneGain.gain.setValueAtTime(0.001, now);
+        droneGain.gain.exponentialRampToValueAtTime(0.22, now + 0.6);
+        const vibrato = ctx.createOscillator();
+        vibrato.frequency.value = 5.5;
+        const vibratoGain = ctx.createGain();
+        vibratoGain.gain.value = 4;
+        vibrato.connect(vibratoGain).connect(drone.frequency);
+        vibrato.start(now);
+        drone.connect(droneFilter).connect(droneGain).connect(master);
+        drone.start(now);
+
+        drone.stop(now + duration);
+        vibrato.stop(now + duration);
+        // The AudioContext outlives this function's scope (the oscillators
+        // keep it alive until they stop) — closing it once done reclaims
+        // the native audio thread instead of leaking it, same reasoning as
+        // mascot.js's own AudioContext cleanup on remove().
+        window.setTimeout(() => ctx.close().catch(() => {}), durationMs + 200);
+    }
+
     function triggerWarp() {
         if (warp) return;
         if (reduceMotion) {
@@ -224,6 +308,7 @@ import { getLang } from './theme-lang.js?v=1';
             window.location.href = pickWarpDestination();
             return;
         }
+        playWarpSound(WARP_DURATION_MS * WARP_RESET_FRACTION);
         if (warpButton) warpButton.classList.add('warping');
         // #page-zoom-layer scales up to 4x its normal size during the jump
         // (see WARP_ZOOM_MAX below) via a CSS transform — transforms don't
