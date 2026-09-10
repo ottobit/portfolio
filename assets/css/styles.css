@@ -1635,6 +1635,13 @@ html.warp-arrival body::before {
    of the whole thing sitting there fully drawn from the start. */
 .timeline-page {
     padding: 3rem 1.5rem 5rem;
+    /* body is already a flex column with min-height:100vh (see body{} above)
+       for a sticky footer — but that only works if the content between nav
+       and footer actually grows to fill the leftover space. Every page
+       using this class (404, News, Projects, the project pages) needs this,
+       or the footer just trails short content instead of sitting at the
+       bottom of the viewport. */
+    flex: 1 0 auto;
 }
 
 .timeline-intro {
