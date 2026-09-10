@@ -99,3 +99,30 @@ pagina. Da lì in poi:
 - Si torna a toccare la timeline solo se succede un vero salto creativo —
   cioè se cambia la natura di quello che il sito è, non se una cosa viene
   sistemata — e comunque solo su richiesta esplicita dell'utente.
+
+## Checklist SEO per una nuova pagina progetto
+
+L'obiettivo dichiarato dall'utente è comparire su Google per il proprio
+nome e per la portata dei progetti documentati. Ogni volta che si
+aggiunge una nuova pagina in `projects/<nome>/index.html`, copiare la
+struttura `<head>` di una pagina esistente (es. `projects/cerebro/`) e
+verificare che porti con sé, aggiornati per il nuovo progetto:
+
+- `<title>` nel formato `ottobit — <Nome progetto>`.
+- `<meta name="description">` + gli equivalenti `og:description` e
+  `twitter:description` — stesso testo, una frase che descriva cosa fa
+  il progetto, non solo il nome.
+- `og:url` **e** `<link rel="canonical">` con lo stesso URL assoluto
+  della pagina (`https://ottobit.github.io/portfolio/projects/<nome>/`).
+- Il blocco JSON-LD (`<script type="application/ld+json">`) — `@type`
+  `"SoftwareSourceCode"` per un progetto software, `"CreativeWork"` per
+  una pagina più narrativa/documentale (come `evolution/`); sempre con
+  `author` che referenzia la Persona (`Giuseppe Quartarone` / `ottobit`,
+  stesso pattern delle pagine esistenti).
+- Una nuova voce in `sitemap.xml`, con `<lastmod>` alla data reale della
+  modifica (non lasciarla mai indietro rispetto all'ultima modifica vera
+  della pagina).
+
+Bump delle versioni di cache-busting (`styles.css?v=`, `site.js?v=`)
+quando si toccano file condivisi, come da convenzione già in uso nel
+resto del sito.
