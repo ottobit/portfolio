@@ -454,6 +454,26 @@ html.warp-arrival body::before {
     }
 }
 
+/* Project-card arrival: a project page reached by clicking its card on
+   projects/index.html slides in from the right instead of just appearing —
+   same one-shot sessionStorage-flag pattern as .warp-arrival above (see
+   markProjectArrival() in projects/index.html and each project page's own
+   head script), so a direct visit or reload never triggers it. */
+html.project-arrival .timeline-page {
+    animation: project-arrival-slide 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes project-arrival-slide {
+    from { transform: translateX(48px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.project-arrival .timeline-page {
+        animation: none;
+    }
+}
+
 .warp-trigger {
     position: absolute;
     right: 14px;

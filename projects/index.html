@@ -52,7 +52,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../assets/css/styles.css?v=10.5">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=10.6">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -138,6 +138,16 @@
     import '../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../assets/js/shared/diagram-nav.js?v=1';
     initDiagramPage();
+
+    // One-shot flag read by the destination project page's own head script
+    // (see .project-arrival in styles.css) — same pattern as the warp
+    // jump's arrival flag, just for "click a card here" instead of "warp
+    // jump from the hero".
+    document.querySelectorAll('.info-card').forEach((card) => {
+        card.addEventListener('click', () => {
+            try { sessionStorage.setItem('projectArrival', '1'); } catch (e) {}
+        });
+    });
     </script>
 </body>
 </html>
