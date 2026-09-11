@@ -61,6 +61,10 @@
     --job-accent-soft: #fef3c7;
     --planet-grad: radial-gradient(circle at 32% 26%, #6fc9bf, #115e59 55%, #073330 100%);
     --moon-grad: radial-gradient(circle at 32% 26%, #f7f7f8, #b9bcc3 55%, #83868f 100%);
+    /* .footer's own rendered height (padding + one line of text + border) —
+       kept in one place so every page reserving space for the fixed footer
+       (see .timeline-page, .hero-zoom-layer) uses the same number. */
+    --footer-h: 3.75rem;
 }
 
 /* Light theme is always the default (see script.js) — dark is only
@@ -394,6 +398,10 @@ body {
     flex-direction: column;
     min-height: 100vh;
     min-height: 100dvh;
+    /* Reserves room for the fixed footer at the very bottom of the hero,
+       so it never covers the Social hub-node (positioned low in the hero)
+       or the footer's own .container — see .footer. */
+    padding-bottom: var(--footer-h);
 }
 
 #network-canvas {
@@ -1376,12 +1384,21 @@ html.warp-arrival body::before {
     color: var(--text);
 }
 
-/* Footer */
+/* Footer — fixed to the bottom of the viewport on every page, always
+   visible while scrolling rather than trailing the page's content. Needs
+   its own opaque background since content now scrolls underneath it, and
+   every page reserves --footer-h of bottom space (see .timeline-page,
+   .hero-zoom-layer) so it never covers the last bit of real content. */
 .footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
     padding: 1.5rem 0;
     text-align: center;
+    background: var(--bg);
     border-top: 1px solid var(--border);
-    margin-top: 2.5rem;
     color: var(--text-muted);
     font-size: 0.9rem;
 }
@@ -1634,13 +1651,13 @@ html.warp-arrival body::before {
    accent-colored fill grows behind it as you read down the page, instead
    of the whole thing sitting there fully drawn from the start. */
 .timeline-page {
-    padding: 3rem 1.5rem 5rem;
+    /* Bottom padding reserves room for the fixed footer (see .footer) so
+       the page's own last line of content is never hidden under it. */
+    padding: 3rem 1.5rem calc(5rem + var(--footer-h));
     /* body is already a flex column with min-height:100vh (see body{} above)
-       for a sticky footer — but that only works if the content between nav
-       and footer actually grows to fill the leftover space. Every page
-       using this class (404, News, Projects, the project pages) needs this,
-       or the footer just trails short content instead of sitting at the
-       bottom of the viewport. */
+       — .footer used to rely on this to sit at the bottom of short pages,
+       but now that it's position:fixed this just keeps short pages from
+       looking oddly cramped above the (always-visible) footer bar. */
     flex: 1 0 auto;
 }
 
