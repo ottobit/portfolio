@@ -1999,6 +1999,66 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.95rem;
 }
 
+/* dot Dodge mini-game: canvas + score HUD + game-over overlay. */
+.game-hud {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 0 0 0.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text);
+}
+.game-hud span {
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-right: 0.35em;
+}
+.game-canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+.game-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    touch-action: none;
+    cursor: pointer;
+}
+.game-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    text-align: center;
+    padding: 1.5rem;
+}
+.game-overlay h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+.game-overlay p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+}
+.game-instructions {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+}
+
 .timeline-wrap {
     position: relative;
     max-width: 720px;
