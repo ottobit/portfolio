@@ -52,7 +52,20 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.5">
+    <!-- One-shot sessionStorage flag set by the click handler on
+         projects/index.html, right before navigating here — see
+         .project-arrival in styles.css. -->
+    <script>
+    (function () {
+        try {
+            if (sessionStorage.getItem('projectArrival')) {
+                sessionStorage.removeItem('projectArrival');
+                document.documentElement.classList.add('project-arrival');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.6">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];

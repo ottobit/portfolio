@@ -68,7 +68,21 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.5">
+    <!-- Same one-shot-flag pattern as the warp-jump arrival above, but for
+         "reached via a card click on projects/index.html" instead — see
+         .project-arrival in styles.css and the click handler on
+         projects/index.html. -->
+    <script>
+    (function () {
+        try {
+            if (sessionStorage.getItem('projectArrival')) {
+                sessionStorage.removeItem('projectArrival');
+                document.documentElement.classList.add('project-arrival');
+            }
+        } catch (e) {}
+    })();
+    </script>
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.6">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
