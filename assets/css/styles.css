@@ -2494,39 +2494,36 @@ a.info-card:focus-visible .info-card-title::after {
            below it that the arena couldn't use either. A little lift off the very
            bottom edge keeps the thumb's resting spot clear of the panel's corner. */
         align-self: end;
-        margin-bottom: 0.6rem;
+        margin-bottom: 1rem;
     }
     .game-play .game-controls-actions {
         grid-column: 3;
         grid-row: 1;
         align-self: center;
         flex-direction: column;
-        gap: 0.55rem;
+        gap: 0.7rem;
     }
-    /* Smaller than the portrait deck on purpose: a column of stick + two buttons has
-       to fit next to the arena within whatever height this phone actually has, which
-       measured on real devices (browser chrome included) can be under 300px — but
-       the full-shape arena (see .game-canvas-wrap above) freed up enough room either
-       side that these can now run bigger than the first landscape pass while still
-       fitting comfortably. */
+    /* Sized up again for accessibility (bigger touch targets, easier to read and
+       hit accurately) — the full-shape arena still leaves enough room next to it,
+       even at the tightest tested phone height (~280px real), to go bigger still. */
     .game-play .game-stick {
-        width: 92px;
-        height: 92px;
+        width: 116px;
+        height: 116px;
     }
     .game-play .game-stick-knob {
-        width: 38px;
-        height: 38px;
-        margin: -19px 0 0 -19px;
+        width: 46px;
+        height: 46px;
+        margin: -23px 0 0 -23px;
     }
     .game-play .game-touch-btn {
-        width: 58px;
-        height: 58px;
-        font-size: 1.4rem;
+        width: 74px;
+        height: 74px;
+        font-size: 1.6rem;
     }
     .game-play .game-touch-btn-ult {
-        width: 68px;
-        height: 68px;
-        font-size: 1.6rem;
+        width: 86px;
+        height: 86px;
+        font-size: 1.9rem;
     }
 }
 
