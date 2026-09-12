@@ -94,10 +94,31 @@ const MONSTER_TYPES = {
         ],
         cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2,
     },
+    // Never picked by the random spawn (weight 0): spawned explicitly every 5 levels.
+    boss: {
+        palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
+        frames: [[
+            '....C..C..C...',
+            '....CCCCCC....',
+            '...AAAAAAAA...',
+            '..AAAAAAAAAA..',
+            '..AEEAAAAEEA..',
+            '..AppAAAAppA..',
+            '..AAAAAAAAAA..',
+            '..AAATAATAAA..',
+            '.aAAAAAAAAAAa.',
+            '.aAAAAAAAAAAa.',
+            '..aAAAAAAAAa..',
+            '...aAAAAAAa...',
+            '...aa....aa...',
+            '..aaa....aaa..',
+        ]],
+        cell: 3.6, r: 26, speedMul: 0.55, hpMul: 12, weight: 0, minLevel: Infinity, contactDamage: 25,
+    },
 };
 
 function pickMonsterType(level) {
-    const pool = Object.keys(MONSTER_TYPES).filter((k) => MONSTER_TYPES[k].minLevel <= level);
+    const pool = Object.keys(MONSTER_TYPES).filter((k) => MONSTER_TYPES[k].weight > 0 && MONSTER_TYPES[k].minLevel <= level);
     const total = pool.reduce((s, k) => s + MONSTER_TYPES[k].weight, 0);
     let roll = Math.random() * total;
     for (const k of pool) {
@@ -155,7 +176,15 @@ export function initEmberArena(canvas, opts) {
         walkT: 0,
     };
     const keys = { up: false, down: false, left: false, right: false };
-    let dragging = false;
+    // Virtual joystick: anchored where the finger lands, follows that pointer only.
+    let joystick = null;
+    const JOY_RADIUS = 40;
+    const JOY_DEAD = 8;
+    const MELEE_CD = 0.4;
+    const FIRE_CD = 2;
+    const ULT_CD = 15;
+    const ULT_DUR = 0.6;
+    const startLevel = Math.max(1, options.startLevel || 1);
 
     let monsters = [];
     let fireballs = [];
@@ -170,7 +199,10 @@ export function initEmberArena(canvas, opts) {
     let spawnTimer = 0;
     let meleeCooldown = 0;
     let fireCooldown = 0;
+    let ultCooldown = 0;
     let levelFlash = 0;
+    let flashText = '';
+    let screenFlash = 0;
     let lastTime = null;
     let rafId = null;
 
@@ -180,11 +212,22 @@ export function initEmberArena(canvas, opts) {
     function onStateChange(s, stats) {
         if (typeof options.onStateChange === 'function') options.onStateChange(s, stats);
     }
+    function onCooldownChange(melee, fire, ult) {
+        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(melee, fire, ult);
+    }
 
     function pushStats() {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
+    function pushCooldowns() {
+        onCooldownChange(meleeCooldown / MELEE_CD, fireCooldown / FIRE_CD, ultCooldown / ULT_CD);
+    }
     pushStats();
+    pushCooldowns();
+
+    function bossAlive() {
+        return monsters.some((m) => m.type === 'boss');
+    }
 
     function reset() {
         player.x = W / 2;
@@ -206,8 +249,13 @@ export function initEmberArena(canvas, opts) {
         spawnTimer = 0;
         meleeCooldown = 0;
         fireCooldown = 0;
+        ultCooldown = 0;
         levelFlash = 0;
+        screenFlash = 0;
+        joystick = null;
+        for (let i = 1; i < startLevel; i++) applyLevelUp(false);
         pushStats();
+        pushCooldowns();
     }
 
     function start() {
@@ -234,6 +282,10 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') fireballAttack();
             else start();
         }
+        if (e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V') {
+            if (state === 'playing') ultimateAttack();
+            else start();
+        }
         if (e.key === 'Enter' && state !== 'playing') start();
     }
     function handleKeyUp(e) {
@@ -257,23 +309,31 @@ export function initEmberArena(canvas, opts) {
             start();
             return;
         }
-        dragging = true;
-        movePlayerToward(pointerPos(e));
+        if (joystick) return;
+        const p = pointerPos(e);
+        joystick = { id: e.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y };
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
     }
     function handlePointerMove(e) {
-        if (!dragging) return;
-        movePlayerToward(pointerPos(e));
+        if (!joystick || e.pointerId !== joystick.id) return;
+        const p = pointerPos(e);
+        joystick.x = p.x;
+        joystick.y = p.y;
+        e.preventDefault();
     }
-    function handlePointerUp() {
-        dragging = false;
+    function handlePointerUp(e) {
+        if (joystick && e.pointerId === joystick.id) joystick = null;
     }
-    function movePlayerToward(pos) {
-        const dx = pos.x - player.x;
-        const dy = pos.y - player.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 1) player.facing = { x: dx / dist, y: dy / dist };
-        player.x = clamp(pos.x, player.r, W - player.r);
-        player.y = clamp(pos.y, player.r, H - player.r);
+    // Direction vector (-1..1 per axis, magnitude ≤ 1) from the stick, or null inside the dead zone.
+    function joystickVector() {
+        if (!joystick) return null;
+        const dx = joystick.x - joystick.ox;
+        const dy = joystick.y - joystick.oy;
+        const len = Math.hypot(dx, dy);
+        if (len < JOY_DEAD) return null;
+        const mag = Math.min(1, len / JOY_RADIUS);
+        return { x: (dx / len) * mag, y: (dy / len) * mag };
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -281,10 +341,21 @@ export function initEmberArena(canvas, opts) {
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
 
+    function ultimateAttack() {
+        if (ultCooldown > 0) return;
+        ultCooldown = ULT_CD;
+        screenFlash = 0.25;
+        explosions.push({
+            x: player.x, y: player.y, r: 0,
+            maxR: Math.hypot(W, H), life: ULT_DUR, dur: ULT_DUR,
+            ult: true, hit: new Set(),
+        });
+    }
     function meleeAttack() {
         if (meleeCooldown > 0) return;
-        meleeCooldown = 0.4;
+        meleeCooldown = MELEE_CD;
         const range = 44;
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
@@ -295,7 +366,7 @@ export function initEmberArena(canvas, opts) {
     }
     function fireballAttack() {
         if (fireCooldown > 0) return;
-        fireCooldown = 2;
+        fireCooldown = FIRE_CD;
         fireballs.push({
             x: player.x,
             y: player.y,
@@ -315,23 +386,34 @@ export function initEmberArena(canvas, opts) {
             gainXp(m.xpValue);
         }
     }
+    function applyLevelUp(announce) {
+        level++;
+        xpToNext = Math.round(xpToNext * 1.35 + 2);
+        player.maxHp += 20;
+        player.hp = player.maxHp;
+        player.meleeDamage += 4;
+        player.fireDamage += 3;
+        if (!announce) return;
+        if (level % 5 === 0) {
+            spawnMonster('boss');
+            flashText = 'Boss!';
+            levelFlash = 1.8;
+        } else {
+            flashText = `Livello ${level}!`;
+            levelFlash = 1.2;
+        }
+    }
     function gainXp(amount) {
         xp += amount;
         while (xp >= xpToNext) {
             xp -= xpToNext;
-            level++;
-            xpToNext = Math.round(xpToNext * 1.35 + 2);
-            player.maxHp += 20;
-            player.hp = player.maxHp;
-            player.meleeDamage += 4;
-            player.fireDamage += 3;
-            levelFlash = 1.2;
+            applyLevelUp(true);
         }
     }
 
-    function spawnMonster() {
+    function spawnMonster(forcedType) {
         const edge = Math.floor(Math.random() * 4);
-        const type = pickMonsterType(level);
+        const type = forcedType || pickMonsterType(level);
         const def = MONSTER_TYPES[type];
         const r = def.r;
         let x, y;
@@ -341,9 +423,11 @@ export function initEmberArena(canvas, opts) {
         else { x = -r; y = Math.random() * H; }
         const speed = (40 + Math.random() * 20 + level * 3) * def.speedMul;
         const maxHp = Math.round((20 + level * 6) * def.hpMul);
+        const xpValue = type === 'boss' ? Math.round(xpToNext * 1.8) : 3 + level;
         monsters.push({
-            x, y, r, speed, type, hp: maxHp, maxHp, xpValue: 3 + level,
+            x, y, r, speed, type, hp: maxHp, maxHp, xpValue,
             flash: 0, phase: Math.random() * Math.PI * 2,
+            chargeTimer: 3, charging: 0,
         });
     }
 
@@ -355,20 +439,27 @@ export function initEmberArena(canvas, opts) {
 
         let mvx = 0;
         let mvy = 0;
-        if (!dragging) {
+        const joy = joystickVector();
+        if (joy) {
+            mvx = joy.x;
+            mvy = joy.y;
+        } else if (!joystick) {
             if (keys.left) mvx -= 1;
             if (keys.right) mvx += 1;
             if (keys.up) mvy -= 1;
             if (keys.down) mvy += 1;
-            if (mvx !== 0 || mvy !== 0) {
-                const len = Math.hypot(mvx, mvy);
+            const len = Math.hypot(mvx, mvy);
+            if (len > 0) {
                 mvx /= len;
                 mvy /= len;
-                player.facing = { x: mvx, y: mvy };
-                const speed = 190;
-                player.x = clamp(player.x + mvx * speed * dt, player.r, W - player.r);
-                player.y = clamp(player.y + mvy * speed * dt, player.r, H - player.r);
             }
+        }
+        if (mvx !== 0 || mvy !== 0) {
+            const len = Math.hypot(mvx, mvy);
+            player.facing = { x: mvx / len, y: mvy / len };
+            const speed = 190;
+            player.x = clamp(player.x + mvx * speed * dt, player.r, W - player.r);
+            player.y = clamp(player.y + mvy * speed * dt, player.r, H - player.r);
         }
 
         player.moving = player.x !== prevX || player.y !== prevY;
@@ -376,9 +467,11 @@ export function initEmberArena(canvas, opts) {
 
         meleeCooldown = Math.max(0, meleeCooldown - dt);
         fireCooldown = Math.max(0, fireCooldown - dt);
+        ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
+        screenFlash = Math.max(0, screenFlash - dt);
 
-        const spawnInterval = Math.max(0.5, 1.6 - level * 0.08);
+        const spawnInterval = Math.max(0.5, 1.6 - level * 0.08) * (bossAlive() ? 2 : 1);
         spawnTimer += dt;
         if (spawnTimer >= spawnInterval) {
             spawnTimer = 0;
@@ -387,14 +480,27 @@ export function initEmberArena(canvas, opts) {
 
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
+            const def = MONSTER_TYPES[m.type];
             const dx = player.x - m.x;
             const dy = player.y - m.y;
             const dist = Math.hypot(dx, dy) || 1;
-            m.x += (dx / dist) * m.speed * dt;
-            m.y += (dy / dist) * m.speed * dt;
+            let speedMul = 1;
+            if (m.type === 'boss') {
+                m.chargeTimer -= dt;
+                if (m.chargeTimer <= 0) {
+                    m.charging = 0.5;
+                    m.chargeTimer = 3;
+                }
+                if (m.charging > 0) {
+                    m.charging -= dt;
+                    speedMul = 3;
+                }
+            }
+            m.x += (dx / dist) * m.speed * speedMul * dt;
+            m.y += (dy / dist) * m.speed * speedMul * dt;
             m.flash = Math.max(0, m.flash - dt);
             if (dist < player.r + m.r && elapsed >= player.invulnUntil) {
-                player.hp -= 10;
+                player.hp -= def.contactDamage || 10;
                 player.invulnUntil = elapsed + 0.6;
                 if (player.hp <= 0) {
                     player.hp = 0;
@@ -418,7 +524,7 @@ export function initEmberArena(canvas, opts) {
                 }
             }
             if (hit || f.traveled >= f.maxRange || f.x < 0 || f.x > W || f.y < 0 || f.y > H) {
-                explosions.push({ x: f.x, y: f.y, r: 0, maxR: 55, life: 0.35 });
+                explosions.push({ x: f.x, y: f.y, r: 0, maxR: 55, life: 0.35, dur: 0.35 });
                 for (let j = monsters.length - 1; j >= 0; j--) {
                     if (Math.hypot(monsters[j].x - f.x, monsters[j].y - f.y) < 55) {
                         damageMonster(j, player.fireDamage);
@@ -431,11 +537,22 @@ export function initEmberArena(canvas, opts) {
         for (let i = explosions.length - 1; i >= 0; i--) {
             const ex = explosions[i];
             ex.life -= dt;
-            ex.r = ex.maxR * (1 - Math.max(0, ex.life) / 0.35);
+            ex.r = ex.maxR * (1 - Math.max(0, ex.life) / ex.dur);
+            if (ex.ult) {
+                // The expanding ring hits each monster once as it sweeps past.
+                for (let j = monsters.length - 1; j >= 0; j--) {
+                    const m = monsters[j];
+                    if (!ex.hit.has(m) && Math.hypot(m.x - ex.x, m.y - ex.y) < ex.r + m.r) {
+                        ex.hit.add(m);
+                        damageMonster(j, player.fireDamage * 3);
+                    }
+                }
+            }
             if (ex.life <= 0) explosions.splice(i, 1);
         }
 
         pushStats();
+        pushCooldowns();
     }
 
     function gameOver() {
@@ -537,7 +654,7 @@ export function initEmberArena(canvas, opts) {
             drawSprite(def.frames[frame], def.palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
 
-            if (m.hp < m.maxHp) {
+            if (m.hp < m.maxHp && m.type !== 'boss') {
                 const bw = 22;
                 const bx = m.x - bw / 2;
                 const by = m.y - m.r - 9;
@@ -566,7 +683,7 @@ export function initEmberArena(canvas, opts) {
             ctx.fill();
         });
         explosions.forEach((ex) => {
-            const a = Math.max(0, ex.life / 0.35);
+            const a = Math.max(0, ex.life / ex.dur);
             ctx.globalAlpha = a * 0.35;
             ctx.fillStyle = FIRE_GLOW;
             ctx.beginPath();
@@ -583,12 +700,48 @@ export function initEmberArena(canvas, opts) {
     }
     function drawLevelFlash(colors) {
         if (levelFlash <= 0) return;
+        ctx.fillStyle = flashText === 'Boss!' ? '#e74c3c' : colors.text;
+        ctx.textAlign = 'center';
+        ctx.font = `700 ${flashText === 'Boss!' ? 28 : 20}px system-ui, sans-serif`;
+        ctx.globalAlpha = Math.min(1, levelFlash);
+        ctx.fillText(flashText, W / 2, H / 2 - 40);
+        ctx.globalAlpha = 1;
+    }
+
+    function drawBossBar(colors) {
+        const boss = monsters.find((m) => m.type === 'boss');
+        if (!boss) return;
+        const bw = Math.min(280, W - 40);
+        const bx = (W - bw) / 2;
+        const by = 12;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillRect(bx, by, bw, 8);
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), 8);
         ctx.fillStyle = colors.text;
         ctx.textAlign = 'center';
-        ctx.font = '700 20px system-ui, sans-serif';
-        ctx.globalAlpha = Math.min(1, levelFlash);
-        ctx.fillText(`Livello ${level}!`, W / 2, H / 2 - 40);
-        ctx.globalAlpha = 1;
+        ctx.font = '700 12px system-ui, sans-serif';
+        ctx.fillText('Boss', W / 2, by + 22);
+    }
+
+    function drawJoystick() {
+        if (!joystick) return;
+        const v = joystickVector();
+        const kx = joystick.ox + (v ? v.x * JOY_RADIUS : 0);
+        const ky = joystick.oy + (v ? v.y * JOY_RADIUS : 0);
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(joystick.ox, joystick.oy, JOY_RADIUS, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(kx, ky, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 
     function draw() {
@@ -598,6 +751,12 @@ export function initEmberArena(canvas, opts) {
         drawMonsters();
         drawFireballs();
         if (state !== 'over') drawPlayer(colors);
+        if (screenFlash > 0) {
+            ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.25) * 0.35})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+        drawBossBar(colors);
+        drawJoystick();
         drawLevelFlash(colors);
 
         if (state === 'ready') {
@@ -628,6 +787,10 @@ export function initEmberArena(canvas, opts) {
         },
         fireballAttack() {
             if (state === 'playing') fireballAttack();
+            else start();
+        },
+        ultimateAttack() {
+            if (state === 'playing') ultimateAttack();
             else start();
         },
         destroy() {
