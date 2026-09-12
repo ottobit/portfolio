@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.12">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.13">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -131,6 +131,32 @@
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
             </div>
         </div>
+        <ul class="game-legend">
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="hero" width="44" height="44" role="img" aria-label="Hero" data-aria-label-it="Eroe"></canvas>
+                <div class="game-legend-text"><b data-it="Tu">You</b><span data-it="La spada respinge, la tempesta di fuoco pulisce l'arena.">The sword knocks back, the firestorm clears the arena.</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="slime" width="44" height="44" role="img" aria-label="Slime"></canvas>
+                <div class="game-legend-text"><b data-it="Slime">Slime</b><span data-it="Lento e resistente. Ti cammina addosso.">Slow and tough. Walks straight into you.</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="imp" width="44" height="44" role="img" aria-label="Imp" data-aria-label-it="Diavoletto"></canvas>
+                <div class="game-legend-text"><b data-it="Diavoletto">Imp</b><span data-it="Più svelto, meno vita.">Quicker, thinner skinned.</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="bat" width="44" height="44" role="img" aria-label="Bat" data-aria-label-it="Pipistrello"></canvas>
+                <div class="game-legend-text"><b data-it="Pipistrello — dal liv. 2">Bat — from level 2</b><span data-it="Velocissimo e fragile: un colpo lo spedisce via.">Fast and fragile: one hit sends it flying.</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="caster" width="44" height="44" role="img" aria-label="Caster" data-aria-label-it="Stregone"></canvas>
+                <div class="game-legend-text"><b data-it="Stregone — dal liv. 3">Caster — from level 3</b><span data-it="Tiene le distanze e spara. La spada non para: spostati.">Keeps its distance and shoots. The sword won\'t block it: move.</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="boss" width="44" height="44" role="img" aria-label="Boss"></canvas>
+                <div class="game-legend-text"><b data-it="Boss — ogni 5 livelli">Boss — every 5 levels</b><span data-it="Tanta vita, carica a intervalli, quasi non lo respingi.">Huge health, charges at you, barely flinches.</span></div>
+            </li>
+        </ul>
         <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la tempesta di fuoco a tutta arena (con una ricarica). La spada respinge i mostri, ma dal terzo livello qualcuno inizia a spararti: quello si schiva solo spostandosi. Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena firestorm (has a cooldown). The sword knocks monsters back, but from level 3 some of them shoot at you, and that you can only dodge. On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
         <p class="game-credits" data-it="Co-Authored-By: Claude&lt;br&gt;Codice e cronologia dei commit su &lt;a href=&quot;https://github.com/ottobit/portfolio&quot;&gt;GitHub&lt;/a&gt;.">Co-Authored-By: Claude<br>Code and commit history on <a href="https://github.com/ottobit/portfolio">GitHub</a>.</p>
     </main>
@@ -145,7 +171,7 @@
     <script type="module">
     import '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=9';
+    import { initEmberArena, drawArenaIcon } from '../../assets/js/site/ember-arena-game.js?v=10';
 
     initDiagramPage();
 
@@ -206,6 +232,14 @@
     };
     bindHold(meleeBtn, () => game.meleeAttack(), () => game.meleeRelease());
     bindAction(ultBtn, () => game.ultimateAttack());
+
+    // Legend sprites come from the game module itself, so they can never drift from
+    // what actually walks into the arena. Redrawn on a theme change for the hero's accent.
+    const paintLegend = () => {
+        document.querySelectorAll('.game-legend-sprite').forEach((el) => drawArenaIcon(el, el.dataset.sprite, 44));
+    };
+    paintLegend();
+    new MutationObserver(paintLegend).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     </script>
 </body>
 </html>

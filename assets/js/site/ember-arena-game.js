@@ -145,6 +145,49 @@ const MONSTER_TYPES = {
     },
 };
 
+// Paints one sprite grid. Module level so the arena and the legend under it draw the
+// very same art instead of keeping two copies that drift apart.
+function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
+    const w = rows[0].length * cell;
+    const h = rows.length * cell;
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (flipX) ctx.scale(-1, 1);
+    for (let r = 0; r < rows.length; r++) {
+        for (let c = 0; c < rows[r].length; c++) {
+            const ch = rows[r][c];
+            if (ch === '.') continue;
+            ctx.fillStyle = override || palette[ch];
+            // +0.3 overlap hides hairline seams between cells at fractional scales.
+            ctx.fillRect(-w / 2 + c * cell, -h / 2 + r * cell, cell + 0.3, cell + 0.3);
+        }
+    }
+    ctx.restore();
+}
+
+// Draws one arena sprite into a small standalone canvas, for the legend on the page.
+// key is 'hero' or any MONSTER_TYPES key.
+export function drawArenaIcon(canvas, key, size = 44) {
+    const hero = key === 'hero';
+    const def = hero ? null : MONSTER_TYPES[key];
+    if (!hero && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : def.frames[0];
+    const palette = hero
+        ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
+        : def.palette;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    // Fit the grid in the box with a little air around it.
+    const cell = Math.min(size / rows[0].length, size / rows.length) * 0.88;
+    paintSprite(ctx, rows, palette, size / 2, size / 2, cell);
+}
+
 function pickMonsterType(level) {
     const pool = Object.keys(MONSTER_TYPES).filter((k) => MONSTER_TYPES[k].weight > 0 && MONSTER_TYPES[k].minLevel <= level);
     const total = pool.reduce((s, k) => s + MONSTER_TYPES[k].weight, 0);
@@ -667,21 +710,7 @@ export function initEmberArena(canvas, opts) {
     }
 
     function drawSprite(rows, palette, cx, cy, cell, flipX, override) {
-        const w = rows[0].length * cell;
-        const h = rows.length * cell;
-        ctx.save();
-        ctx.translate(cx, cy);
-        if (flipX) ctx.scale(-1, 1);
-        for (let r = 0; r < rows.length; r++) {
-            for (let c = 0; c < rows[r].length; c++) {
-                const ch = rows[r][c];
-                if (ch === '.') continue;
-                ctx.fillStyle = override || palette[ch];
-                // +0.3 overlap hides hairline seams between cells at fractional scales.
-                ctx.fillRect(-w / 2 + c * cell, -h / 2 + r * cell, cell + 0.3, cell + 0.3);
-            }
-        }
-        ctx.restore();
+        paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override);
     }
 
     function drawShadow(cx, cy, rx) {
