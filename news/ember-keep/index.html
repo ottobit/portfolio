@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.17">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.18">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -129,7 +129,6 @@
         <div class="game-stage">
         <div class="game-canvas-wrap">
             <canvas id="ember-canvas" width="480" height="480" role="img" aria-label="Ember Keep game canvas"></canvas>
-            <button class="game-exit" id="ember-exit" type="button" hidden aria-label="Leave full screen" data-aria-label-it="Esci da tutto schermo">✕</button>
             <button class="game-mute" id="ember-mute" type="button" aria-pressed="false" aria-label="Mute sound" data-aria-label-it="Silenzia il suono">🔊</button>
             <div class="game-overlay" id="ember-overlay" hidden>
                 <h2 id="ember-overlay-lost" data-it="Sei caduto">You fell</h2>
@@ -204,7 +203,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=14';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=15';
 
     initDiagramPage();
 
@@ -221,7 +220,6 @@
     const upgradeOverlay = document.getElementById('ember-upgrade');
     const upgradeCards = document.getElementById('ember-upgrade-cards');
     const muteBtn = document.getElementById('ember-mute');
-    const exitBtn = document.getElementById('ember-exit');
     const wrap = document.querySelector('.game-stage');
     const stick = document.getElementById('ember-stick');
     const knob = document.getElementById('ember-stick-knob');
@@ -282,8 +280,8 @@
         },
         onStateChange(state, stats) {
             if (state === 'playing') {
-                // Only a fresh run goes full screen; coming back from the cards does not.
-                if (!wasRunning) enterImmersive();
+                // Only a fresh run scrolls the page; coming back from the cards does not.
+                if (!wasRunning) focusArena();
                 wasRunning = true;
                 overlay.hidden = true;
                 upgradeOverlay.hidden = true;
@@ -366,55 +364,34 @@
         if (!overlay.hidden) renderOutcome();
     });
 
-    // --- Full screen --------------------------------------------------------
-    // Starting a run puts the arena on the whole screen. Two reasons: the game is
-    // small on a page, and above all a run used to start with the top of the canvas
-    // scrolled out of view — which is exactly where the boss bar lives.
-    const immersive = () => !!document.fullscreenElement || wrap.classList.contains('is-focus');
-
-    function paintImmersive() {
-        const on = immersive();
-        wrap.classList.toggle('is-immersive', on);
-        exitBtn.hidden = !on;
-        document.body.classList.toggle('game-focus-lock', on);
-        // The arena is far bigger now: rebuild the drawing surface so the pixel art
-        // is redrawn at that size instead of being blown up.
-        game.resize();
+    // --- Bringing the arena into view -------------------------------------
+    // A run used to start with the top of the canvas scrolled out of view — exactly
+    // where the boss bar lives. Full screen fixed that and brought its own problem:
+    // squeezed into the screen the stick and the buttons ended up cut off. So no
+    // full screen: the arena is already sized to fit the window (see .game-canvas-wrap
+    // in styles.css), and starting a run just scrolls the page onto it.
+    function focusArena() {
+        const bar = document.querySelector('.game-statbar');
+        const top = bar.getBoundingClientRect().top + window.scrollY;
+        const bottom = wrap.getBoundingClientRect().bottom + window.scrollY;
+        // The window is not all usable: the site's nav sticks to the top and the
+        // footer is pinned to the bottom. Scrolling without counting them parks the
+        // HP bar under the nav, which is exactly the strip that must stay readable.
+        const nav = document.querySelector('.navbar');
+        const navH = nav ? nav.getBoundingClientRect().height : 0;
+        const footerH = parseFloat(getComputedStyle(document.documentElement).fontSize) * 3.75;
+        const room = window.innerHeight - navH - footerH;
+        const height = bottom - top;
+        // Centre it in that space when it fits, otherwise put the stat bar right
+        // under the nav: the HP bar and the boss bar just below it are what must
+        // never be off screen.
+        const margin = navH + (height < room ? (room - height) / 2 : 8);
+        window.scrollTo({ top: Math.max(0, top - margin), behavior: 'smooth' });
     }
 
-    function enterImmersive() {
-        // Works even when full screen is refused or unavailable: the arena has to be
-        // inside the window before the first monster shows up.
-        wrap.scrollIntoView({ block: 'center' });
-        if (immersive()) return;
-        const request = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
-        if (request) {
-            const done = request.call(wrap);
-            // iPhone Safari has no element full screen at all, and any browser can
-            // refuse: fall back to pinning the arena over the page.
-            if (done && typeof done.catch === 'function') done.catch(() => { wrap.classList.add('is-focus'); paintImmersive(); });
-            else paintImmersive();
-        } else {
-            wrap.classList.add('is-focus');
-        }
-        paintImmersive();
-    }
-
-    function leaveImmersive() {
-        wrap.classList.remove('is-focus');
-        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
-        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
-        paintImmersive();
-    }
-
-    exitBtn.addEventListener('click', leaveImmersive);
-    document.addEventListener('fullscreenchange', paintImmersive);
-    document.addEventListener('webkitfullscreenchange', paintImmersive);
+    // The arena follows the window: rebuild the drawing surface so the pixel art is
+    // redrawn at the new size instead of being blown up.
     window.addEventListener('resize', () => game.resize());
-    // Esc leaves the fallback too, where the browser has no full screen to exit.
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && wrap.classList.contains('is-focus')) leaveImmersive();
-    });
 
     // --- Movement stick -----------------------------------------------------
     // Same dead zone and same travel the on-canvas stick had, so the hero steers

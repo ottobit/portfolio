@@ -2014,10 +2014,19 @@ a.info-card:focus-visible .info-card-title::after {
     font-weight: 400;
     margin-right: 0.35em;
 }
+/* The arena never grows past 480px, and never past the height the window has left
+   once the nav, the stat bar, the control deck and the fixed footer have had their
+   share — capping the width is what keeps the 3:4 while doing it. That way a run
+   starts with HP bar, boss bar, arena and buttons all on one screen, which is what
+   full screen used to be here for. The deck follows the same width, so the two stay
+   one block, down to the room its own stick and buttons need. */
+.game-stage {
+    --arena-w: min(480px, calc((100svh - 25rem) * 0.75));
+}
 .game-canvas-wrap {
     position: relative;
     width: 100%;
-    max-width: 480px;
+    max-width: var(--arena-w, 480px);
     margin: 0 auto;
     border-radius: 16px;
     overflow: hidden;
@@ -2115,53 +2124,11 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.6);
 }
-/* Full screen: the arena keeps its 3:4 and is centred, so the touch buttons and the
-   overlays — all children of this wrapper — stay pinned to the arena and not to the
-   corners of a wide monitor. The huge spread shadow paints whatever is left over,
-   which also covers the fallback where there is no ::backdrop to style.
-   .is-focus is that fallback: iPhone Safari has no element full screen. */
-.game-stage:fullscreen,
-.game-stage.is-focus {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    padding: 0.6rem;
-    background: var(--bg);
-}
-/* The arena takes whatever height the deck leaves and keeps its 3:4: sizing it by
-   height with an automatic width is what stops it stretching on a wide screen. */
-.game-stage:fullscreen .game-canvas-wrap,
-.game-stage.is-focus .game-canvas-wrap {
-    flex: 0 1 auto;
-    width: auto;
-    max-width: 100vw;
-    box-shadow: none;
-}
-.game-stage:fullscreen .game-canvas-wrap canvas,
-.game-stage.is-focus .game-canvas-wrap canvas {
-    width: auto;
-    height: min(calc(100vh - 210px), 75vw);
-    max-width: 100vw;
-}
-.game-stage:fullscreen .game-controls,
-.game-stage.is-focus .game-controls {
-    margin-top: 0;
-    flex: 0 0 auto;
-}
-/* While the arena owns the screen the page behind it must not scroll away. */
-body.game-focus-lock {
-    overflow: hidden;
-}
 /* The control deck. It used to sit on the canvas — stick drawn in the arena's
    bottom-left corner, buttons floating over the bottom-right — and between them they
    covered exactly the strip you get pushed into when the monsters close in. */
 .game-controls {
-    max-width: 480px;
+    max-width: max(300px, var(--arena-w, 480px));
     margin: 0.75rem auto 0;
     padding: 0.7rem 0.85rem 0.85rem;
     border: 1px solid var(--border);
@@ -2216,31 +2183,6 @@ body.game-focus-lock {
     background: var(--accent);
     opacity: 0.85;
     pointer-events: none;
-}
-
-.game-exit {
-    position: absolute;
-    top: 0.6rem;
-    left: 0.6rem;
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--text);
-    font-size: 0.9rem;
-    line-height: 1;
-    cursor: pointer;
-    opacity: 0.75;
-    z-index: 3;
-    transition: opacity 0.15s ease;
-}
-.game-exit:hover,
-.game-exit:focus-visible {
-    opacity: 1;
 }
 
 .game-mute {
