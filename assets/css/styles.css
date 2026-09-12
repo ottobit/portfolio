@@ -2351,15 +2351,13 @@ a.info-card:focus-visible .info-card-title::after {
     opacity: 1;
 }
 
-/* Hidden by default — only shown in the portrait-phone media query below, in
-   place of the canvas and controls it replaces there. */
+/* A third overlay in the .game-overlay family (alongside the end screen and the
+   upgrade cards) — shown on top of the canvas, not in place of it. The canvas
+   itself stays visible and interactive in portrait; this only appears once the
+   player actually tries to play (see the pointerdown/keydown interceptors in
+   index.html), and hides itself again the moment the phone is rotated. */
 .game-rotate-prompt {
-    display: none;
-    flex-direction: column;
-    align-items: center;
     gap: 0.6rem;
-    padding: 3rem 1rem;
-    text-align: center;
     color: var(--text-muted);
 }
 .game-rotate-icon {
@@ -2378,17 +2376,15 @@ a.info-card:focus-visible .info-card-title::after {
 }
 
 /* Portrait phone: touch controls don't fit a narrow, tall arena the way the
-   landscape one does, so this is no longer a valid way to play — the prompt
-   above replaces both the canvas and the controls until the phone is
-   rotated. Same 480px "phone" threshold the rest of the site already uses
-   (e.g. line ~1560), so a portrait tablet (well past 480px wide) is
-   unaffected and keeps playing normally, same as today. */
+   landscape one does, so this is no longer a valid way to play — but the
+   canvas itself stays put, showing its own "tap or press Space" idle prompt
+   same as always. It's the attempt to actually play (see index.html) that
+   surfaces .game-rotate-prompt over it. Same 480px "phone" threshold the rest
+   of the site already uses (e.g. line ~1560), so a portrait tablet (well past
+   480px wide) is unaffected and keeps playing normally, same as today. */
 @media (orientation: portrait) and (max-width: 480px) {
-    .game-stage {
+    .game-controls {
         display: none;
-    }
-    .game-rotate-prompt {
-        display: flex;
     }
 }
 
@@ -2494,39 +2490,36 @@ a.info-card:focus-visible .info-card-title::after {
            below it that the arena couldn't use either. A little lift off the very
            bottom edge keeps the thumb's resting spot clear of the panel's corner. */
         align-self: end;
-        margin-bottom: 0.6rem;
+        margin-bottom: 1rem;
     }
     .game-play .game-controls-actions {
         grid-column: 3;
         grid-row: 1;
         align-self: center;
         flex-direction: column;
-        gap: 0.55rem;
+        gap: 0.7rem;
     }
-    /* Smaller than the portrait deck on purpose: a column of stick + two buttons has
-       to fit next to the arena within whatever height this phone actually has, which
-       measured on real devices (browser chrome included) can be under 300px — but
-       the full-shape arena (see .game-canvas-wrap above) freed up enough room either
-       side that these can now run bigger than the first landscape pass while still
-       fitting comfortably. */
+    /* Sized up again for accessibility (bigger touch targets, easier to read and
+       hit accurately) — the full-shape arena still leaves enough room next to it,
+       even at the tightest tested phone height (~280px real), to go bigger still. */
     .game-play .game-stick {
-        width: 92px;
-        height: 92px;
+        width: 116px;
+        height: 116px;
     }
     .game-play .game-stick-knob {
-        width: 38px;
-        height: 38px;
-        margin: -19px 0 0 -19px;
+        width: 46px;
+        height: 46px;
+        margin: -23px 0 0 -23px;
     }
     .game-play .game-touch-btn {
-        width: 58px;
-        height: 58px;
-        font-size: 1.4rem;
+        width: 74px;
+        height: 74px;
+        font-size: 1.6rem;
     }
     .game-play .game-touch-btn-ult {
-        width: 68px;
-        height: 68px;
-        font-size: 1.6rem;
+        width: 86px;
+        height: 86px;
+        font-size: 1.9rem;
     }
 }
 
