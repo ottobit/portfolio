@@ -492,8 +492,11 @@ export function initEmberArena(canvas, opts) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ctx = canvas.getContext('2d');
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const W = canvas.clientWidth;
-    const H = canvas.clientHeight;
+    // The logical world size. Almost always just a DPR-crispness concern (see
+    // resize() below), but it does change shape outright when the phone is
+    // rotated in/out of the landscape layout — see resize()'s reflow branch.
+    let W = canvas.clientWidth;
+    let H = canvas.clientHeight;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
     ctx.scale(dpr, dpr);
@@ -716,15 +719,38 @@ export function initEmberArena(canvas, opts) {
         onStateChange(state);
     }
 
-    // The arena is sized by the page and follows the window. The logical space stays W x H, so
-    // every coordinate in this file keeps its meaning: only the backing store is
-    // rebuilt, and the pixel art is redrawn sharp instead of being upscaled.
+    // The arena is sized by the page and follows the window. Most of the time the
+    // logical space stays W x H and only the backing store is rebuilt, so the
+    // pixel art is redrawn sharp instead of being upscaled — but rotating the
+    // phone in/out of the landscape layout genuinely changes the *shape*
+    // available (see the landscape media query in styles.css), not just its
+    // scale. When that happens, every live entity is reflowed proportionally
+    // onto the new shape — so nobody near an edge gets stranded outside the new
+    // bounds or bunched into a corner — and W/H themselves are updated to
+    // match: the one and only place the logical world size changes after init.
     function resize() {
         const rect = canvas.getBoundingClientRect();
         if (!rect.width) return;
+        const newW = canvas.clientWidth;
+        const newH = canvas.clientHeight;
+        const shapeChanged = !!(newW && newH) && Math.abs(newW / newH - W / H) > 0.02;
+        if (shapeChanged) {
+            const sx = newW / W;
+            const sy = newH / H;
+            const reflow = (o) => { o.x *= sx; o.y *= sy; };
+            reflow(player);
+            monsters.forEach(reflow);
+            explosions.forEach(reflow);
+            bolts.forEach(reflow);
+            hearts.forEach(reflow);
+            floaters.forEach(reflow);
+            particles.forEach(reflow);
+            W = newW;
+            H = newH;
+        }
         const scale = Math.min(Math.max((rect.width / W) * dpr, dpr), 4);
         const nextW = Math.round(W * scale);
-        if (nextW === canvas.width) return;
+        if (!shapeChanged && nextW === canvas.width) return;
         canvas.width = nextW;
         canvas.height = Math.round(H * scale);
         ctx.setTransform(scale, 0, 0, scale, 0, 0);

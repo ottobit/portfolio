@@ -2375,49 +2375,114 @@ a.info-card:focus-visible .info-card-title::after {
         z-index: 1100;
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
-        padding: 0.5rem 0.85rem;
+        gap: 0.15rem;
+        padding: 0.2rem 0.35rem;
         background: var(--bg);
+        /* A phone with its browser chrome still showing can be well under 350px tall
+           in landscape — shorter than this panel was first tuned against. The deck's
+           own sizing below keeps it fitting in that case too, but this is the backstop
+           that keeps a genuinely tighter phone from spilling controls past the edge of
+           the panel instead of just quietly clipping them. */
+        overflow: hidden;
     }
     .game-play .game-statbar {
         flex: 0 0 auto;
         max-width: none;
         margin: 0;
+        gap: 0.1rem;
     }
+    .game-play .game-statbar-row {
+        font-size: 0.7rem;
+        gap: 0.3rem;
+    }
+    .game-play .game-statbar-track {
+        height: 6px;
+    }
+    /* Fullscreen means the canvas and the controls together claim the whole
+       landscape screen — not a small arena floating in the middle of empty
+       gutters. The stick sits at the true bottom-left corner (thumb rests there
+       naturally when a phone is held in two hands) and the buttons stack in a
+       column at the true right edge (reachable by the other thumb), so no
+       control needs a one-handed reach across the screen. The arena fills
+       everything in between, top to bottom — .game-controls goes display:contents
+       so its own two children (the stick, the button column) become grid items
+       in their own right instead of one block that would still sit to only one
+       side. */
     .game-play .game-stage {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        /* Without this, the row has no definite height of its own to give — it sizes
+           to whatever its items already are, so the arena's height:100% below had
+           nothing real to resolve against and fell back to a small default instead of
+           actually filling the row. This is what gives it one to stretch into. */
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
         flex: 1 1 auto;
         min-height: 0;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        gap: 0.85rem;
+        gap: 0.35rem;
     }
-    /* Height is what this orientation has plenty of, so the arena sizes itself by
-       height and lets width follow to keep its 3:4 — the mirror of the desktop-short
-       case, where width was the scarce axis instead. */
+    .game-play .game-controls {
+        display: contents;
+    }
+    /* A portrait 3:4 arena inside a wide, short phone screen can only ever be a
+       narrow strip with empty gutters either side — that's geometry, not spacing,
+       and no amount of padding fixes it. So here the arena isn't kept at 3:4 at
+       all: it fills the entire middle grid column, whatever shape that turns out
+       to be. ember-arena-game.js has no fixed-shape assumptions (spawn, movement
+       clamps and knockback all work off W/H independently) and reflows its live
+       entities when this shape changes underneath it — see resize() there. */
     .game-play .game-canvas-wrap {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: stretch;
+        align-self: stretch;
         max-width: none;
-        width: auto;
+        width: 100%;
         height: 100%;
-        flex: 0 1 auto;
     }
     .game-play .game-canvas-wrap canvas {
-        width: auto;
+        width: 100%;
         height: 100%;
+        aspect-ratio: auto;
     }
-    /* Stick and buttons stand in a column beside the arena instead of a row under
-       it — the axis with room to spare here is height, not width. */
-    .game-play .game-controls {
-        flex: 0 0 auto;
-        max-width: none;
-        margin: 0;
-        flex-direction: column;
-        justify-content: center;
-        gap: 0.85rem;
+    .game-play .game-stick {
+        grid-column: 1;
+        grid-row: 1;
+        /* Bottom-left, not centred on the edge: a two-handed grip rests the left
+           thumb low, and centring it vertically just left empty air above and
+           below it that the arena couldn't use either. */
+        align-self: end;
     }
     .game-play .game-controls-actions {
+        grid-column: 3;
+        grid-row: 1;
+        align-self: center;
         flex-direction: column;
+        gap: 0.4rem;
+    }
+    /* Smaller than the portrait deck on purpose: a column of stick + two buttons has
+       to fit next to the arena within whatever height this phone actually has, which
+       measured on real devices (browser chrome included) can be under 300px — the
+       portrait sizes (104/64/76px) alone would already overflow that before the arena
+       or the stat bar get a share. */
+    .game-play .game-stick {
+        width: 72px;
+        height: 72px;
+    }
+    .game-play .game-stick-knob {
+        width: 30px;
+        height: 30px;
+        margin: -15px 0 0 -15px;
+    }
+    .game-play .game-touch-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2rem;
+    }
+    .game-play .game-touch-btn-ult {
+        width: 54px;
+        height: 54px;
+        font-size: 1.4rem;
     }
 }
 
