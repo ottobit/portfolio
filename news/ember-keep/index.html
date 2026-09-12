@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.27">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.28">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -135,7 +135,9 @@
                 <h2 id="ember-overlay-lost" data-it="Sei caduto">You fell</h2>
                 <h2 id="ember-overlay-won" data-it="Hai vinto!" hidden>You won!</h2>
                 <p id="ember-overlay-stats"></p>
+                <dl class="game-overlay-detail" id="ember-overlay-detail"></dl>
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
+                <button class="game-overlay-reset" id="ember-reset-record" type="button" data-it="Azzera record">Reset record</button>
             </div>
             <div class="game-overlay game-upgrade" id="ember-upgrade" hidden>
                 <h2 data-it="Scegli un potenziamento">Choose an upgrade</h2>
@@ -218,7 +220,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=25';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=26';
 
     initDiagramPage();
 
@@ -229,6 +231,8 @@
     const levelText = document.getElementById('ember-level-text');
     const overlay = document.getElementById('ember-overlay');
     const overlayStats = document.getElementById('ember-overlay-stats');
+    const overlayDetail = document.getElementById('ember-overlay-detail');
+    const resetRecordBtn = document.getElementById('ember-reset-record');
     const restartBtn = document.getElementById('ember-restart');
     const overlayLost = document.getElementById('ember-overlay-lost');
     const overlayWon = document.getElementById('ember-overlay-won');
@@ -376,6 +380,34 @@
         overlayStats.textContent = it
             ? `Livello ${lastStats.level} — ${lastStats.monstersKilled} mostri sconfitti — ${lastStats.time}s — Record: ${lastStats.best}`
             : `Level ${lastStats.level} — ${lastStats.monstersKilled} monsters defeated — ${lastStats.time}s — Best: ${lastStats.best}`;
+        renderOutcomeDetail(it);
+    }
+
+    // Hits and the run's final upgrade totals — one row each, reusing the same
+    // icons the upgrade cards already show for the matching stat.
+    function renderOutcomeDetail(it) {
+        overlayDetail.innerHTML = '';
+        const fs = lastStats.finalStats || {};
+        const rows = [
+            [null, it ? 'Colpi dati' : 'Hits landed', lastStats.hitsGiven],
+            [null, it ? 'Colpi subiti' : 'Hits taken', lastStats.hitsReceived],
+            ['💪', it ? 'Danno spada' : 'Sword damage', fs.meleeDamage],
+            ['🔥', it ? 'Danno palla di fuoco' : 'Fireball damage', fs.fireDamage],
+            ['❤️', it ? 'Vita massima' : 'Max health', fs.maxHp],
+            ['👢', it ? 'Velocità' : 'Speed', fs.speed],
+            ['⚔️', it ? 'Portata spada' : 'Sword reach', fs.meleeRange],
+            ['👊', it ? 'Spinta' : 'Knockback', Math.round(fs.knockback)],
+            ['🌀', it ? 'Durata rotazione' : 'Spin duration', `${fs.spinDur.toFixed(2)}s`],
+            ['⏱️', it ? 'Ricarica ultimate' : 'Ultimate cooldown', `${fs.ultCd.toFixed(1)}s`],
+            ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
+        ];
+        rows.forEach(([icon, label, value]) => {
+            const dt = document.createElement('dt');
+            dt.textContent = icon ? `${icon} ${label}` : label;
+            const dd = document.createElement('dd');
+            dd.textContent = value;
+            overlayDetail.append(dt, dd);
+        });
     }
 
     // 1, 2 and 3 pick a card without reaching for the mouse.
@@ -529,6 +561,14 @@
     });
 
     restartBtn.addEventListener('click', () => game.start());
+    resetRecordBtn.addEventListener('click', () => {
+        const it = getLang() === 'it';
+        const sure = confirm(it ? 'Azzerare il record?' : 'Reset the record?');
+        if (!sure) return;
+        game.resetRecord();
+        if (lastStats) lastStats.best = 1;
+        renderOutcome();
+    });
     // pointerdown (not click) so the touch buttons fire instantly and never
     // steal the pointer from the on-canvas joystick under the other thumb.
     const bindAction = (btn, action) => {

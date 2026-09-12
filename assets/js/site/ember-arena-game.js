@@ -1,4 +1,5 @@
 const BEST_LEVEL_KEY = 'emberKeepBestLevel';
+const RECORD_KEY = 'emberKeepRecord';
 const WON_KEY = 'emberKeepWon';
 const MUTE_KEY = 'emberKeepMuted';
 // Kill the warlord that shows up here and the run is over — won, not just survived.
@@ -509,6 +510,16 @@ function writeBestLevel(level) {
         localStorage.setItem(BEST_LEVEL_KEY, String(level));
     } catch (e) {}
 }
+// The record run's full detail — monsters killed, time, hits, and the final
+// stats its upgrades added up to — kept alongside the plain bestLevel number
+// so the fast "best" read in onStatsChange doesn't need to parse JSON every
+// frame. `null` clears it (see resetRecord).
+function writeBestRecord(record) {
+    try {
+        if (record) localStorage.setItem(RECORD_KEY, JSON.stringify(record));
+        else localStorage.removeItem(RECORD_KEY);
+    } catch (e) {}
+}
 
 // Rough perceived brightness of a CSS colour, enough to tell a light theme from a
 // dark one without pulling in a colour library.
@@ -610,6 +621,8 @@ export function initEmberArena(canvas, opts) {
     let xp = 0;
     let xpToNext = 6;
     let monstersKilled = 0;
+    let hitsGiven = 0;    // sword swings and fireball waves that actually landed on a monster
+    let hitsReceived = 0; // contact, bolts and boss slams that actually landed on the hero
     let bestLevel = readBestLevel();
     let state = 'ready'; // ready | playing | choosing | over | won
     let elapsed = 0;
@@ -755,6 +768,8 @@ export function initEmberArena(canvas, opts) {
         xp = 0;
         xpToNext = 6;
         monstersKilled = 0;
+        hitsGiven = 0;
+        hitsReceived = 0;
         elapsed = 0;
         spawnTimer = 0;
         spinning = false;
@@ -909,6 +924,7 @@ export function initEmberArena(canvas, opts) {
                 m.kx += (dx / dist) * push;
                 m.ky += (dy / dist) * push;
                 damageMonster(i, player.meleeDamage);
+                hitsGiven++;
             }
         }
     }
@@ -1060,6 +1076,7 @@ export function initEmberArena(canvas, opts) {
     function hurtPlayer(amount) {
         if (state !== 'playing') return false;
         if (elapsed < player.invulnUntil) return false;
+        hitsReceived++;
         player.hp -= amount;
         player.invulnUntil = elapsed + 0.6;
         hurtFlash = 0.45;
@@ -1370,6 +1387,7 @@ export function initEmberArena(canvas, opts) {
                         ex.hit.add(m);
                         burst(m.x, m.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 4 : 9);
                         damageMonster(j, player.fireDamage * 3);
+                        hitsGiven++;
                     }
                 }
                 for (let j = bolts.length - 1; j >= 0; j--) {
@@ -1386,32 +1404,43 @@ export function initEmberArena(canvas, opts) {
         pushCooldowns();
     }
 
-    function win() {
-        state = 'won';
-        hasWon = true;
-        writeFlag(WON_KEY, true);
-        if (level >= bestLevel) {
-            bestLevel = level;
-            writeBestLevel(bestLevel);
-        }
-        spinning = false;
-        spinHeld = false;
-        sfx('win');
-        pushStats();
-        onStateChange(state, { level, monstersKilled, best: bestLevel, time: Math.round(elapsed), won: true });
+    // What the upgrade cards actually added up to by the end of the run — same
+    // shape whether the run ended in victory or defeat, and whether or not it
+    // beat the record.
+    function finalStats() {
+        return {
+            meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, maxHp: player.maxHp,
+            speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
+            knockback: tuning.knockback, ultCd: tuning.ultCd, heartChance: tuning.heartChance,
+        };
     }
-    function gameOver() {
-        state = 'over';
+    function endRun(won) {
+        state = won ? 'won' : 'over';
+        if (won) {
+            hasWon = true;
+            writeFlag(WON_KEY, true);
+        }
         spinning = false;
         spinHeld = false;
         spinAngle = 0;
+        const stats = finalStats();
         if (level >= bestLevel) {
             bestLevel = level;
             writeBestLevel(bestLevel);
+            writeBestRecord({ level, monstersKilled, time: Math.round(elapsed), hitsGiven, hitsReceived, finalStats: stats });
         }
-        sfx('over');
+        sfx(won ? 'win' : 'over');
         pushStats();
-        onStateChange(state, { level, monstersKilled, best: bestLevel, time: Math.round(elapsed), won: false });
+        onStateChange(state, {
+            level, monstersKilled, best: bestLevel, time: Math.round(elapsed), won,
+            hitsGiven, hitsReceived, finalStats: stats,
+        });
+    }
+    function win() {
+        endRun(true);
+    }
+    function gameOver() {
+        endRun(false);
     }
 
     function drawSprite(rows, palette, cx, cy, cell, flipX, override) {
@@ -1821,6 +1850,14 @@ export function initEmberArena(canvas, opts) {
         },
         hasWon() {
             return hasWon;
+        },
+        // The record only, not the separate "won at least once" star (WON_KEY) —
+        // that's its own achievement, not part of the stat record.
+        resetRecord() {
+            bestLevel = 1;
+            writeBestLevel(bestLevel);
+            writeBestRecord(null);
+            pushStats();
         },
         finalLevel: FINAL_LEVEL,
         destroy() {
