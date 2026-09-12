@@ -56,8 +56,8 @@ export function initDotDodge(canvas, opts) {
     function onScoreChange(s, h) {
         if (typeof options.onScoreChange === 'function') options.onScoreChange(s, h);
     }
-    function onStateChange(s) {
-        if (typeof options.onStateChange === 'function') options.onStateChange(s);
+    function onStateChange(s, finalScore, best) {
+        if (typeof options.onStateChange === 'function') options.onStateChange(s, finalScore, best);
     }
 
     function reset() {
