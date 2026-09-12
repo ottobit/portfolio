@@ -2178,20 +2178,30 @@ a.info-card:focus-visible .info-card-title::after {
 }
 
 .game-instructions {
+    max-width: 480px;
+    margin: 0.75rem auto 0;
     text-align: center;
     color: var(--text-muted);
     font-size: 0.85rem;
-    margin-top: 0.75rem;
 }
+/* The credits sit under the section heading now, and that heading already carries
+   the rule: a second border here would draw two lines a few pixels apart. */
 .game-credits {
-    max-width: 480px;
-    margin: 1.25rem auto 0;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--border);
-    text-align: center;
+    margin: 0;
     color: var(--text-muted);
     font-size: 0.8rem;
     line-height: 1.5;
+}
+/* The heading that introduces the game: same titled rule as the project pages, but
+   held to the arena's own column so the rule, the canvas, the instructions and the
+   legend all line up on the same edges. */
+.ember-heading {
+    max-width: 480px;
+    margin: 2.5rem auto 1.4rem;
+    gap: 0;
+}
+.ember-heading .doc-section h2 {
+    margin-bottom: 0.7rem;
 }
 .game-credits a {
     color: var(--accent);
