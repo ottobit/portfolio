@@ -2450,39 +2450,42 @@ a.info-card:focus-visible .info-card-title::after {
         grid-row: 1;
         /* Bottom-left, not centred on the edge: a two-handed grip rests the left
            thumb low, and centring it vertically just left empty air above and
-           below it that the arena couldn't use either. */
+           below it that the arena couldn't use either. A little lift off the very
+           bottom edge keeps the thumb's resting spot clear of the panel's corner. */
         align-self: end;
+        margin-bottom: 0.6rem;
     }
     .game-play .game-controls-actions {
         grid-column: 3;
         grid-row: 1;
         align-self: center;
         flex-direction: column;
-        gap: 0.4rem;
+        gap: 0.55rem;
     }
     /* Smaller than the portrait deck on purpose: a column of stick + two buttons has
        to fit next to the arena within whatever height this phone actually has, which
-       measured on real devices (browser chrome included) can be under 300px — the
-       portrait sizes (104/64/76px) alone would already overflow that before the arena
-       or the stat bar get a share. */
+       measured on real devices (browser chrome included) can be under 300px — but
+       the full-shape arena (see .game-canvas-wrap above) freed up enough room either
+       side that these can now run bigger than the first landscape pass while still
+       fitting comfortably. */
     .game-play .game-stick {
-        width: 72px;
-        height: 72px;
+        width: 92px;
+        height: 92px;
     }
     .game-play .game-stick-knob {
-        width: 30px;
-        height: 30px;
-        margin: -15px 0 0 -15px;
+        width: 38px;
+        height: 38px;
+        margin: -19px 0 0 -19px;
     }
     .game-play .game-touch-btn {
-        width: 46px;
-        height: 46px;
-        font-size: 1.2rem;
+        width: 58px;
+        height: 58px;
+        font-size: 1.4rem;
     }
     .game-play .game-touch-btn-ult {
-        width: 54px;
-        height: 54px;
-        font-size: 1.4rem;
+        width: 68px;
+        height: 68px;
+        font-size: 1.6rem;
     }
 }
 
