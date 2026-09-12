@@ -1,4 +1,10 @@
 const BEST_LEVEL_KEY = 'emberKeepBestLevel';
+const WON_KEY = 'emberKeepWon';
+const MUTE_KEY = 'emberKeepMuted';
+// Kill the warlord that shows up here and the run is over — won, not just survived.
+// Exported so the page can show the target ("7 / 15") without reaching into a game
+// instance that does not exist yet while initEmberArena is still running.
+export const FINAL_LEVEL = 15;
 const FIRE_COLOR = '#e67e22';
 const FIRE_GLOW = '#f9ca24';
 // Enemy bolts are magenta on purpose: never the hero's own fire orange, so what
@@ -7,6 +13,17 @@ const BOLT_COLOR = '#9b59b6';
 const BOLT_GLOW = '#e056fd';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
+const HEART_PALETTE = { h: '#e74c3c', H: '#ff7675' };
+const HEART_FRAME = [
+    '.hh...hh.',
+    'hhhhhhhhh',
+    'hHhhhhhhh',
+    'hhhhhhhhh',
+    '.hhhhhhh.',
+    '..hhhhh..',
+    '...hhh...',
+    '....h....',
+];
 
 // Pixel-art sprites drawn with fillRect on a small grid — same technique as
 // the Triple Triad icon, so no external image assets. '.' is transparent.
@@ -122,7 +139,30 @@ const MONSTER_TYPES = {
         // loiters at the edge instead of putting the player under pressure.
         shoot: { interval: 1.8, speed: 165, damage: 12, range: 420, standoff: 170, approach: 0.6 },
     },
-    // Never picked by the random spawn (weight 0): spawned explicitly every 5 levels.
+    // Neither boss is ever picked by the random spawn (weight 0): both are summoned
+    // explicitly, the ogre every 5 levels and the warlord once, at FINAL_LEVEL.
+    finalBoss: {
+        palette: { A: '#7b241c', a: '#4a1410', E: '#ffffff', p: '#f1c40f', C: '#f1c40f', T: '#dfe6e9', K: '#2c3e50' },
+        frames: [[
+            '..C..C....C..C..',
+            '..CCCCCCCCCCCC..',
+            '...AAAAAAAAAA...',
+            '..AAAAAAAAAAAA..',
+            '..AAEEAAAAEEAA..',
+            '..AAppAAAAppAA..',
+            '..AAAAAAAAAAAA..',
+            '..AAATTTTTTAAA..',
+            '.aAAAAAAAAAAAAa.',
+            'aAAAAAAAAAAAAAAa',
+            'aAAAAKKKKKKAAAAa',
+            'aAAAAKKKKKKAAAAa',
+            '.aAAAAAAAAAAAAa.',
+            '..aAAAAAAAAAAa..',
+            '...aa......aa...',
+            '..aaa......aaa..',
+        ]],
+        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 19, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
+    },
     boss: {
         palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
         frames: [[
@@ -169,12 +209,13 @@ function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
 // key is 'hero' or any MONSTER_TYPES key.
 export function drawArenaIcon(canvas, key, size = 44) {
     const hero = key === 'hero';
-    const def = hero ? null : MONSTER_TYPES[key];
-    if (!hero && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : def.frames[0];
+    const heart = key === 'heart';
+    const def = hero || heart ? null : MONSTER_TYPES[key];
+    if (!hero && !heart && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : def.frames[0];
     const palette = hero
         ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : def.palette;
+        : heart ? HEART_PALETTE : def.palette;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
@@ -186,6 +227,122 @@ export function drawArenaIcon(canvas, key, size = 44) {
     // Fit the grid in the box with a little air around it.
     const cell = Math.min(size / rows[0].length, size / rows.length) * 0.88;
     paintSprite(ctx, rows, palette, size / 2, size / 2, cell);
+}
+
+// Level-up cards. Every point of growth comes from one of these, so two runs are
+// never the same. `apply` mutates the run's player and tuning in place.
+const UPGRADES = [
+    {
+        id: 'strength', icon: '💪', max: 5,
+        name: { it: 'Forza', en: 'Strength' },
+        desc: { it: 'La spada fa più male.', en: 'The sword hits harder.' },
+        apply: (p) => { p.player.meleeDamage += 7; },
+    },
+    {
+        id: 'blade', icon: '⚔️', max: 3,
+        name: { it: 'Lama lunga', en: 'Long blade' },
+        desc: { it: 'Colpisci da più lontano.', en: 'Reach further out.' },
+        apply: (p) => { p.tuning.meleeRange += 11; },
+    },
+    {
+        id: 'fury', icon: '🌀', max: 3,
+        name: { it: 'Furia', en: 'Fury' },
+        desc: { it: 'Giri più in fretta, colpisci più spesso.', en: 'Spin faster, hit more often.' },
+        apply: (p) => { p.tuning.spinDur *= 0.82; },
+    },
+    {
+        id: 'shove', icon: '👊', max: 3,
+        name: { it: 'Spinta', en: 'Shove' },
+        desc: { it: 'I mostri volano via più lontano.', en: 'Monsters fly further back.' },
+        apply: (p) => { p.tuning.knockback *= 1.4; },
+    },
+    {
+        id: 'ember', icon: '🔥', max: 5,
+        name: { it: 'Braci', en: 'Embers' },
+        desc: { it: 'La tempesta di fuoco brucia di più.', en: 'The firestorm burns hotter.' },
+        apply: (p) => { p.player.fireDamage += 6; },
+    },
+    {
+        id: 'storm', icon: '⏱️', max: 3,
+        name: { it: 'Tempesta rapida', en: 'Quick storm' },
+        desc: { it: 'Ricarica la tempesta prima.', en: 'The firestorm comes back sooner.' },
+        apply: (p) => { p.tuning.ultCd = Math.max(3, p.tuning.ultCd - 1.6); },
+    },
+    {
+        id: 'vigor', icon: '❤️', max: 5,
+        name: { it: 'Vigore', en: 'Vigour' },
+        desc: { it: 'Più vita massima, e te la dà subito.', en: 'More max health, granted at once.' },
+        apply: (p) => { p.player.maxHp += 30; p.player.hp = Math.min(p.player.maxHp, p.player.hp + 30); },
+    },
+    {
+        id: 'boots', icon: '👢', max: 3,
+        name: { it: 'Passo svelto', en: 'Swift boots' },
+        desc: { it: 'Ti muovi più veloce: schivi meglio.', en: 'Move faster, dodge better.' },
+        apply: (p) => { p.tuning.speed += 20; },
+    },
+    {
+        id: 'luck', icon: '🍀', max: 3,
+        name: { it: 'Fortuna', en: 'Fortune' },
+        desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
+        apply: (p) => { p.tuning.heartChance += 0.09; },
+    },
+];
+
+function readFlag(key) {
+    try {
+        return localStorage.getItem(key) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+function writeFlag(key, value) {
+    try {
+        localStorage.setItem(key, value ? '1' : '0');
+    } catch (e) {}
+}
+
+// Sound is synthesised, same approach as mascot.js: no files to load, and the
+// AudioContext is only created once something actually asks for a sound — which
+// can't happen before the player presses start.
+let audioCtx = null;
+function getAudioCtx() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+function chirp({ from, to, duration, type = 'square', gain = 0.05, delay = 0 }) {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t0 = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const vol = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(to, 1), t0 + duration);
+    vol.gain.setValueAtTime(gain, t0);
+    vol.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(vol).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration);
+}
+function noiseBurst(duration, gain, filterFreq) {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const size = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterFreq;
+    const vol = ctx.createGain();
+    vol.gain.value = gain;
+    src.connect(filter).connect(vol).connect(ctx.destination);
+    src.start();
 }
 
 function pickMonsterType(level) {
@@ -256,22 +413,37 @@ export function initEmberArena(canvas, opts) {
     const JOY_GRAB = JOY_RADIUS * 2;
     // The sword has no cooldown: holding the action keeps the hero spinning like a
     // top, and a tap is just a spin that stops after its first full turn.
-    const SPIN_DUR = 0.22; // seconds per full turn
-    const SPIN_RATE = (Math.PI * 2) / SPIN_DUR;
     const TAU = Math.PI * 2;
-    const ULT_CD = 8;
+    const BASE_SPIN_DUR = 0.22; // seconds per full turn, before any Fury card
+    const BASE_ULT_CD = 8;
+    // Everything a level-up card can move lives here, so a card is one line and the
+    // run's numbers are never scattered as literals through the loop.
+    const baseTuning = {
+        spinDur: BASE_SPIN_DUR,
+        ultCd: BASE_ULT_CD,
+        meleeRange: 44,
+        speed: 190,
+        knockback: KNOCKBACK,
+        // opts.heartChance exists for the tests, the same seam opts.startLevel already
+        // provides: a drop this rare is otherwise only observable by playing for minutes.
+        heartChance: typeof options.heartChance === 'number' ? options.heartChance : 0.13,
+    };
+    let tuning = Object.assign({}, baseTuning);
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
 
     let monsters = [];
     let explosions = [];
     let bolts = [];
+    let hearts = [];
+    let floaters = [];   // damage numbers drifting up
+    let particles = [];  // what is left of a monster that just died
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
     let monstersKilled = 0;
     let bestLevel = readBestLevel();
-    let state = 'ready'; // ready | playing | over
+    let state = 'ready'; // ready | playing | choosing | over | won
     let elapsed = 0;
     let spawnTimer = 0;
     let spinning = false;   // the hero is turning right now
@@ -282,6 +454,12 @@ export function initEmberArena(canvas, opts) {
     let levelFlash = 0;
     let flashText = '';
     let screenFlash = 0;
+    let hurtFlash = 0;
+    let shake = 0;
+    let taken = {};              // upgrade id -> how many times it was picked
+    let pendingChoices = null;   // the three cards waiting to be answered
+    let hasWon = readFlag(WON_KEY);
+    let muted = readFlag(MUTE_KEY);
     let lastTime = null;
     let rafId = null;
 
@@ -294,18 +472,36 @@ export function initEmberArena(canvas, opts) {
     function onCooldownChange(ult) {
         if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult);
     }
+    function onChoices(choices) {
+        if (typeof options.onChoices === 'function') options.onChoices(choices);
+    }
+    // One place decides whether a sound happens at all: muted, or not playing yet.
+    function sfx(name) {
+        if (muted || state === 'ready') return;
+        if (name === 'swing') chirp({ from: 620, to: 300, duration: 0.07, type: 'triangle', gain: 0.025 });
+        else if (name === 'hit') noiseBurst(0.07, 0.05, 1800);
+        else if (name === 'kill') chirp({ from: 340, to: 90, duration: 0.16, type: 'square', gain: 0.035 });
+        else if (name === 'hurt') chirp({ from: 180, to: 60, duration: 0.26, type: 'sawtooth', gain: 0.05 });
+        else if (name === 'heart') { chirp({ from: 540, to: 800, duration: 0.1, type: 'sine', gain: 0.05 }); chirp({ from: 800, to: 1100, duration: 0.12, type: 'sine', gain: 0.04, delay: 0.09 }); }
+        else if (name === 'level') { chirp({ from: 440, to: 660, duration: 0.12, gain: 0.04 }); chirp({ from: 660, to: 990, duration: 0.16, gain: 0.04, delay: 0.11 }); }
+        else if (name === 'card') chirp({ from: 880, to: 1320, duration: 0.1, type: 'triangle', gain: 0.04 });
+        else if (name === 'storm') { noiseBurst(0.5, 0.07, 900); chirp({ from: 220, to: 1200, duration: 0.45, type: 'sawtooth', gain: 0.03 }); }
+        else if (name === 'boss') { chirp({ from: 120, to: 60, duration: 0.7, type: 'sawtooth', gain: 0.06 }); noiseBurst(0.5, 0.05, 400); }
+        else if (name === 'win') [0, 0.13, 0.26, 0.42].forEach((d, i) => chirp({ from: [523, 659, 784, 1046][i], to: [523, 659, 784, 1046][i], duration: 0.22, type: 'triangle', gain: 0.05, delay: d }));
+        else if (name === 'over') chirp({ from: 300, to: 70, duration: 0.7, type: 'sawtooth', gain: 0.05 });
+    }
 
     function pushStats() {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
     function pushCooldowns() {
-        onCooldownChange(ultCooldown / ULT_CD);
+        onCooldownChange(ultCooldown / tuning.ultCd);
     }
     pushStats();
     pushCooldowns();
 
     function bossAlive() {
-        return monsters.some((m) => m.type === 'boss');
+        return monsters.some((m) => m.type === 'boss' || m.type === 'finalBoss');
     }
 
     function reset() {
@@ -320,6 +516,12 @@ export function initEmberArena(canvas, opts) {
         monsters = [];
         explosions = [];
         bolts = [];
+        hearts = [];
+        floaters = [];
+        particles = [];
+        tuning = Object.assign({}, baseTuning);
+        taken = {};
+        pendingChoices = null;
         level = 1;
         xp = 0;
         xpToNext = 6;
@@ -333,8 +535,16 @@ export function initEmberArena(canvas, opts) {
         ultCooldown = 0;
         levelFlash = 0;
         screenFlash = 0;
+        hurtFlash = 0;
+        shake = 0;
         joystick = null;
-        for (let i = 1; i < startLevel; i++) applyLevelUp(false);
+        // Levels skipped by opts.startLevel still hand out a card, so a test hero is
+        // equipped roughly like one that actually played its way up here.
+        for (let i = 1; i < startLevel; i++) {
+            applyLevelUp(false);
+            const pool = availableUpgrades();
+            if (pool.length) grantUpgrade(pool[Math.floor(Math.random() * pool.length)].id);
+        }
         pushStats();
         pushCooldowns();
     }
@@ -357,11 +567,11 @@ export function initEmberArena(canvas, opts) {
         if (e.key === ' ' || e.key === 'z' || e.key === 'Z') {
             e.preventDefault();
             if (state === 'playing') meleeAttack();
-            else start();
+            else if (state !== 'choosing') start();
         }
         if (e.key === 'x' || e.key === 'X' || e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V') {
             if (state === 'playing') ultimateAttack();
-            else start();
+            else if (state !== 'choosing') start();
         }
         if (e.key === 'Enter' && state !== 'playing') start();
     }
@@ -389,7 +599,8 @@ export function initEmberArena(canvas, opts) {
     }
     function handlePointerDown(e) {
         if (state !== 'playing') {
-            start();
+            // 'choosing' is a pause with the cards open: a tap must not throw the run away.
+            if (state !== 'choosing') start();
             return;
         }
         if (joystick) return;
@@ -430,8 +641,10 @@ export function initEmberArena(canvas, opts) {
 
     function ultimateAttack() {
         if (ultCooldown > 0) return;
-        ultCooldown = ULT_CD;
+        ultCooldown = tuning.ultCd;
         screenFlash = 0.25;
+        sfx('storm');
+        if (!reducedMotion) shake = Math.max(shake, 5);
         explosions.push({
             x: player.x, y: player.y, r: 0,
             maxR: Math.hypot(W, H), life: ULT_DUR, dur: ULT_DUR,
@@ -445,14 +658,15 @@ export function initEmberArena(canvas, opts) {
         if (spinning) return;
         spinning = true;
         spinAngle = 0;
-        spinHitTimer = SPIN_DUR;
+        spinHitTimer = tuning.spinDur;
+        sfx('swing');
         meleeHit();
     }
     function meleeRelease() {
         spinHeld = false;
     }
     function meleeHit() {
-        const range = 44;
+        const range = tuning.meleeRange;
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
             const dx = m.x - player.x;
@@ -460,7 +674,7 @@ export function initEmberArena(canvas, opts) {
             const dist = Math.hypot(dx, dy) || 1;
             if (dist < range + m.r) {
                 // Shove it away from the hero: the spin buys room, it doesn't only deal damage.
-                const push = KNOCKBACK * (MONSTER_TYPES[m.type].knockMul || 1);
+                const push = tuning.knockback * (MONSTER_TYPES[m.type].knockMul || 1);
                 m.kx += (dx / dist) * push;
                 m.ky += (dy / dist) * push;
                 damageMonster(i, player.meleeDamage);
@@ -481,34 +695,129 @@ export function initEmberArena(canvas, opts) {
         const m = monsters[index];
         m.hp -= amount;
         m.flash = 0.12;
+        floaters.push({ x: m.x, y: m.y - m.r - 4, text: String(Math.round(amount)), life: 0.7, color: '#ffffff' });
+        sfx('hit');
         if (m.hp <= 0) {
+            const def = MONSTER_TYPES[m.type];
+            burst(m.x, m.y, def.palette, m.type === 'boss' || m.type === 'finalBoss' ? 26 : 10);
             monsters.splice(index, 1);
             monstersKilled++;
+            sfx('kill');
+            if (m.type === 'finalBoss') {
+                gainXp(m.xpValue);
+                win();
+                return;
+            }
+            if (Math.random() < tuning.heartChance) {
+                hearts.push({ x: m.x, y: m.y, life: 9 });
+            }
             gainXp(m.xpValue);
         }
+    }
+    // A monster that dies scatters its own colours instead of blinking out.
+    function burst(x, y, palette, count) {
+        const colors = Object.values(palette);
+        for (let i = 0; i < count; i++) {
+            const a = Math.random() * TAU;
+            const sp = 40 + Math.random() * 120;
+            particles.push({
+                x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                life: 0.35 + Math.random() * 0.35, dur: 0.7,
+                size: 2 + Math.random() * 2,
+                color: colors[Math.floor(Math.random() * colors.length)],
+            });
+        }
+    }
+    function hurtPlayer(amount) {
+        if (state !== 'playing') return false;
+        if (elapsed < player.invulnUntil) return false;
+        player.hp -= amount;
+        player.invulnUntil = elapsed + 0.6;
+        hurtFlash = 0.45;
+        if (!reducedMotion) shake = Math.max(shake, 7);
+        floaters.push({ x: player.x, y: player.y - player.r - 6, text: `-${Math.round(amount)}`, life: 0.8, color: '#ff6b6b' });
+        sfx('hurt');
+        if (player.hp <= 0) {
+            player.hp = 0;
+            gameOver();
+            return true;
+        }
+        return false;
+    }
+    function availableUpgrades() {
+        return UPGRADES.filter((u) => (taken[u.id] || 0) < u.max);
+    }
+    function grantUpgrade(id) {
+        const up = UPGRADES.find((u) => u.id === id);
+        if (!up) return false;
+        up.apply({ player, tuning });
+        taken[id] = (taken[id] || 0) + 1;
+        return true;
     }
     function applyLevelUp(announce) {
         level++;
         xpToNext = Math.round(xpToNext * 1.35 + 2);
-        player.maxHp += 20;
+        // The level itself gives only survivability, and a modest amount: the monsters
+        // scale every level, so a hero whose health never moved would be unkillable by
+        // choice alone. Damage, reach and speed stay entirely in the cards' hands.
+        player.maxHp += 12;
         player.hp = player.maxHp;
-        player.meleeDamage += 4;
-        player.fireDamage += 3;
         if (!announce) return;
-        if (level % 5 === 0) {
+        const pool = availableUpgrades();
+        if (pool.length) {
+            // Three distinct cards, drawn without replacement.
+            const bag = pool.slice();
+            pendingChoices = [];
+            while (pendingChoices.length < Math.min(3, bag.length)) {
+                pendingChoices.push(bag.splice(Math.floor(Math.random() * bag.length), 1)[0]);
+            }
+            state = 'choosing';
+            sfx('level');
+            pushStats();
+            onChoices(pendingChoices.map((u) => ({ id: u.id, icon: u.icon, name: u.name, desc: u.desc })));
+            onStateChange(state);
+        } else {
+            announceLevel();
+        }
+    }
+    // Runs after the card is picked, or straight away when there is nothing left to pick.
+    function announceLevel() {
+        if (level === FINAL_LEVEL) {
+            spawnMonster('finalBoss');
+            flashText = 'Boss finale!';
+            levelFlash = 2.2;
+            sfx('boss');
+        } else if (level % 5 === 0) {
             spawnMonster('boss');
             flashText = 'Boss!';
             levelFlash = 1.8;
+            sfx('boss');
         } else {
             flashText = `Livello ${level}!`;
             levelFlash = 1.2;
         }
     }
+    function chooseUpgrade(id) {
+        if (state !== 'choosing') return;
+        if (pendingChoices && !pendingChoices.some((u) => u.id === id)) return;
+        grantUpgrade(id);
+        pendingChoices = null;
+        state = 'playing';
+        sfx('card');
+        announceLevel();
+        // Enough xp for another level came in while the cards were open.
+        if (xp >= xpToNext) gainXp(0);
+        pushStats();
+        pushCooldowns();
+        onStateChange(state);
+    }
+
     function gainXp(amount) {
         xp += amount;
         while (xp >= xpToNext) {
             xp -= xpToNext;
             applyLevelUp(true);
+            if (state === 'choosing') break;
         }
     }
 
@@ -536,6 +845,7 @@ export function initEmberArena(canvas, opts) {
     }
 
     function update(dt) {
+        // 'choosing' freezes the arena: the cards are a real pause, not a soft one.
         if (state !== 'playing') return;
         elapsed += dt;
         const prevX = player.x;
@@ -561,9 +871,8 @@ export function initEmberArena(canvas, opts) {
         if (mvx !== 0 || mvy !== 0) {
             const len = Math.hypot(mvx, mvy);
             player.facing = { x: mvx / len, y: mvy / len };
-            const speed = 190;
-            player.x = clamp(player.x + mvx * speed * dt, player.r, W - player.r);
-            player.y = clamp(player.y + mvy * speed * dt, player.r, H - player.r);
+            player.x = clamp(player.x + mvx * tuning.speed * dt, player.r, W - player.r);
+            player.y = clamp(player.y + mvy * tuning.speed * dt, player.r, H - player.r);
         }
 
         player.moving = player.x !== prevX || player.y !== prevY;
@@ -571,11 +880,11 @@ export function initEmberArena(canvas, opts) {
 
         if (spinning) {
             const turnedBefore = spinAngle;
-            spinAngle += SPIN_RATE * dt;
+            spinAngle += (TAU / tuning.spinDur) * dt;
             spinHitTimer -= dt;
             if (spinHitTimer <= 0) {
                 meleeHit();
-                spinHitTimer = SPIN_DUR;
+                spinHitTimer = tuning.spinDur;
             }
             if (!spinHeld && Math.floor(spinAngle / TAU) > Math.floor(turnedBefore / TAU)) {
                 spinning = false;
@@ -585,8 +894,42 @@ export function initEmberArena(canvas, opts) {
         ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
+        hurtFlash = Math.max(0, hurtFlash - dt);
+        shake = Math.max(0, shake - dt * 26);
 
-        const spawnInterval = Math.max(0.5, 1.6 - level * 0.08) * (bossAlive() ? 2 : 1);
+        for (let i = floaters.length - 1; i >= 0; i--) {
+            const f = floaters[i];
+            f.life -= dt;
+            f.y -= 26 * dt;
+            if (f.life <= 0) floaters.splice(i, 1);
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const pt = particles[i];
+            pt.life -= dt;
+            pt.x += pt.vx * dt;
+            pt.y += pt.vy * dt;
+            pt.vx *= 0.94;
+            pt.vy *= 0.94;
+            if (pt.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = hearts.length - 1; i >= 0; i--) {
+            const h = hearts[i];
+            h.life -= dt;
+            if (h.life <= 0) {
+                hearts.splice(i, 1);
+                continue;
+            }
+            if (Math.hypot(h.x - player.x, h.y - player.y) < player.r + 12) {
+                const healed = Math.round(player.maxHp * 0.25);
+                player.hp = Math.min(player.maxHp, player.hp + healed);
+                floaters.push({ x: player.x, y: player.y - player.r - 6, text: `+${healed}`, life: 0.9, color: '#2ecc71' });
+                hearts.splice(i, 1);
+                sfx('heart');
+            }
+        }
+
+        const finalFight = monsters.some((m) => m.type === 'finalBoss');
+        const spawnInterval = Math.max(0.5, 1.6 - level * 0.08) * (finalFight ? 3.5 : bossAlive() ? 2 : 1);
         spawnTimer += dt;
         if (spawnTimer >= spawnInterval) {
             spawnTimer = 0;
@@ -610,11 +953,12 @@ export function initEmberArena(canvas, opts) {
                 if (dist < def.shoot.standoff) speedMul = -0.5;
                 else if (dist < def.shoot.range) speedMul = def.shoot.approach;
             }
-            if (m.type === 'boss') {
+            if (m.type === 'boss' || m.type === 'finalBoss') {
                 m.chargeTimer -= dt;
                 if (m.chargeTimer <= 0) {
                     m.charging = 0.5;
                     m.chargeTimer = 3;
+                    if (!reducedMotion) shake = Math.max(shake, 4);
                 }
                 if (m.charging > 0) {
                     m.charging -= dt;
@@ -638,15 +982,7 @@ export function initEmberArena(canvas, opts) {
                 m.y = clamp(m.y, -m.r * 2, H + m.r * 2);
             }
             m.flash = Math.max(0, m.flash - dt);
-            if (dist < player.r + m.r && elapsed >= player.invulnUntil) {
-                player.hp -= def.contactDamage || 10;
-                player.invulnUntil = elapsed + 0.6;
-                if (player.hp <= 0) {
-                    player.hp = 0;
-                    gameOver();
-                    return;
-                }
-            }
+            if (dist < player.r + m.r && hurtPlayer(def.contactDamage || 10)) return;
         }
 
         for (let i = bolts.length - 1; i >= 0; i--) {
@@ -660,15 +996,7 @@ export function initEmberArena(canvas, opts) {
             }
             if (Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
                 bolts.splice(i, 1);
-                if (elapsed >= player.invulnUntil) {
-                    player.hp -= b.damage;
-                    player.invulnUntil = elapsed + 0.6;
-                    if (player.hp <= 0) {
-                        player.hp = 0;
-                        gameOver();
-                        return;
-                    }
-                }
+                if (hurtPlayer(b.damage)) return;
             }
         }
 
@@ -696,6 +1024,20 @@ export function initEmberArena(canvas, opts) {
         pushCooldowns();
     }
 
+    function win() {
+        state = 'won';
+        hasWon = true;
+        writeFlag(WON_KEY, true);
+        if (level >= bestLevel) {
+            bestLevel = level;
+            writeBestLevel(bestLevel);
+        }
+        spinning = false;
+        spinHeld = false;
+        sfx('win');
+        pushStats();
+        onStateChange(state, { level, monstersKilled, best: bestLevel, time: Math.round(elapsed), won: true });
+    }
     function gameOver() {
         state = 'over';
         spinning = false;
@@ -705,8 +1047,9 @@ export function initEmberArena(canvas, opts) {
             bestLevel = level;
             writeBestLevel(bestLevel);
         }
+        sfx('over');
         pushStats();
-        onStateChange(state, { level, monstersKilled, best: bestLevel });
+        onStateChange(state, { level, monstersKilled, best: bestLevel, time: Math.round(elapsed), won: false });
     }
 
     function drawSprite(rows, palette, cx, cy, cell, flipX, override) {
@@ -856,20 +1199,46 @@ export function initEmberArena(canvas, opts) {
         ctx.globalAlpha = 1;
     }
 
+    function drawHearts() {
+        hearts.forEach((h) => {
+            // Blink out the last two seconds, so a heart never vanishes unannounced.
+            if (h.life < 2 && Math.floor(h.life * 8) % 2 === 0) return;
+            paintSprite(ctx, HEART_FRAME, HEART_PALETTE, h.x, h.y, 2.4);
+        });
+    }
+    function drawFloaters() {
+        ctx.textAlign = 'center';
+        ctx.font = '700 13px system-ui, sans-serif';
+        floaters.forEach((f) => {
+            ctx.globalAlpha = Math.max(0, Math.min(1, f.life * 2));
+            ctx.fillStyle = f.color;
+            ctx.fillText(f.text, f.x, f.y);
+        });
+        ctx.globalAlpha = 1;
+    }
+    function drawParticles() {
+        particles.forEach((pt) => {
+            ctx.globalAlpha = Math.max(0, pt.life / pt.dur);
+            ctx.fillStyle = pt.color;
+            ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+        });
+        ctx.globalAlpha = 1;
+    }
     function drawBossBar(colors) {
-        const boss = monsters.find((m) => m.type === 'boss');
+        const boss = monsters.find((m) => m.type === 'boss' || m.type === 'finalBoss');
         if (!boss) return;
+        const isFinal = boss.type === 'finalBoss';
         const bw = Math.min(280, W - 40);
         const bx = (W - bw) / 2;
         const by = 12;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
         ctx.fillRect(bx, by, bw, 8);
-        ctx.fillStyle = '#e74c3c';
+        ctx.fillStyle = isFinal ? '#f1c40f' : '#e74c3c';
         ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), 8);
         ctx.fillStyle = colors.text;
         ctx.textAlign = 'center';
         ctx.font = '700 12px system-ui, sans-serif';
-        ctx.fillText('Boss', W / 2, by + 22);
+        ctx.fillText(isFinal ? 'Boss finale' : 'Boss', W / 2, by + 22);
     }
 
     function drawJoystick() {
@@ -907,12 +1276,32 @@ export function initEmberArena(canvas, opts) {
         const colors = themeColors();
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, W, H);
+        // Everything inside the arena shakes together; the HUD drawn after does not.
+        const shaking = shake > 0 && state === 'playing';
+        const sx = shaking ? (Math.random() - 0.5) * shake : 0;
+        const sy = shaking ? (Math.random() - 0.5) * shake : 0;
+        ctx.save();
+        ctx.translate(sx, sy);
+        drawHearts();
         drawMonsters();
         drawBolts();
         drawExplosions();
-        if (state !== 'over') drawPlayer(colors);
+        drawParticles();
+        if (state !== 'over' && state !== 'won') drawPlayer(colors);
+        drawFloaters();
+        ctx.restore();
         if (screenFlash > 0) {
             ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.25) * 0.35})`;
+            ctx.fillRect(0, 0, W, H);
+        }
+        if (hurtFlash > 0) {
+            // A red rim rather than a full wash: it reads as "you took that" without
+            // hiding the arena at the exact moment you need to see it.
+            const a = (hurtFlash / 0.45) * 0.5;
+            const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.62);
+            grad.addColorStop(0, 'rgba(231, 76, 60, 0)');
+            grad.addColorStop(1, `rgba(231, 76, 60, ${a})`);
+            ctx.fillStyle = grad;
             ctx.fillRect(0, 0, W, H);
         }
         drawBossBar(colors);
@@ -943,13 +1332,26 @@ export function initEmberArena(canvas, opts) {
         start,
         meleeAttack() {
             if (state === 'playing') meleeAttack();
-            else start();
+            else if (state !== 'choosing') start();
         },
         meleeRelease,
         ultimateAttack() {
             if (state === 'playing') ultimateAttack();
-            else start();
+            else if (state !== 'choosing') start();
         },
+        chooseUpgrade,
+        isMuted() {
+            return muted;
+        },
+        setMuted(value) {
+            muted = !!value;
+            writeFlag(MUTE_KEY, muted);
+            return muted;
+        },
+        hasWon() {
+            return hasWon;
+        },
+        finalLevel: FINAL_LEVEL,
         destroy() {
             if (rafId) cancelAnimationFrame(rafId);
             document.removeEventListener('keydown', handleKeyDown);
