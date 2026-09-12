@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.8">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.9">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -124,6 +124,7 @@
             <div class="game-touch-controls">
                 <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword attack" data-aria-label-it="Attacco con la spada">⚔️</button>
                 <button class="game-touch-btn" id="ember-fire-btn" type="button" aria-label="Fireball attack" data-aria-label-it="Palla di fuoco">🔥</button>
+                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Firestorm (full-arena fireball)" data-aria-label-it="Tempesta di fuoco (tutta l'arena)">💥</button>
             </div>
             <div class="game-overlay" id="ember-overlay" hidden>
                 <h2 data-it="Sei caduto">You fell</h2>
@@ -131,7 +132,7 @@
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
             </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada, X per la palla di fuoco — oppure trascina col dito e usa i bottoni touch.">Arrow keys or WASD to move, Space for the sword, X for the fireball — or drag with your finger and use the touch buttons.</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada, X per la palla di fuoco, C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: appoggia il dito e trascina per il joystick, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword, X for the fireball, C for the full-arena firestorm (long cooldown). On touch: press and drag for the joystick, buttons on the right. A boss every 5 levels.</p>
     </main>
 
     <div class="container">
@@ -144,7 +145,7 @@
     <script type="module">
     import '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=2';
+    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=3';
 
     initDiagramPage();
 
@@ -158,8 +159,19 @@
     const restartBtn = document.getElementById('ember-restart');
     const meleeBtn = document.getElementById('ember-melee-btn');
     const fireBtn = document.getElementById('ember-fire-btn');
+    const ultBtn = document.getElementById('ember-ult-btn');
+
+    function setCooldown(btn, fraction) {
+        btn.style.setProperty('--cd', String(fraction));
+        btn.classList.toggle('is-cooling', fraction > 0);
+    }
 
     const game = initEmberArena(canvas, {
+        onCooldownChange(melee, fire, ult) {
+            setCooldown(meleeBtn, melee);
+            setCooldown(fireBtn, fire);
+            setCooldown(ultBtn, ult);
+        },
         onStatsChange(hp, maxHp, level, xp, xpToNext, best) {
             hpFill.style.width = `${Math.max(0, (hp / maxHp) * 100)}%`;
             hpText.textContent = `${hp}/${maxHp}`;
@@ -177,8 +189,14 @@
     });
 
     restartBtn.addEventListener('click', () => game.start());
-    meleeBtn.addEventListener('click', () => game.meleeAttack());
-    fireBtn.addEventListener('click', () => game.fireballAttack());
+    // pointerdown (not click) so the touch buttons fire instantly and never
+    // steal the pointer from the on-canvas joystick under the other thumb.
+    const bindAction = (btn, action) => {
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); action(); });
+    };
+    bindAction(meleeBtn, () => game.meleeAttack());
+    bindAction(fireBtn, () => game.fireballAttack());
+    bindAction(ultBtn, () => game.ultimateAttack());
     </script>
 </body>
 </html>
