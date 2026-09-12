@@ -1,6 +1,6 @@
 # Istruzioni per Claude
 
-## Pull request: piano per le cose difficili, push per quelle facili, merge MAI di iniziativa
+## Pull request: piano per le cose difficili, push per quelle facili, merge solo sul lavoro strutturato
 
 Regola permanente, esplicitamente ribadita dall'utente — non va mai
 dimenticata:
@@ -13,25 +13,40 @@ dimenticata:
   commit + push sul branch designato senza bisogno di chiedere il permesso
   ogni volta.
 - In entrambi i casi, apri (o aggiorna) la PR **in draft**.
-- La PR resta in draft. Non marcarla mai pronta per la review, non mergiarla
-  mai di tua iniziativa — quella decisione è ESCLUSIVAMENTE dell'utente,
-  qualunque sia lo stato della verifica. Aspetta che sia l'utente a dire
-  esplicitamente di procedere con merge/ready-for-review.
-- Disiscriviti dalla PR solo dopo che è stata mergiata o chiusa (dall'utente).
+- **Se concludere di tua iniziativa dipende dalla portata del lavoro.**
+  Regola aggiunta dall'utente dopo che una PR piccola era stata mergiata
+  senza il suo via libera:
+  - **Lavoro minimo** — un fix, un ritocco a un'animazione o al copy, un
+    bump di versione, una modifica che tocca uno o due file: **non
+    concludere**. Commit, push, PR in draft, e ti fermi lì. La chiusura la
+    decide l'utente.
+  - **Lavoro tanto e strutturato** — una pagina nuova, un modulo nuovo, una
+    feature che attraversa più file, un lavoro nato da un piano approvato:
+    concludi tu. Marca la PR pronta per la review, mergiala, poi segui la
+    procedura di conferma del deploy qui sotto.
+  - **Nel dubbio, draft.** Il merge è l'unica azione da cui non si torna
+    indietro: se non sai da che parte cade il lavoro, trattalo come minimo
+    e aspetta.
+- Non esiste nessun "auto concludi" valido per tutta la sessione: ogni PR si
+  giudica sulla propria portata con il criterio qui sopra. Un via libera
+  dato una volta non si trascina alla PR successiva.
+- Disiscriviti dalla PR solo dopo che è stata mergiata o chiusa.
 - **Eccezione esplicita**: quando l'utente usa la frase "commit push PR" (o
   equivalenti tipo "vai con commit e push e PR") oppure la parola d'ordine
   **"Concludi!"**, questo significa ANCHE chiudere/mergiare la PR — non solo
   aprirla in draft. È il segnale che il lavoro è finito: marcarla pronta per
   la review e mergiarla, poi seguire comunque la procedura di conferma del
-  deploy qui sotto.
+  deploy qui sotto. Vale anche sul lavoro minimo: la parola dell'utente
+  batte sempre il criterio della portata.
 - **Eccezione per i piani**: quando il lavoro è passato da Plan mode e
   l'utente ha approvato il piano (via ExitPlanMode), quell'approvazione vale
   anche come via libera al merge — l'approvazione del piano è già la
   conclusione. Niente bisogno di un "Concludi" separato dopo: implementa,
   verifica, commit + push, apri la PR e mergiala direttamente, poi segui la
-  procedura di conferma del deploy qui sotto. Questa eccezione vale solo per
-  il lavoro nato da un piano approvato — le modifiche facili dirette restano
-  comunque in draft finché l'utente non dice "Concludi"/"commit push PR".
+  procedura di conferma del deploy qui sotto — è il caso "tanto e
+  strutturato" nella sua forma più chiara. Le modifiche minime dirette
+  restano comunque in draft finché l'utente non dice "Concludi"/"commit
+  push PR".
 
 ## Dopo il merge: conferma il deploy, non solo il merge
 
