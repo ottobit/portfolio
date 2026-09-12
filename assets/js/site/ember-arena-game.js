@@ -320,6 +320,8 @@ const DEFAULT_STRINGS = {
     finalBoss: 'Final boss!',
     bossBar: 'Boss',
     finalBossBar: 'Final boss',
+    cookieAppears: 'Cookie appears!',
+    mayAppears: 'May appears!',
 };
 
 // Each card's apply() reads p.pickIndex — how many copies were already taken,
@@ -1496,7 +1498,7 @@ export function initEmberArena(canvas, opts) {
     // with — this is a guest appearance, not another thing trying to blend into the
     // swarm — and a little bounce while barking is the only animation either needs.
     const FAMILIAR_CELL = 4.2;
-    function drawFamiliar() {
+    function drawFamiliar(colors) {
         const v = familiarVisit;
         if (!v) return;
         const frame = v.kind === 'cookie' ? DOG_FRAME : MAY_FRAME;
@@ -1506,6 +1508,15 @@ export function initEmberArena(canvas, opts) {
         const movingLeft = v.phase === 'leave' ? v.fromX < v.restX : v.restX < v.fromX;
         drawShadow(v.x, v.y + 16, 16);
         drawSprite(frame, palette, v.x, v.y - bounce, FAMILIAR_CELL, movingLeft);
+        // A name label follows it for the whole visit — the whole point is that this
+        // is a rare, noteworthy guest, not something to miss or mistake for a monster.
+        const label = v.kind === 'cookie' ? strings.cookieAppears : strings.mayAppears;
+        ctx.textAlign = 'center';
+        ctx.font = '700 13px system-ui, sans-serif';
+        ctx.fillStyle = colors.text;
+        ctx.globalAlpha = Math.min(1, v.phase === 'enter' ? v.t / 0.5 : v.phase === 'leave' ? 1 - v.t / 0.5 : 1);
+        ctx.fillText(label, v.x, v.y - 34);
+        ctx.globalAlpha = 1;
     }
 
     function drawBolts() {
@@ -1685,7 +1696,7 @@ export function initEmberArena(canvas, opts) {
         ctx.translate(sx, sy);
         drawHearts();
         drawMonsters(colors);
-        drawFamiliar();
+        drawFamiliar(colors);
         drawBolts();
         drawExplosions(colors);
         drawParticles();
