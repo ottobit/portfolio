@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.11">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.12">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -122,7 +122,7 @@
         <div class="game-canvas-wrap">
             <canvas id="ember-canvas" width="480" height="480" role="img" aria-label="Ember Keep game canvas"></canvas>
             <div class="game-touch-controls">
-                <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword attack" data-aria-label-it="Attacco con la spada">⚔️</button>
+                <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
                 <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Firestorm (full-arena fireball)" data-aria-label-it="Tempesta di fuoco (tutta l'arena)">🔥</button>
             </div>
             <div class="game-overlay" id="ember-overlay" hidden>
@@ -131,9 +131,8 @@
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
             </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada, X o C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword, X or C for the full-arena firestorm (long cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
-        <p class="game-credits" data-it="Ember Keep e questa pagina sono nati in una sessione di pair programming con Claude Code, l'agente di Anthropic, a partire dai ricordi qui sopra. Codice e cronologia dei commit su &lt;a href=&quot;https://github.com/ottobit/portfolio&quot;&gt;GitHub&lt;/a&gt;.">Ember Keep and this page came out of a pair-programming session with Claude Code, Anthropic's agent, starting from the memories above. Code and commit history on <a href="https://github.com/ottobit/portfolio">GitHub</a>.</p>
-        <p class="game-credits-coauthor" id="ember-coauthor" hidden></p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la rotazione con la spada, X o C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword spin, X or C for the full-arena firestorm (long cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
+        <p class="game-credits" data-it="Co-Authored-By: Claude&lt;br&gt;Codice e cronologia dei commit su &lt;a href=&quot;https://github.com/ottobit/portfolio&quot;&gt;GitHub&lt;/a&gt;.">Co-Authored-By: Claude<br>Code and commit history on <a href="https://github.com/ottobit/portfolio">GitHub</a>.</p>
     </main>
 
     <div class="container">
@@ -146,7 +145,7 @@
     <script type="module">
     import '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=5';
+    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=6';
 
     initDiagramPage();
 
@@ -195,36 +194,6 @@
     };
     bindAction(meleeBtn, () => game.meleeAttack());
     bindAction(ultBtn, () => game.ultimateAttack());
-
-    // Co-Authored-By trailers, read from this page's latest commit rather than
-    // written here by hand — git is the source of truth for who co-authored what.
-    (async () => {
-        const el = document.getElementById('ember-coauthor');
-        try {
-            const res = await fetch('https://api.github.com/repos/ottobit/portfolio/commits?path=news/ember-keep/index.html&per_page=1', {
-                headers: { Accept: 'application/vnd.github+json' },
-            });
-            if (!res.ok) return;
-            const [latest] = await res.json();
-            const message = (latest && latest.commit && latest.commit.message) || '';
-            const names = [];
-            for (const line of message.split('\n')) {
-                const m = line.match(/^co-authored-by:\s*([^<]+?)\s*(?:<.*>)?\s*$/i);
-                if (m && !names.includes(m[1])) names.push(m[1]);
-            }
-            const specific = names.filter((n) => n.toLowerCase() !== 'claude');
-            const shown = specific.length ? specific : names;
-            if (!shown.length) return;
-            const sha = latest.sha.slice(0, 7);
-            el.innerHTML = '';
-            el.append('Co-Authored-By: ' + shown.join(', ') + ' — ');
-            const link = document.createElement('a');
-            link.href = latest.html_url;
-            link.textContent = sha;
-            el.append(link);
-            el.hidden = false;
-        } catch (e) {}
-    })();
     </script>
 </body>
 </html>
