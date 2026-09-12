@@ -219,7 +219,9 @@ const MONSTER_TYPES = {
         cell: 3.4, r: 32, speedMul: 0.5, hpMul: 8, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
         // A second attack on top of the charge it already shares with the regular boss:
         // a ring of fire arrows launched all at once, telegraphed so it stays dodgeable.
-        starAttack: { interval: 4.5, telegraph: 0.5, count: 12, speed: 190, damage: 10 },
+        // Tighter interval and a couple more arrows than before — the telegraph stays
+        // the same 0.5s, so it's still readable, just less time to breathe between rings.
+        starAttack: { interval: 3.5, telegraph: 0.5, count: 14, speed: 190, damage: 10 },
     },
     boss: {
         palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
@@ -690,21 +692,31 @@ export function initEmberArena(canvas, opts) {
     const MUSIC_TICK_MS = 25;
     const MUSIC_BASS_NOTES = [73.42, 73.42, 87.31, 73.42]; // D2, D2, F2, D2
     const MUSIC_ARP_NOTES = [293.66, 349.23, 440.0, 349.23]; // D4, F4, A4, F4
+    // While a boss (regular or final) is up: faster and a half-step down, so it
+    // reads as tenser/grittier rather than a different song — same shape, louder
+    // and quicker instead of a full theme change.
+    const BOSS_MUSIC_BEAT = 60 / 132;
+    const BOSS_BASS_NOTES = [69.30, 69.30, 82.41, 69.30]; // C#2, C#2, E2, C#2
+    const BOSS_ARP_NOTES = [277.18, 329.63, 415.30, 329.63]; // C#4, E4, G#4, E4
     let musicNextTime = 0;
     let musicBeatIndex = 0;
     let musicIntervalId = null;
     function scheduleMusicTick() {
         const ac = getAudioCtx();
         if (!ac) return;
+        const boss = bossAlive();
+        const beat = boss ? BOSS_MUSIC_BEAT : MUSIC_BEAT;
+        const bassNotes = boss ? BOSS_BASS_NOTES : MUSIC_BASS_NOTES;
+        const arpNotes = boss ? BOSS_ARP_NOTES : MUSIC_ARP_NOTES;
         while (musicNextTime < ac.currentTime + MUSIC_LOOKAHEAD) {
             if (!muted) {
                 const delay = musicNextTime - ac.currentTime;
-                const bar = musicBeatIndex % MUSIC_BASS_NOTES.length;
-                chirp({ from: MUSIC_BASS_NOTES[bar], to: MUSIC_BASS_NOTES[bar], duration: MUSIC_BEAT * 0.85, type: 'triangle', gain: 0.032, delay });
-                chirp({ from: MUSIC_ARP_NOTES[bar], to: MUSIC_ARP_NOTES[bar], duration: MUSIC_BEAT * 0.3, type: 'square', gain: 0.016, delay: delay + MUSIC_BEAT / 2 });
-                if (bar % 2 === 1) noiseBurst(0.05, 0.01, 2600, delay + MUSIC_BEAT * 0.25);
+                const bar = musicBeatIndex % bassNotes.length;
+                chirp({ from: bassNotes[bar], to: bassNotes[bar], duration: beat * 0.85, type: 'triangle', gain: boss ? 0.04 : 0.032, delay });
+                chirp({ from: arpNotes[bar], to: arpNotes[bar], duration: beat * 0.3, type: 'square', gain: boss ? 0.02 : 0.016, delay: delay + beat / 2 });
+                if (bar % 2 === 1) noiseBurst(0.05, boss ? 0.016 : 0.01, 2600, delay + beat * 0.25);
             }
-            musicNextTime += MUSIC_BEAT;
+            musicNextTime += beat;
             musicBeatIndex++;
         }
     }
@@ -958,8 +970,11 @@ export function initEmberArena(canvas, opts) {
     // `explosions` (flagged `boss`, not `ult`) so it is handled and drawn as its own
     // thing — never the player's own fireball, which it must never be confused with.
     function triggerBossSlam(m) {
-        explosions.push({ x: m.x, y: m.y, r: 0, maxR: 110, life: 0.35, dur: 0.35, boss: true, hit: false, seed: Math.random() * TAU });
-        if (!reducedMotion) shake = Math.max(shake, 8);
+        // The final boss hits harder and wider than the regular one — the charge
+        // that closes distance is the same move, but landing it should sting more.
+        const final = m.type === 'finalBoss';
+        explosions.push({ x: m.x, y: m.y, r: 0, maxR: final ? 140 : 110, life: 0.35, dur: 0.35, boss: true, damage: final ? 26 : 18, hit: false, seed: Math.random() * TAU });
+        if (!reducedMotion) shake = Math.max(shake, final ? 10 : 8);
         sfx('slam');
     }
     function damageMonster(index, amount) {
@@ -1321,16 +1336,19 @@ export function initEmberArena(canvas, opts) {
                 m.chargeTimer -= dt;
                 if (m.chargeTimer <= 0) {
                     m.charging = 0.5;
-                    m.chargeTimer = 3;
+                    // The final boss recovers faster between charges — less breathing
+                    // room than the regular boss gives.
+                    m.chargeTimer = m.type === 'finalBoss' ? 2 : 3;
                     if (!reducedMotion) shake = Math.max(shake, 4);
                 }
                 if (m.charging > 0) {
                     m.charging -= dt;
                     speedMul = 3;
-                    // The regular boss only: the charge just ended this frame, so a
-                    // shockwave lands where it stopped — no more standing still and
-                    // trading hits once it's done closing the distance.
-                    if (m.charging <= 0 && m.type === 'boss') triggerBossSlam(m);
+                    // The charge just ended this frame, so a shockwave lands where it
+                    // stopped — no more standing still and trading hits once it's done
+                    // closing the distance. Both bosses now get this, not just the
+                    // regular one; triggerBossSlam scales it up for the final boss.
+                    if (m.charging <= 0) triggerBossSlam(m);
                 }
             }
             if (def.starAttack) {
@@ -1395,7 +1413,7 @@ export function initEmberArena(canvas, opts) {
                 }
             } else if (ex.boss && !ex.hit && Math.hypot(player.x - ex.x, player.y - ex.y) < ex.r + player.r) {
                 ex.hit = true;
-                if (hurtPlayer(18)) return;
+                if (hurtPlayer(ex.damage)) return;
             }
             if (ex.life <= 0) explosions.splice(i, 1);
         }
