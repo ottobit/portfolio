@@ -61,8 +61,7 @@ const MAY_FRAME = [
 ];
 // How rare each visit is, and what triggers it — tunable in one place instead of
 // buried in update().
-const FAMILIAR_MANY_MONSTERS = 6;     // Cookie needs at least this many non-boss monsters up
-const FAMILIAR_LOW_HP_FRACTION = 0.25; // May needs the hero at or under this HP fraction
+const FAMILIAR_MANY_MONSTERS = 6;     // both need at least this many non-boss monsters up
 const FAMILIAR_CHECK_INTERVAL = 2;    // seconds between eligibility rolls
 const FAMILIAR_CHANCE = 0.12;         // chance a visit actually starts on an eligible roll
 const FAMILIAR_COOLDOWN = 25;         // minimum seconds between two visits
@@ -985,12 +984,8 @@ export function initEmberArena(canvas, opts) {
                 familiarCheckTimer = FAMILIAR_CHECK_INTERVAL;
                 if (familiarCooldown <= 0) {
                     const manyMonsters = monsters.filter((m) => m.type !== 'boss' && m.type !== 'finalBoss').length >= FAMILIAR_MANY_MONSTERS;
-                    const lowHp = player.hp / player.maxHp <= FAMILIAR_LOW_HP_FRACTION;
-                    // Cookie checked first: if both conditions happen to be true at once,
-                    // the fuller-looking emergency (a swarm) gets first crack this tick —
-                    // May still gets her own roll next tick if the player is still low.
-                    if (manyMonsters && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('cookie');
-                    else if (lowHp && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('may');
+                    // Cookie and May share the same trigger; which one shows up is a coin flip.
+                    if (manyMonsters && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit(Math.random() < 0.5 ? 'cookie' : 'may');
                 }
             }
             return;
