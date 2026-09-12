@@ -183,9 +183,10 @@ export function initEmberArena(canvas, opts) {
     const JOY_DEAD = 8;
     const JOY_BASE = { x: 72, y: H - 72 };
     const JOY_GRAB = JOY_RADIUS * 2;
-    const MELEE_CD = 0.4;
+    // The sword has no cooldown: the only thing gating it is the spin itself,
+    // so a new swing starts the instant the previous one finishes.
     const SPIN_DUR = 0.22; // seconds of the 360° spin attack animation
-    const ULT_CD = 15;
+    const ULT_CD = 8;
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
 
@@ -199,7 +200,7 @@ export function initEmberArena(canvas, opts) {
     let state = 'ready'; // ready | playing | over
     let elapsed = 0;
     let spawnTimer = 0;
-    let meleeCooldown = 0;
+    let spinTimer = 0;
     let ultCooldown = 0;
     let levelFlash = 0;
     let flashText = '';
@@ -213,15 +214,15 @@ export function initEmberArena(canvas, opts) {
     function onStateChange(s, stats) {
         if (typeof options.onStateChange === 'function') options.onStateChange(s, stats);
     }
-    function onCooldownChange(melee, ult) {
-        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(melee, ult);
+    function onCooldownChange(ult) {
+        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult);
     }
 
     function pushStats() {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
     function pushCooldowns() {
-        onCooldownChange(meleeCooldown / MELEE_CD, ultCooldown / ULT_CD);
+        onCooldownChange(ultCooldown / ULT_CD);
     }
     pushStats();
     pushCooldowns();
@@ -247,7 +248,7 @@ export function initEmberArena(canvas, opts) {
         monstersKilled = 0;
         elapsed = 0;
         spawnTimer = 0;
-        meleeCooldown = 0;
+        spinTimer = 0;
         ultCooldown = 0;
         levelFlash = 0;
         screenFlash = 0;
@@ -350,8 +351,8 @@ export function initEmberArena(canvas, opts) {
         });
     }
     function meleeAttack() {
-        if (meleeCooldown > 0) return;
-        meleeCooldown = MELEE_CD;
+        if (spinTimer > 0) return;
+        spinTimer = SPIN_DUR;
         const range = 44;
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
@@ -449,7 +450,7 @@ export function initEmberArena(canvas, opts) {
         player.moving = player.x !== prevX || player.y !== prevY;
         if (player.moving) player.walkT += dt;
 
-        meleeCooldown = Math.max(0, meleeCooldown - dt);
+        spinTimer = Math.max(0, spinTimer - dt);
         ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
@@ -564,8 +565,8 @@ export function initEmberArena(canvas, opts) {
         // together, the blade leaving a circular trail); otherwise the sword rests along the
         // facing direction.
         const angle = Math.atan2(player.facing.y, player.facing.x);
-        const spinning = meleeCooldown > MELEE_CD - SPIN_DUR;
-        const spinT = spinning ? (MELEE_CD - meleeCooldown) / SPIN_DUR : 1;
+        const spinning = spinTimer > 0;
+        const spinT = spinning ? (SPIN_DUR - spinTimer) / SPIN_DUR : 1;
         const spin = spinning ? spinT * Math.PI * 2 : 0;
         const swordAngle = spinning ? angle + spin : angle + 0.35;
         if (spinning) {

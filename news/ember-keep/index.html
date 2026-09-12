@@ -131,7 +131,7 @@
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
             </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la rotazione con la spada, X o C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword spin, X or C for the full-arena firestorm (long cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la rotazione con la spada, X o C per la tempesta di fuoco a tutta arena (con una ricarica). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword spin, X or C for the full-arena firestorm (has a cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
         <p class="game-credits" data-it="Co-Authored-By: Claude&lt;br&gt;Codice e cronologia dei commit su &lt;a href=&quot;https://github.com/ottobit/portfolio&quot;&gt;GitHub&lt;/a&gt;.">Co-Authored-By: Claude<br>Code and commit history on <a href="https://github.com/ottobit/portfolio">GitHub</a>.</p>
     </main>
 
@@ -145,7 +145,7 @@
     <script type="module">
     import '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=6';
+    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=7';
 
     initDiagramPage();
 
@@ -166,8 +166,8 @@
     }
 
     const game = initEmberArena(canvas, {
-        onCooldownChange(melee, ult) {
-            setCooldown(meleeBtn, melee);
+        // The sword has no cooldown, so only the firestorm button shows a ring.
+        onCooldownChange(ult) {
             setCooldown(ultBtn, ult);
         },
         onStatsChange(hp, maxHp, level, xp, xpToNext, best) {
