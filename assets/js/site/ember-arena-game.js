@@ -231,6 +231,18 @@ export function drawArenaIcon(canvas, key, size = 44) {
 
 // Level-up cards. Every point of growth comes from one of these, so two runs are
 // never the same. `apply` mutates the run's player and tuning in place.
+// Text the arena draws on itself. English defaults; the page hands over its own
+// translations and re-sends them when the visitor switches language, so the canvas
+// never ends up speaking a different language than the page around it.
+const DEFAULT_STRINGS = {
+    start: 'Tap or press Space to start',
+    level: (n) => `Level ${n}!`,
+    boss: 'Boss!',
+    finalBoss: 'Final boss!',
+    bossBar: 'Boss',
+    finalBossBar: 'Final boss',
+};
+
 const UPGRADES = [
     {
         id: 'strength', icon: '💪', max: 5,
@@ -369,13 +381,33 @@ function writeBestLevel(level) {
     } catch (e) {}
 }
 
+// Rough perceived brightness of a CSS colour, enough to tell a light theme from a
+// dark one without pulling in a colour library.
+function isLight(color) {
+    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((color || '').trim());
+    if (!hex) return false;
+    let h = hex[1];
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 140;
+}
 function themeColors() {
     const style = getComputedStyle(document.documentElement);
+    const bg = style.getPropertyValue('--bg').trim() || '#101014';
+    const light = isLight(bg);
     return {
-        bg: style.getPropertyValue('--bg').trim() || '#101014',
+        bg,
+        light,
         text: style.getPropertyValue('--text').trim() || '#f2f2f5',
         textMuted: style.getPropertyValue('--text-muted').trim() || '#a3a3ad',
         accent: style.getPropertyValue('--accent').trim() || '#0d9488',
+        // Ink is whatever stands out against the arena floor: everything that used to
+        // be hardcoded white now asks for this instead.
+        ink: light ? '#1a1a1a' : '#ffffff',
+        inkSoft: light ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.55)',
+        inkFaint: light ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)',
+        blade: light ? '#5f6b76' : '#dfe6e9',
+        bladeEdge: light ? '#2f3a44' : '#ffffff',
     };
 }
 
@@ -429,6 +461,7 @@ export function initEmberArena(canvas, opts) {
         heartChance: typeof options.heartChance === 'number' ? options.heartChance : 0.13,
     };
     let tuning = Object.assign({}, baseTuning);
+    let strings = Object.assign({}, DEFAULT_STRINGS, options.strings || {});
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
 
@@ -452,7 +485,8 @@ export function initEmberArena(canvas, opts) {
     let spinHitTimer = 0;   // time left before the next damage tick
     let ultCooldown = 0;
     let levelFlash = 0;
-    let flashText = '';
+    let flashKind = '';   // 'level' | 'boss' | 'final'
+    let flashLevel = 1;
     let screenFlash = 0;
     let hurtFlash = 0;
     let shake = 0;
@@ -534,6 +568,7 @@ export function initEmberArena(canvas, opts) {
         spinHitTimer = 0;
         ultCooldown = 0;
         levelFlash = 0;
+        flashKind = '';
         screenFlash = 0;
         hurtFlash = 0;
         shake = 0;
@@ -695,7 +730,7 @@ export function initEmberArena(canvas, opts) {
         const m = monsters[index];
         m.hp -= amount;
         m.flash = 0.12;
-        floaters.push({ x: m.x, y: m.y - m.r - 4, text: String(Math.round(amount)), life: 0.7, color: '#ffffff' });
+        floaters.push({ x: m.x, y: m.y - m.r - 4, text: String(Math.round(amount)), life: 0.7, color: themeColors().ink });
         sfx('hit');
         if (m.hp <= 0) {
             const def = MONSTER_TYPES[m.type];
@@ -784,16 +819,17 @@ export function initEmberArena(canvas, opts) {
     function announceLevel() {
         if (level === FINAL_LEVEL) {
             spawnMonster('finalBoss');
-            flashText = 'Boss finale!';
+            flashKind = 'final';
             levelFlash = 2.2;
             sfx('boss');
         } else if (level % 5 === 0) {
             spawnMonster('boss');
-            flashText = 'Boss!';
+            flashKind = 'boss';
             levelFlash = 1.8;
             sfx('boss');
         } else {
-            flashText = `Livello ${level}!`;
+            flashKind = 'level';
+            flashLevel = level;
             levelFlash = 1.2;
         }
     }
@@ -1084,7 +1120,7 @@ export function initEmberArena(canvas, opts) {
             // holding the action doesn't just paint a solid ring.
             const tail = Math.min(spinAngle, 1.8);
             ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.strokeStyle = colors.inkSoft;
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(player.x, player.y + bob, 30, swordAngle - tail, swordAngle);
@@ -1096,9 +1132,9 @@ export function initEmberArena(canvas, opts) {
         ctx.rotate(swordAngle);
         ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
-        ctx.fillStyle = '#dfe6e9';
+        ctx.fillStyle = colors.blade;
         ctx.fillRect(11, -1.5, 17, 3);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = colors.bladeEdge;
         ctx.fillRect(11, -1.5, 17, 1);
         ctx.restore();
 
@@ -1114,11 +1150,11 @@ export function initEmberArena(canvas, opts) {
         drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell, flip);
     }
 
-    function drawMonsters() {
+    function drawMonsters(colors) {
         monsters.forEach((m) => {
             const def = MONSTER_TYPES[m.type];
             const t = elapsed * 6 + m.phase;
-            const override = m.flash > 0 ? '#ffffff' : null;
+            const override = m.flash > 0 ? colors.ink : null;
             let frame = 0;
             let sx = 1;
             let sy = 1;
@@ -1143,10 +1179,13 @@ export function initEmberArena(canvas, opts) {
                 const bw = 22;
                 const bx = m.x - bw / 2;
                 const by = m.y - m.r - 9;
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+                ctx.fillStyle = colors.inkFaint;
                 ctx.fillRect(bx, by, bw, 4);
                 ctx.fillStyle = '#e74c3c';
                 ctx.fillRect(bx, by, bw * Math.max(0, m.hp / m.maxHp), 4);
+                ctx.strokeStyle = colors.inkSoft;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, 5);
             }
         });
     }
@@ -1191,9 +1230,13 @@ export function initEmberArena(canvas, opts) {
     }
     function drawLevelFlash(colors) {
         if (levelFlash <= 0) return;
-        ctx.fillStyle = flashText === 'Boss!' ? '#e74c3c' : colors.text;
+        const isBoss = flashKind === 'boss' || flashKind === 'final';
+        const flashText = flashKind === 'final' ? strings.finalBoss
+            : flashKind === 'boss' ? strings.boss
+            : typeof strings.level === 'function' ? strings.level(flashLevel) : `Level ${flashLevel}!`;
+        ctx.fillStyle = isBoss ? '#e74c3c' : colors.text;
         ctx.textAlign = 'center';
-        ctx.font = `700 ${flashText === 'Boss!' ? 28 : 20}px system-ui, sans-serif`;
+        ctx.font = `700 ${isBoss ? 28 : 20}px system-ui, sans-serif`;
         ctx.globalAlpha = Math.min(1, levelFlash);
         ctx.fillText(flashText, W / 2, H / 2 - 40);
         ctx.globalAlpha = 1;
@@ -1231,14 +1274,14 @@ export function initEmberArena(canvas, opts) {
         const bw = Math.min(280, W - 40);
         const bx = (W - bw) / 2;
         const by = 12;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillStyle = colors.inkFaint;
         ctx.fillRect(bx, by, bw, 8);
         ctx.fillStyle = isFinal ? '#f1c40f' : '#e74c3c';
         ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), 8);
         ctx.fillStyle = colors.text;
         ctx.textAlign = 'center';
         ctx.font = '700 12px system-ui, sans-serif';
-        ctx.fillText(isFinal ? 'Boss finale' : 'Boss', W / 2, by + 22);
+        ctx.fillText(isFinal ? strings.finalBossBar : strings.bossBar, W / 2, by + 22);
     }
 
     function drawJoystick() {
@@ -1254,13 +1297,14 @@ export function initEmberArena(canvas, opts) {
         const kx = JOY_BASE.x + (v ? v.x * JOY_RADIUS : 0);
         const ky = JOY_BASE.y + (v ? v.y * JOY_RADIUS : 0);
         ctx.save();
+        const jc = themeColors();
         ctx.globalAlpha = active ? 0.45 : 0.22;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = jc.ink;
         ctx.beginPath();
         ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS + 10, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = active ? 0.6 : 0.35;
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = jc.ink;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS, 0, Math.PI * 2);
@@ -1283,7 +1327,7 @@ export function initEmberArena(canvas, opts) {
         ctx.save();
         ctx.translate(sx, sy);
         drawHearts();
-        drawMonsters();
+        drawMonsters(colors);
         drawBolts();
         drawExplosions();
         drawParticles();
@@ -1312,7 +1356,7 @@ export function initEmberArena(canvas, opts) {
             ctx.fillStyle = colors.text;
             ctx.textAlign = 'center';
             ctx.font = '600 15px system-ui, sans-serif';
-            ctx.fillText(options.startLabel || 'Tap or press Space to start', W / 2, H / 2);
+            ctx.fillText(strings.start, W / 2, H / 2);
         }
     }
 
@@ -1340,6 +1384,9 @@ export function initEmberArena(canvas, opts) {
             else if (state !== 'choosing') start();
         },
         chooseUpgrade,
+        setStrings(next) {
+            strings = Object.assign({}, DEFAULT_STRINGS, next || {});
+        },
         isMuted() {
             return muted;
         },

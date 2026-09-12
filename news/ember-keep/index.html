@@ -186,7 +186,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=11';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=12';
 
     initDiagramPage();
 
@@ -218,7 +218,31 @@
         btn.classList.toggle('is-cooling', fraction > 0);
     }
 
+    // The arena writes on itself (the start prompt, the level and boss announcements,
+    // the boss bar label): those strings live here, next to the page's own copy, and
+    // are re-sent when the visitor switches language.
+    const ARENA_TEXT = {
+        it: {
+            start: 'Tocca o premi Spazio per iniziare',
+            level: (n) => `Livello ${n}!`,
+            boss: 'Boss!',
+            finalBoss: 'Boss finale!',
+            bossBar: 'Boss',
+            finalBossBar: 'Boss finale',
+        },
+        en: {
+            start: 'Tap or press Space to start',
+            level: (n) => `Level ${n}!`,
+            boss: 'Boss!',
+            finalBoss: 'Final boss!',
+            bossBar: 'Boss',
+            finalBossBar: 'Final boss',
+        },
+    };
+    const arenaText = () => ARENA_TEXT[getLang() === 'it' ? 'it' : 'en'];
+
     const game = initEmberArena(canvas, {
+        strings: arenaText(),
         // The sword has no cooldown, so only the firestorm button shows a ring.
         onCooldownChange(ult) {
             setCooldown(ultBtn, ult);
@@ -309,6 +333,7 @@
     // Cards and the end screen are built in JS, so they redraw themselves when the
     // page language changes instead of being left in the old one.
     document.addEventListener('langchange', () => {
+        game.setStrings(arenaText());
         if (!upgradeOverlay.hidden && lastChoices.length) renderCards(lastChoices);
         if (!overlay.hidden) renderOutcome();
     });
