@@ -30,6 +30,43 @@ const HEART_FRAME = [
     '....h....',
 ];
 
+// Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
+// by the random spawn table. Same sprite technique as everything else (paintSprite),
+// same shape shared between them so the pair reads as two dogs, differentiated by
+// colour and by scale (see FAMILIAR_SCALE below) rather than a second hand-drawn shape.
+const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608' };
+const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608' };
+const DOG_FRAME = [
+    '...aa.....',
+    '..aAAa....',
+    '.aAAAAa...',
+    '.AAEAAAa..',
+    '.AAAAAAAa.',
+    'AAAAAAAAAa',
+    'AAAA.AAAAa',
+    'A..A.A..A.',
+];
+// May's own frame swaps some body cells for the patch colour B — same silhouette,
+// different coat: one ear and a saddle patch across the back, so the marking reads
+// as one deliberate shape instead of scattered spots.
+const MAY_FRAME = [
+    '...BB.....',
+    '..BAAB....',
+    '.aAAAAa...',
+    '.AAEAAAa..',
+    '.AAAAAAAa.',
+    'ABBBBBBBAa',
+    'AAAA.AAAAa',
+    'A..A.A..A.',
+];
+// How rare each visit is, and what triggers it — tunable in one place instead of
+// buried in update().
+const FAMILIAR_MANY_MONSTERS = 6;     // Cookie needs at least this many non-boss monsters up
+const FAMILIAR_LOW_HP_FRACTION = 0.25; // May needs the hero at or under this HP fraction
+const FAMILIAR_CHECK_INTERVAL = 2;    // seconds between eligibility rolls
+const FAMILIAR_CHANCE = 0.12;         // chance a visit actually starts on an eligible roll
+const FAMILIAR_COOLDOWN = 25;         // minimum seconds between two visits
+
 // Pixel-art sprites drawn with fillRect on a small grid — same technique as
 // the Triple Triad icon, so no external image assets. '.' is transparent.
 const HERO_PALETTE = {
@@ -218,12 +255,14 @@ function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
 export function drawArenaIcon(canvas, key, size = 44) {
     const hero = key === 'hero';
     const heart = key === 'heart';
-    const def = hero || heart ? null : MONSTER_TYPES[key];
-    if (!hero && !heart && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : def.frames[0];
+    const cookie = key === 'cookie';
+    const may = key === 'may';
+    const def = hero || heart || cookie || may ? null : MONSTER_TYPES[key];
+    if (!hero && !heart && !cookie && !may && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
     const palette = hero
         ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : heart ? HEART_PALETTE : def.palette;
+        : heart ? HEART_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
@@ -549,6 +588,9 @@ export function initEmberArena(canvas, opts) {
     let hearts = [];
     let floaters = [];   // damage numbers drifting up
     let particles = [];  // what is left of a monster that just died
+    let familiarVisit = null; // the one rare Cookie/May visit in progress, if any
+    let familiarCheckTimer = 0;
+    let familiarCooldown = 0; // seconds left before another visit can even be rolled
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -603,6 +645,7 @@ export function initEmberArena(canvas, opts) {
         else if (name === 'over') chirp({ from: 300, to: 70, duration: 0.7, type: 'sawtooth', gain: 0.05 });
         else if (name === 'starburst') { chirp({ from: 700, to: 1500, duration: 0.12, type: 'sawtooth', gain: 0.045 }); chirp({ from: 1500, to: 2200, duration: 0.1, type: 'sawtooth', gain: 0.03, delay: 0.08 }); }
         else if (name === 'slam') { noiseBurst(0.12, 0.06, 500); chirp({ from: 140, to: 50, duration: 0.22, type: 'sawtooth', gain: 0.05 }); }
+        else if (name === 'bark') { chirp({ from: 380, to: 220, duration: 0.09, type: 'square', gain: 0.045 }); chirp({ from: 340, to: 180, duration: 0.08, type: 'square', gain: 0.035, delay: 0.12 }); }
     }
 
     // --- Background music --------------------------------------------------
@@ -681,6 +724,9 @@ export function initEmberArena(canvas, opts) {
         hearts = [];
         floaters = [];
         particles = [];
+        familiarVisit = null;
+        familiarCheckTimer = 0;
+        familiarCooldown = 0;
         tuning = Object.assign({}, baseTuning);
         taken = {};
         pendingChoices = null;
@@ -916,6 +962,74 @@ export function initEmberArena(canvas, opts) {
             });
         }
     }
+    // Cookie/May: walk in from a random edge (same corner-picking idea as
+    // spawnMonster, minus any chase logic), pause to bark, then leave the way they
+    // came. Never fights, never takes or deals contact damage.
+    function startFamiliarVisit(kind) {
+        const edge = Math.floor(Math.random() * 4);
+        const inset = 70;
+        let fromX, fromY, restX, restY;
+        if (edge === 0) { fromX = Math.random() * W; fromY = -20; restX = fromX; restY = inset; }
+        else if (edge === 1) { fromX = W + 20; fromY = Math.random() * H; restX = W - inset; restY = fromY; }
+        else if (edge === 2) { fromX = Math.random() * W; fromY = H + 20; restX = fromX; restY = H - inset; }
+        else { fromX = -20; fromY = Math.random() * H; restX = inset; restY = fromY; }
+        familiarVisit = { kind, phase: 'enter', t: 0, x: fromX, y: fromY, fromX, fromY, restX, restY, acted: false };
+    }
+    function updateFamiliarVisit(dt) {
+        if (familiarCooldown > 0) familiarCooldown -= dt;
+        if (!familiarVisit) {
+            familiarCheckTimer -= dt;
+            if (familiarCheckTimer <= 0) {
+                familiarCheckTimer = FAMILIAR_CHECK_INTERVAL;
+                if (familiarCooldown <= 0) {
+                    const manyMonsters = monsters.filter((m) => m.type !== 'boss' && m.type !== 'finalBoss').length >= FAMILIAR_MANY_MONSTERS;
+                    const lowHp = player.hp / player.maxHp <= FAMILIAR_LOW_HP_FRACTION;
+                    // Cookie checked first: if both conditions happen to be true at once,
+                    // the fuller-looking emergency (a swarm) gets first crack this tick —
+                    // May still gets her own roll next tick if the player is still low.
+                    if (manyMonsters && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('cookie');
+                    else if (lowHp && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('may');
+                }
+            }
+            return;
+        }
+        const v = familiarVisit;
+        v.t += dt;
+        if (v.phase === 'enter') {
+            const p = Math.min(1, v.t / 0.5);
+            v.x = v.fromX + (v.restX - v.fromX) * p;
+            v.y = v.fromY + (v.restY - v.fromY) * p;
+            if (p >= 1) { v.phase = 'act'; v.t = 0; }
+        } else if (v.phase === 'act') {
+            // The bark, and whatever it does, lands once, partway through the pause —
+            // not the instant it arrives, so the visit reads as an actual beat rather
+            // than a switch flipped on entry.
+            if (!v.acted && v.t >= 0.3) {
+                v.acted = true;
+                sfx('bark');
+                if (!reducedMotion) shake = Math.max(shake, 6);
+                screenFlash = 0.18;
+                if (v.kind === 'cookie') {
+                    for (let i = monsters.length - 1; i >= 0; i--) {
+                        const m = monsters[i];
+                        if (m.type === 'boss' || m.type === 'finalBoss') continue;
+                        damageMonster(i, m.hp);
+                    }
+                } else {
+                    applyLevelUp(true);
+                }
+            }
+            if (v.t >= 0.6) { v.phase = 'leave'; v.t = 0; }
+        } else {
+            const p = Math.min(1, v.t / 0.5);
+            v.x = v.restX + (v.fromX - v.restX) * p;
+            v.y = v.restY + (v.fromY - v.restY) * p;
+            if (p >= 1) {
+                familiarVisit = null;
+                familiarCooldown = FAMILIAR_COOLDOWN;
+            }
+        }
+    }
     function hurtPlayer(amount) {
         if (state !== 'playing') return false;
         if (elapsed < player.invulnUntil) return false;
@@ -1120,6 +1234,8 @@ export function initEmberArena(canvas, opts) {
                 sfx('heart');
             }
         }
+
+        updateFamiliarVisit(dt);
 
         const finalFight = monsters.some((m) => m.type === 'finalBoss');
         const spawnInterval = Math.max(0.5, 1.6 - level * 0.08) * (finalFight ? 3.5 : bossAlive() ? 2 : 1);
@@ -1376,6 +1492,22 @@ export function initEmberArena(canvas, opts) {
         });
     }
 
+    // Cookie/May are noticeably bigger than the monster sprites they share a technique
+    // with — this is a guest appearance, not another thing trying to blend into the
+    // swarm — and a little bounce while barking is the only animation either needs.
+    const FAMILIAR_CELL = 4.2;
+    function drawFamiliar() {
+        const v = familiarVisit;
+        if (!v) return;
+        const frame = v.kind === 'cookie' ? DOG_FRAME : MAY_FRAME;
+        const palette = v.kind === 'cookie' ? COOKIE_PALETTE : MAY_PALETTE;
+        const barking = v.phase === 'act' && v.t < 0.35;
+        const bounce = barking ? Math.abs(Math.sin(v.t * 26)) * 4 : 0;
+        const movingLeft = v.phase === 'leave' ? v.fromX < v.restX : v.restX < v.fromX;
+        drawShadow(v.x, v.y + 16, 16);
+        drawSprite(frame, palette, v.x, v.y - bounce, FAMILIAR_CELL, movingLeft);
+    }
+
     function drawBolts() {
         bolts.forEach((b) => {
             // The final boss's star volley reads warm (fire), never the caster's cold
@@ -1553,6 +1685,7 @@ export function initEmberArena(canvas, opts) {
         ctx.translate(sx, sy);
         drawHearts();
         drawMonsters(colors);
+        drawFamiliar();
         drawBolts();
         drawExplosions(colors);
         drawParticles();

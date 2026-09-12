@@ -193,6 +193,14 @@
                 <canvas class="game-legend-sprite" data-sprite="finalBoss" width="44" height="44" role="img" aria-label="Final boss" data-aria-label-it="Boss finale"></canvas>
                 <div class="game-legend-text"><b data-it="Boss finale — livello 15">Final boss — level 15</b><span data-it="Battilo e hai vinto la partita.">Beat it and you have won the run.</span></div>
             </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="cookie" width="44" height="44" role="img" aria-label="Cookie" data-aria-label-it="Cookie"></canvas>
+                <div class="game-legend-text"><b data-it="Cookie — raro">Cookie — rare</b><span data-it="Compare quando i mostri sono troppi e li spazza via con un abbaio (boss esclusi).">Shows up when monsters pile up and barks them all away (bosses excluded).</span></div>
+            </li>
+            <li class="game-legend-item">
+                <canvas class="game-legend-sprite" data-sprite="may" width="44" height="44" role="img" aria-label="May" data-aria-label-it="May"></canvas>
+                <div class="game-legend-text"><b data-it="May — rara">May — rare</b><span data-it="Compare quando hai poca vita e ti regala un salto di livello.">Shows up when you're low on health and gifts you a level up.</span></div>
+            </li>
         </ul>
     </main>
 
@@ -206,7 +214,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=17';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=18';
 
     initDiagramPage();
 
@@ -426,9 +434,15 @@
         e.stopImmediatePropagation();
         rotatePrompt.hidden = false;
     }, true);
-    // Rotating to landscape while the prompt is up clears it on its own.
+    // Rotating clears/raises the prompt to match — back to landscape hides it,
+    // back to portrait (mid-session, after the very first load) raises it again
+    // right away instead of waiting for another tap: the controls are already
+    // gone at that point, so silence would just leave the player stranded.
+    // 'resize' doesn't fire on initial page load, only on a real viewport change,
+    // so a cold load in portrait is untouched by this — still idle canvas, still
+    // waiting for that first tap, exactly as before.
     window.addEventListener('resize', () => {
-        if (!isPortraitPhone()) rotatePrompt.hidden = true;
+        rotatePrompt.hidden = !isPortraitPhone();
     });
 
     // --- Movement stick -----------------------------------------------------
