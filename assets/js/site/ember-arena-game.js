@@ -589,7 +589,7 @@ export function initEmberArena(canvas, opts) {
         onStateChange(state);
     }
 
-    // Fullscreen shows the same arena much bigger. The logical space stays W x H, so
+    // The arena is sized by the page and follows the window. The logical space stays W x H, so
     // every coordinate in this file keeps its meaning: only the backing store is
     // rebuilt, and the pixel art is redrawn sharp instead of being upscaled.
     function resize() {
