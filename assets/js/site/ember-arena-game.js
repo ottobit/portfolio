@@ -184,6 +184,7 @@ export function initEmberArena(canvas, opts) {
     const JOY_BASE = { x: 72, y: H - 72 };
     const JOY_GRAB = JOY_RADIUS * 2;
     const MELEE_CD = 0.4;
+    const SPIN_DUR = 0.22; // seconds of the 360° spin attack animation
     const ULT_CD = 15;
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
@@ -559,14 +560,26 @@ export function initEmberArena(canvas, opts) {
 
         drawShadow(player.x, player.y + 18, 12);
 
-        // Sword: swings through an arc right after a melee attack, otherwise rests along the facing direction.
+        // Sword: a full spin attack right after a melee press (hero and blade turn 360°
+        // together, the blade leaving a circular trail); otherwise the sword rests along the
+        // facing direction.
         const angle = Math.atan2(player.facing.y, player.facing.x);
-        const swinging = meleeCooldown > 0.28;
-        const swingT = swinging ? (0.4 - meleeCooldown) / 0.12 : 1;
-        const swingOffset = swinging ? (-0.9 + swingT * 1.8) : 0.35;
+        const spinning = meleeCooldown > MELEE_CD - SPIN_DUR;
+        const spinT = spinning ? (MELEE_CD - meleeCooldown) / SPIN_DUR : 1;
+        const spin = spinning ? spinT * Math.PI * 2 : 0;
+        const swordAngle = spinning ? angle + spin : angle + 0.35;
+        if (spinning) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y + bob, 30, angle, angle + spin);
+            ctx.stroke();
+            ctx.restore();
+        }
         ctx.save();
         ctx.translate(player.x, player.y + bob);
-        ctx.rotate(angle + swingOffset);
+        ctx.rotate(swordAngle);
         ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
         ctx.fillStyle = '#dfe6e9';
@@ -574,16 +587,16 @@ export function initEmberArena(canvas, opts) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(11, -1.5, 17, 1);
         ctx.restore();
-        if (swinging) {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30, angle - 0.9, angle - 0.9 + swingT * 1.8);
-            ctx.stroke();
-            ctx.restore();
-        }
 
+        if (spinning) {
+            // The hero sprite turns together with the blade.
+            ctx.save();
+            ctx.translate(player.x, player.y + bob);
+            ctx.rotate(spin);
+            drawSprite(HERO_FRAMES[frame], palette, 0, 0, cell, flip);
+            ctx.restore();
+            return;
+        }
         drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell, flip);
     }
 

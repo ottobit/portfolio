@@ -2071,18 +2071,6 @@ a.info-card:focus-visible .info-card-title::after {
 .game-credits a {
     color: var(--accent);
 }
-.game-credits-coauthor {
-    max-width: 480px;
-    margin: 0.5rem auto 0;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-.game-credits-coauthor a {
-    color: var(--accent);
-}
-
 /* Ember Keep: HP/XP status bars + on-canvas touch attack buttons,
    an extension of the same game-hud/game-overlay family above. */
 .game-statbar {
