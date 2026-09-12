@@ -271,13 +271,13 @@ const UPGRADES = [
     {
         id: 'ember', icon: '🔥', max: 5,
         name: { it: 'Braci', en: 'Embers' },
-        desc: { it: 'La tempesta di fuoco brucia di più.', en: 'The firestorm burns hotter.' },
+        desc: { it: 'La palla di fuoco brucia di più.', en: 'The fireball burns hotter.' },
         apply: (p) => { p.player.fireDamage += 6; },
     },
     {
         id: 'storm', icon: '⏱️', max: 3,
-        name: { it: 'Tempesta rapida', en: 'Quick storm' },
-        desc: { it: 'Ricarica la tempesta prima.', en: 'The firestorm comes back sooner.' },
+        name: { it: 'Ricarica rapida', en: 'Quick reload' },
+        desc: { it: 'La palla di fuoco torna prima.', en: 'The fireball comes back sooner.' },
         apply: (p) => { p.tuning.ultCd = Math.max(3, p.tuning.ultCd - 1.6); },
     },
     {
@@ -590,6 +590,20 @@ export function initEmberArena(canvas, opts) {
         onStateChange(state);
     }
 
+    // Fullscreen shows the same arena much bigger. The logical space stays W x H, so
+    // every coordinate in this file keeps its meaning: only the backing store is
+    // rebuilt, and the pixel art is redrawn sharp instead of being upscaled.
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width) return;
+        const scale = Math.min(Math.max((rect.width / W) * dpr, dpr), 4);
+        const nextW = Math.round(W * scale);
+        if (nextW === canvas.width) return;
+        canvas.width = nextW;
+        canvas.height = Math.round(H * scale);
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    }
+
     function clamp(v, min, max) {
         return Math.max(min, Math.min(max, v));
     }
@@ -677,14 +691,16 @@ export function initEmberArena(canvas, opts) {
     function ultimateAttack() {
         if (ultCooldown > 0) return;
         ultCooldown = tuning.ultCd;
-        screenFlash = 0.25;
+        screenFlash = 0.18;
         sfx('storm');
         if (!reducedMotion) shake = Math.max(shake, 5);
         explosions.push({
             x: player.x, y: player.y, r: 0,
             maxR: Math.hypot(W, H), life: ULT_DUR, dur: ULT_DUR,
-            ult: true, hit: new Set(),
+            ult: true, hit: new Set(), seed: Math.random() * TAU,
         });
+        // Sparks out of the blast, through the same particle burst the monsters die into.
+        burst(player.x, player.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 10 : 26);
     }
     // Press: start turning and land a hit at once. Hold: keep turning, one hit per
     // turn. Release: stop once the turn in progress completes, so a tap is one spin.
@@ -1046,6 +1062,7 @@ export function initEmberArena(canvas, opts) {
                     const m = monsters[j];
                     if (!ex.hit.has(m) && Math.hypot(m.x - ex.x, m.y - ex.y) < ex.r + m.r) {
                         ex.hit.add(m);
+                        burst(m.x, m.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 4 : 9);
                         damageMonster(j, player.fireDamage * 3);
                     }
                 }
@@ -1213,21 +1230,47 @@ export function initEmberArena(canvas, opts) {
 
     function drawExplosions() {
         explosions.forEach((ex) => {
-            const a = Math.max(0, ex.life / ex.dur);
-            ctx.globalAlpha = a * 0.35;
-            ctx.fillStyle = FIRE_GLOW;
+            const a = Math.max(0, ex.life / ex.dur);   // 1 at the blast, 0 when spent
+            const seed = ex.seed || 0;
+            // A fireball, not a travelling hoop: it swells fast, then burns down. The
+            // damage still sweeps the whole arena — you see it in the monsters popping
+            // as the wave reaches them, which reads far better than a geometric circle.
+            const br = 34 + (ex.maxR * 0.24 - 34) * (1 - a * a);
+            ctx.save();
+
+            const ball = ctx.createRadialGradient(ex.x, ex.y, 0, ex.x, ex.y, br);
+            ball.addColorStop(0, `rgba(255, 255, 245, ${0.95 * a})`);
+            ball.addColorStop(0.35, `rgba(249, 202, 36, ${0.85 * a})`);
+            ball.addColorStop(0.75, `rgba(230, 126, 34, ${0.6 * a})`);
+            ball.addColorStop(1, 'rgba(192, 57, 43, 0)');
+            ctx.fillStyle = ball;
             ctx.beginPath();
-            ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+            ctx.arc(ex.x, ex.y, br, 0, TAU);
             ctx.fill();
-            ctx.globalAlpha = a;
-            ctx.strokeStyle = FIRE_COLOR;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = 1;
+
+            // Billows filling the ball, at scattered angles and depths. A smooth
+            // function here (a sine of the angle) leaves a visible three-lobed flower;
+            // a hash does not, and fire has no symmetry.
+            const lobes = reducedMotion ? 10 : 22;
+            const hash = (n) => {
+                const v = Math.sin(n * 127.1 + seed * 311.7) * 43758.5453;
+                return v - Math.floor(v);
+            };
+            for (let i = 0; i < lobes; i++) {
+                const ang = (i / lobes) * TAU + hash(i) * 0.5 + (1 - a) * 0.6;
+                const rr = br * (0.3 + 0.65 * hash(i + 40));
+                const size = br * (0.16 + 0.16 * hash(i + 90));
+                ctx.globalAlpha = a * 0.8;
+                const pick = hash(i + 7);
+                ctx.fillStyle = pick > 0.72 ? '#fff3c4' : pick > 0.4 ? FIRE_GLOW : FIRE_COLOR;
+                ctx.beginPath();
+                ctx.arc(ex.x + Math.cos(ang) * rr, ex.y + Math.sin(ang) * rr, size, 0, TAU);
+                ctx.fill();
+            }
+            ctx.restore();
         });
     }
+
     function drawLevelFlash(colors) {
         if (levelFlash <= 0) return;
         const isBoss = flashKind === 'boss' || flashKind === 'final';
@@ -1335,7 +1378,7 @@ export function initEmberArena(canvas, opts) {
         drawFloaters();
         ctx.restore();
         if (screenFlash > 0) {
-            ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.25) * 0.35})`;
+            ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.18) * 0.16})`;
             ctx.fillRect(0, 0, W, H);
         }
         if (hurtFlash > 0) {
@@ -1384,6 +1427,7 @@ export function initEmberArena(canvas, opts) {
             else if (state !== 'choosing') start();
         },
         chooseUpgrade,
+        resize,
         setStrings(next) {
             strings = Object.assign({}, DEFAULT_STRINGS, next || {});
         },

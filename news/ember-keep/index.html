@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.15">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.16">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -130,8 +130,9 @@
             <canvas id="ember-canvas" width="480" height="480" role="img" aria-label="Ember Keep game canvas"></canvas>
             <div class="game-touch-controls">
                 <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
-                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Firestorm (full-arena fireball)" data-aria-label-it="Tempesta di fuoco (tutta l'arena)">🔥</button>
+                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
             </div>
+            <button class="game-exit" id="ember-exit" type="button" hidden aria-label="Leave full screen" data-aria-label-it="Esci da tutto schermo">✕</button>
             <button class="game-mute" id="ember-mute" type="button" aria-pressed="false" aria-label="Mute sound" data-aria-label-it="Silenzia il suono">🔊</button>
             <div class="game-overlay" id="ember-overlay" hidden>
                 <h2 id="ember-overlay-lost" data-it="Sei caduto">You fell</h2>
@@ -145,11 +146,11 @@
                 <p class="game-upgrade-hint" data-it="Da tastiera: 1, 2, 3">On the keyboard: 1, 2, 3</p>
             </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la tempesta di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena firestorm (has a cooldown).</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena fireball (has a cooldown).</p>
         <ul class="game-legend">
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="hero" width="44" height="44" role="img" aria-label="Hero" data-aria-label-it="Eroe"></canvas>
-                <div class="game-legend-text"><b data-it="Tu">You</b><span data-it="La spada respinge, la tempesta di fuoco pulisce l'arena.">The sword knocks back, the firestorm clears the arena.</span></div>
+                <div class="game-legend-text"><b data-it="Tu">You</b><span data-it="La spada respinge, la palla di fuoco pulisce l'arena.">The sword knocks back, the fireball clears the arena.</span></div>
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="slime" width="44" height="44" role="img" aria-label="Slime"></canvas>
@@ -192,7 +193,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=12';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=13';
 
     initDiagramPage();
 
@@ -209,8 +210,11 @@
     const upgradeOverlay = document.getElementById('ember-upgrade');
     const upgradeCards = document.getElementById('ember-upgrade-cards');
     const muteBtn = document.getElementById('ember-mute');
+    const exitBtn = document.getElementById('ember-exit');
+    const wrap = document.querySelector('.game-canvas-wrap');
 
     let hasWon = false;
+    let wasRunning = false;
     let lastLevel = 1;
     function paintLevel() {
         // The target is visible from the first second: this run can be won, not only survived.
@@ -249,7 +253,7 @@
 
     const game = initEmberArena(canvas, {
         strings: arenaText(),
-        // The sword has no cooldown, so only the firestorm button shows a ring.
+        // The sword has no cooldown, so only the fireball button shows a ring.
         onCooldownChange(ult) {
             setCooldown(ultBtn, ult);
         },
@@ -265,14 +269,19 @@
         },
         onStateChange(state, stats) {
             if (state === 'playing') {
+                // Only a fresh run goes full screen; coming back from the cards does not.
+                if (!wasRunning) enterImmersive();
+                wasRunning = true;
                 overlay.hidden = true;
                 upgradeOverlay.hidden = true;
+                wasRunning = true;
             } else if (state === 'choosing') {
                 overlay.hidden = true;
                 upgradeOverlay.hidden = false;
                 const first = upgradeCards.querySelector('button');
                 if (first) first.focus();
             } else if (state === 'over' || state === 'won') {
+                wasRunning = false;
                 if (state === 'won') {
                     hasWon = true;
                     paintLevel();
@@ -342,6 +351,56 @@
         game.setStrings(arenaText());
         if (!upgradeOverlay.hidden && lastChoices.length) renderCards(lastChoices);
         if (!overlay.hidden) renderOutcome();
+    });
+
+    // --- Full screen --------------------------------------------------------
+    // Starting a run puts the arena on the whole screen. Two reasons: the game is
+    // small on a page, and above all a run used to start with the top of the canvas
+    // scrolled out of view — which is exactly where the boss bar lives.
+    const immersive = () => !!document.fullscreenElement || wrap.classList.contains('is-focus');
+
+    function paintImmersive() {
+        const on = immersive();
+        wrap.classList.toggle('is-immersive', on);
+        exitBtn.hidden = !on;
+        document.body.classList.toggle('game-focus-lock', on);
+        // The arena is far bigger now: rebuild the drawing surface so the pixel art
+        // is redrawn at that size instead of being blown up.
+        game.resize();
+    }
+
+    function enterImmersive() {
+        // Works even when full screen is refused or unavailable: the arena has to be
+        // inside the window before the first monster shows up.
+        wrap.scrollIntoView({ block: 'center' });
+        if (immersive()) return;
+        const request = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        if (request) {
+            const done = request.call(wrap);
+            // iPhone Safari has no element full screen at all, and any browser can
+            // refuse: fall back to pinning the arena over the page.
+            if (done && typeof done.catch === 'function') done.catch(() => { wrap.classList.add('is-focus'); paintImmersive(); });
+            else paintImmersive();
+        } else {
+            wrap.classList.add('is-focus');
+        }
+        paintImmersive();
+    }
+
+    function leaveImmersive() {
+        wrap.classList.remove('is-focus');
+        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+        paintImmersive();
+    }
+
+    exitBtn.addEventListener('click', leaveImmersive);
+    document.addEventListener('fullscreenchange', paintImmersive);
+    document.addEventListener('webkitfullscreenchange', paintImmersive);
+    window.addEventListener('resize', () => game.resize());
+    // Esc leaves the fallback too, where the browser has no full screen to exit.
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && wrap.classList.contains('is-focus')) leaveImmersive();
     });
 
     // --- Sound toggle -------------------------------------------------------
