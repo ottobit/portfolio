@@ -2178,20 +2178,40 @@ a.info-card:focus-visible .info-card-title::after {
 }
 
 .game-instructions {
+    max-width: 480px;
+    margin: 0.75rem auto 0;
     text-align: center;
     color: var(--text-muted);
     font-size: 0.85rem;
-    margin-top: 0.75rem;
 }
+/* The credits sit under the section heading now, and that heading already carries
+   the rule: a second border here would draw two lines a few pixels apart. */
 .game-credits {
-    max-width: 480px;
-    margin: 1.25rem auto 0;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--border);
-    text-align: center;
+    margin: 0;
     color: var(--text-muted);
     font-size: 0.8rem;
     line-height: 1.5;
+}
+/* The heading that introduces the game. The rule goes ABOVE the title, not under it:
+   its job is to close the memory piece and open the arena, so the title already belongs
+   to what comes after it. Held to the arena's own column so the line starts and ends
+   where the canvas does. */
+.ember-heading {
+    max-width: 480px;
+    margin: 2.5rem auto 1.4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    gap: 0;
+}
+.ember-heading .doc-section h2 {
+    margin-bottom: 0.7rem;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+/* Title and credits sit centred over the arena, like the instructions under it: the
+   rule spans the column, the text does not hang off its left edge. */
+.ember-heading .doc-section {
+    text-align: center;
 }
 .game-credits a {
     color: var(--accent);
