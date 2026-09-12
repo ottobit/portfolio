@@ -2375,6 +2375,22 @@ a.info-card:focus-visible .info-card-title::after {
     }
 }
 
+/* A fourth overlay in the .game-overlay family: a blocking announcement when Cookie
+   or May shows up. The module freezes the arena for its whole duration (see
+   familiarAnnounce in ember-arena-game.js) and hides this again on its own — the
+   page only ever toggles `hidden` in response to the onFamiliarAnnounce callback. */
+.game-familiar-announce {
+    gap: 0.5rem;
+}
+.game-familiar-announce-icon {
+    width: 64px;
+    height: 64px;
+}
+.game-familiar-announce h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
 /* Portrait phone: touch controls don't fit a narrow, tall arena the way the
    landscape one does, so this is no longer a valid way to play — but the
    canvas itself stays put, showing its own "tap or press Space" idle prompt

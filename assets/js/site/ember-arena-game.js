@@ -34,8 +34,10 @@ const HEART_FRAME = [
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
 // colour and by scale (see FAMILIAR_SCALE below) rather than a second hand-drawn shape.
-const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a' };
-const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a' };
+// 'glow' isn't a sprite pixel — paintSprite never draws it — it's the colour of the
+// pulsing halo behind the sprite while the arrival banner is up (see drawFamiliar).
+const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a', glow: '#f5a623' };
+const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a', glow: '#f0d878' };
 // Side profile, facing right (drawFamiliar flips it when the visit is heading left):
 // an ear, a snout with a nose, one eye, a tail curling up over the back, then four legs.
 const DOG_FRAME = [
@@ -69,6 +71,7 @@ const FAMILIAR_MANY_MONSTERS = 6;     // both need at least this many non-boss m
 const FAMILIAR_CHECK_INTERVAL = 2;    // seconds between eligibility rolls
 const FAMILIAR_CHANCE = 0.12;         // chance a visit actually starts on an eligible roll
 const FAMILIAR_COOLDOWN = 25;         // minimum seconds between two visits
+const FAMILIAR_ANNOUNCE_DURATION = 1.8; // seconds the arena freezes for the name banner
 
 // Pixel-art sprites drawn with fillRect on a small grid — same technique as
 // the Triple Triad icon, so no external image assets. '.' is transparent.
@@ -323,8 +326,8 @@ const DEFAULT_STRINGS = {
     finalBoss: 'Final boss!',
     bossBar: 'Boss',
     finalBossBar: 'Final boss',
-    cookieAppears: 'Cookie appears!',
-    mayAppears: 'May appears!',
+    cookieAnnounce: 'Cookie has appeared!',
+    mayAnnounce: 'May has appeared!',
 };
 
 // Each card's apply() reads p.pickIndex — how many copies were already taken,
@@ -596,6 +599,7 @@ export function initEmberArena(canvas, opts) {
     let familiarVisit = null; // the one rare Cookie/May visit in progress, if any
     let familiarCheckTimer = 0;
     let familiarCooldown = 0; // seconds left before another visit can even be rolled
+    let familiarAnnounce = null; // { kind, t } while the arrival banner freezes the arena
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -633,6 +637,10 @@ export function initEmberArena(canvas, opts) {
     }
     function onChoices(choices) {
         if (typeof options.onChoices === 'function') options.onChoices(choices);
+    }
+    // kind is 'cookie'/'may' when the arrival banner should show, or null to hide it.
+    function onFamiliarAnnounce(kind) {
+        if (typeof options.onFamiliarAnnounce === 'function') options.onFamiliarAnnounce(kind);
     }
     // One place decides whether a sound happens at all: muted, or not playing yet.
     function sfx(name) {
@@ -732,6 +740,8 @@ export function initEmberArena(canvas, opts) {
         familiarVisit = null;
         familiarCheckTimer = 0;
         familiarCooldown = 0;
+        if (familiarAnnounce) onFamiliarAnnounce(null);
+        familiarAnnounce = null;
         tuning = Object.assign({}, baseTuning);
         taken = {};
         pendingChoices = null;
@@ -1000,7 +1010,14 @@ export function initEmberArena(canvas, opts) {
             const p = Math.min(1, v.t / 0.5);
             v.x = v.fromX + (v.restX - v.fromX) * p;
             v.y = v.fromY + (v.restY - v.fromY) * p;
-            if (p >= 1) { v.phase = 'act'; v.t = 0; }
+            if (p >= 1) {
+                v.phase = 'act';
+                v.t = 0;
+                // The banner freezes the arena for a beat before the bark lands — see
+                // the familiarAnnounce gate at the top of update().
+                familiarAnnounce = { kind: v.kind, t: 0 };
+                onFamiliarAnnounce(v.kind);
+            }
         } else if (v.phase === 'act') {
             // The bark, and whatever it does, lands once, partway through the pause —
             // not the instant it arrives, so the visit reads as an actual beat rather
@@ -1154,6 +1171,17 @@ export function initEmberArena(canvas, opts) {
     }
 
     function update(dt) {
+        // The arrival banner freezes the arena the same way 'choosing' does below —
+        // a real pause, independent of `state`, so it can't fight the run/menu logic
+        // that already gates on `state !== 'choosing'` elsewhere.
+        if (familiarAnnounce) {
+            familiarAnnounce.t += dt;
+            if (familiarAnnounce.t >= FAMILIAR_ANNOUNCE_DURATION) {
+                familiarAnnounce = null;
+                onFamiliarAnnounce(null);
+            }
+            return;
+        }
         // 'choosing' freezes the arena: the cards are a real pause, not a soft one.
         if (state !== 'playing') return;
         elapsed += dt;
@@ -1506,16 +1534,20 @@ export function initEmberArena(canvas, opts) {
         const bounce = barking ? Math.abs(Math.sin(v.t * 26)) * 4 : 0;
         const movingLeft = v.phase === 'leave' ? v.fromX < v.restX : v.restX < v.fromX;
         drawShadow(v.x, v.y + 16, 16);
+        // While the arrival banner is up (update() has the arena frozen for it), a
+        // pulsing halo behind the sprite is the "own visual effect" for the moment —
+        // distinct from the sharp screenFlash the bark itself throws a beat later.
+        if (familiarAnnounce && familiarAnnounce.kind === v.kind) {
+            const pulse = 0.5 + 0.5 * Math.sin(familiarAnnounce.t * 4);
+            ctx.save();
+            ctx.globalAlpha = 0.25 + pulse * 0.25;
+            ctx.fillStyle = palette.glow;
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, 26 + pulse * 8, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+        }
         drawSprite(frame, palette, v.x, v.y - bounce, FAMILIAR_CELL, movingLeft);
-        // A name label follows it for the whole visit — the whole point is that this
-        // is a rare, noteworthy guest, not something to miss or mistake for a monster.
-        const label = v.kind === 'cookie' ? strings.cookieAppears : strings.mayAppears;
-        ctx.textAlign = 'center';
-        ctx.font = '700 13px system-ui, sans-serif';
-        ctx.fillStyle = colors.text;
-        ctx.globalAlpha = Math.min(1, v.phase === 'enter' ? v.t / 0.5 : v.phase === 'leave' ? 1 - v.t / 0.5 : 1);
-        ctx.fillText(label, v.x, v.y - 34);
-        ctx.globalAlpha = 1;
     }
 
     function drawBolts() {
