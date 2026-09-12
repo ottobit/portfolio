@@ -2424,21 +2424,26 @@ a.info-card:focus-visible .info-card-title::after {
     .game-play .game-controls {
         display: contents;
     }
-    /* Height is what this orientation has plenty of, so the arena sizes itself by
-       height and lets width follow to keep its 3:4 — the mirror of the desktop-short
-       case, where width was the scarce axis instead. */
+    /* A portrait 3:4 arena inside a wide, short phone screen can only ever be a
+       narrow strip with empty gutters either side — that's geometry, not spacing,
+       and no amount of padding fixes it. So here the arena isn't kept at 3:4 at
+       all: it fills the entire middle grid column, whatever shape that turns out
+       to be. ember-arena-game.js has no fixed-shape assumptions (spawn, movement
+       clamps and knockback all work off W/H independently) and reflows its live
+       entities when this shape changes underneath it — see resize() there. */
     .game-play .game-canvas-wrap {
         grid-column: 2;
         grid-row: 1;
-        justify-self: center;
-        align-self: center;
+        justify-self: stretch;
+        align-self: stretch;
         max-width: none;
-        width: auto;
+        width: 100%;
         height: 100%;
     }
     .game-play .game-canvas-wrap canvas {
-        width: auto;
+        width: 100%;
         height: 100%;
+        aspect-ratio: auto;
     }
     .game-play .game-stick {
         grid-column: 1;
