@@ -2120,29 +2120,104 @@ a.info-card:focus-visible .info-card-title::after {
    corners of a wide monitor. The huge spread shadow paints whatever is left over,
    which also covers the fallback where there is no ::backdrop to style.
    .is-focus is that fallback: iPhone Safari has no element full screen. */
-.game-canvas-wrap:fullscreen,
-.game-canvas-wrap.is-focus {
+.game-stage:fullscreen,
+.game-stage.is-focus {
     position: fixed;
     inset: 0;
-    margin: auto;
-    width: auto;
-    height: 100%;
-    max-width: 100vw;
-    max-height: 100vh;
-    aspect-ratio: 3 / 4;
     z-index: 200;
-    border: none;
-    border-radius: 0;
-    box-shadow: 0 0 0 100vmax var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    background: var(--bg);
 }
-.game-canvas-wrap:fullscreen canvas,
-.game-canvas-wrap.is-focus canvas {
-    height: 100%;
+/* The arena takes whatever height the deck leaves and keeps its 3:4: sizing it by
+   height with an automatic width is what stops it stretching on a wide screen. */
+.game-stage:fullscreen .game-canvas-wrap,
+.game-stage.is-focus .game-canvas-wrap {
+    flex: 0 1 auto;
+    width: auto;
+    max-width: 100vw;
+    box-shadow: none;
+}
+.game-stage:fullscreen .game-canvas-wrap canvas,
+.game-stage.is-focus .game-canvas-wrap canvas {
+    width: auto;
+    height: min(calc(100vh - 210px), 75vw);
+    max-width: 100vw;
+}
+.game-stage:fullscreen .game-controls,
+.game-stage.is-focus .game-controls {
+    margin-top: 0;
+    flex: 0 0 auto;
 }
 /* While the arena owns the screen the page behind it must not scroll away. */
 body.game-focus-lock {
     overflow: hidden;
 }
+/* The control deck. It used to sit on the canvas — stick drawn in the arena's
+   bottom-left corner, buttons floating over the bottom-right — and between them they
+   covered exactly the strip you get pushed into when the monsters close in. */
+.game-controls {
+    max-width: 480px;
+    margin: 0.75rem auto 0;
+    padding: 0.7rem 0.85rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    user-select: none;
+    -webkit-user-select: none;
+}
+.game-controls-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.game-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.game-controls-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.game-stick {
+    position: relative;
+    flex: 0 0 auto;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--accent-soft);
+    touch-action: none;
+    cursor: grab;
+}
+.game-stick.is-held {
+    cursor: grabbing;
+    border-color: var(--accent);
+}
+.game-stick-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.85;
+    pointer-events: none;
+}
+
 .game-exit {
     position: absolute;
     top: 0.6rem;
@@ -2304,14 +2379,6 @@ body.game-focus-lock {
 .game-statbar-fill.hp {
     background: #c0392b;
 }
-.game-touch-controls {
-    position: absolute;
-    right: 0.75rem;
-    bottom: 0.75rem;
-    display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-}
 .game-touch-btn {
     --cd: 0;
     position: relative;
@@ -2319,9 +2386,9 @@ body.game-focus-lock {
     height: 64px;
     padding: 0;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.35);
-    background: rgba(0, 0, 0, 0.45);
-    color: #fff;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
     font-size: 1.7rem;
     line-height: 1;
     display: flex;

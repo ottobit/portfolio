@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.16">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.17">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -126,12 +126,9 @@
             </div>
         </div>
 
+        <div class="game-stage">
         <div class="game-canvas-wrap">
             <canvas id="ember-canvas" width="480" height="480" role="img" aria-label="Ember Keep game canvas"></canvas>
-            <div class="game-touch-controls">
-                <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
-                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
-            </div>
             <button class="game-exit" id="ember-exit" type="button" hidden aria-label="Leave full screen" data-aria-label-it="Esci da tutto schermo">✕</button>
             <button class="game-mute" id="ember-mute" type="button" aria-pressed="false" aria-label="Mute sound" data-aria-label-it="Silenzia il suono">🔊</button>
             <div class="game-overlay" id="ember-overlay" hidden>
@@ -145,6 +142,20 @@
                 <div class="game-upgrade-cards" id="ember-upgrade-cards"></div>
                 <p class="game-upgrade-hint" data-it="Da tastiera: 1, 2, 3">On the keyboard: 1, 2, 3</p>
             </div>
+        </div>
+
+        <div class="game-controls">
+            <span class="game-controls-label" data-it="Comandi">Controls</span>
+            <div class="game-controls-row">
+                <div class="game-stick" id="ember-stick" role="application" aria-label="Movement stick" data-aria-label-it="Stick di movimento">
+                    <span class="game-stick-knob" id="ember-stick-knob"></span>
+                </div>
+                <div class="game-controls-actions">
+                    <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
+                    <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
+                </div>
+            </div>
+        </div>
         </div>
         <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena fireball (has a cooldown).</p>
         <ul class="game-legend">
@@ -193,7 +204,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=13';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=14';
 
     initDiagramPage();
 
@@ -211,7 +222,9 @@
     const upgradeCards = document.getElementById('ember-upgrade-cards');
     const muteBtn = document.getElementById('ember-mute');
     const exitBtn = document.getElementById('ember-exit');
-    const wrap = document.querySelector('.game-canvas-wrap');
+    const wrap = document.querySelector('.game-stage');
+    const stick = document.getElementById('ember-stick');
+    const knob = document.getElementById('ember-stick-knob');
 
     let hasWon = false;
     let wasRunning = false;
@@ -402,6 +415,52 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && wrap.classList.contains('is-focus')) leaveImmersive();
     });
+
+    // --- Movement stick -----------------------------------------------------
+    // Same dead zone and same travel the on-canvas stick had, so the hero steers
+    // exactly as before; what changed is that it no longer sits on the arena floor.
+    const STICK_RADIUS = 40;
+    const STICK_DEAD = 8;
+    let stickId = null;
+
+    const moveKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px, ${dy}px)`; };
+    function steer(e) {
+        const r = stick.getBoundingClientRect();
+        let dx = e.clientX - (r.left + r.width / 2);
+        let dy = e.clientY - (r.top + r.height / 2);
+        const len = Math.hypot(dx, dy);
+        if (len > STICK_RADIUS) {
+            dx = (dx / len) * STICK_RADIUS;
+            dy = (dy / len) * STICK_RADIUS;
+        }
+        moveKnob(dx, dy);
+        if (len < STICK_DEAD) game.setStick(null);
+        else game.setStick(dx / STICK_RADIUS, dy / STICK_RADIUS);
+    }
+    function releaseStick() {
+        if (stickId === null) return;
+        stickId = null;
+        moveKnob(0, 0);
+        stick.classList.remove('is-held');
+        game.setStick(null);
+    }
+    stick.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        stickId = e.pointerId;
+        stick.classList.add('is-held');
+        try { stick.setPointerCapture(e.pointerId); } catch (err) {}
+        steer(e);
+    });
+    stick.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== stickId) return;
+        e.preventDefault();
+        steer(e);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => stick.addEventListener(type, (e) => {
+        if (e.pointerId === stickId) releaseStick();
+    }));
+    window.addEventListener('pointerup', releaseStick);
+    window.addEventListener('blur', releaseStick);
 
     // --- Sound toggle -------------------------------------------------------
     function paintMute() {

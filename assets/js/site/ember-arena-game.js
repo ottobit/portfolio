@@ -438,11 +438,10 @@ export function initEmberArena(canvas, opts) {
     const keys = { up: false, down: false, left: false, right: false };
     // Fixed analog stick in the bottom-left corner: always drawn, engaged by a
     // pointer landing near it, and it follows only that pointer afterwards.
-    let joystick = null;
-    const JOY_RADIUS = 40;
-    const JOY_DEAD = 8;
-    const JOY_BASE = { x: 72, y: H - 72 };
-    const JOY_GRAB = JOY_RADIUS * 2;
+    // Steering comes from outside now: the stick lives under the arena, in the page,
+    // because drawn on the canvas it covered the very corner you get pushed into.
+    // null means nobody is steering, and the keyboard takes over.
+    let stick = null;
     // The sword has no cooldown: holding the action keeps the hero spinning like a
     // top, and a tap is just a spin that stops after its first full turn.
     const TAU = Math.PI * 2;
@@ -572,7 +571,7 @@ export function initEmberArena(canvas, opts) {
         screenFlash = 0;
         hurtFlash = 0;
         shake = 0;
-        joystick = null;
+        stick = null;
         // Levels skipped by opts.startLevel still hand out a card, so a test hero is
         // equipped roughly like one that actually played its way up here.
         for (let i = 1; i < startLevel; i++) {
@@ -637,56 +636,17 @@ export function initEmberArena(canvas, opts) {
         keys.up = keys.down = keys.left = keys.right = false;
     }
 
-    function pointerPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-            x: (clientX - rect.left) * (W / rect.width),
-            y: (clientY - rect.top) * (H / rect.height),
-        };
-    }
     function handlePointerDown(e) {
         if (state !== 'playing') {
             // 'choosing' is a pause with the cards open: a tap must not throw the run away.
             if (state !== 'choosing') start();
             return;
         }
-        if (joystick) return;
-        const p = pointerPos(e);
-        if (Math.hypot(p.x - JOY_BASE.x, p.y - JOY_BASE.y) > JOY_GRAB) return;
-        joystick = { id: e.pointerId, ox: JOY_BASE.x, oy: JOY_BASE.y, x: p.x, y: p.y };
-        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-        e.preventDefault();
     }
-    function handlePointerMove(e) {
-        if (!joystick || e.pointerId !== joystick.id) return;
-        const p = pointerPos(e);
-        joystick.x = p.x;
-        joystick.y = p.y;
-        e.preventDefault();
-    }
-    function handlePointerUp(e) {
-        if (joystick && e.pointerId === joystick.id) joystick = null;
-    }
-    // Direction vector (-1..1 per axis, magnitude ≤ 1) from the stick, or null inside the dead zone.
-    function joystickVector() {
-        if (!joystick) return null;
-        const dx = joystick.x - joystick.ox;
-        const dy = joystick.y - joystick.oy;
-        const len = Math.hypot(dx, dy);
-        if (len < JOY_DEAD) return null;
-        const mag = Math.min(1, len / JOY_RADIUS);
-        return { x: (dx / len) * mag, y: (dy / len) * mag };
-    }
-
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     window.addEventListener('blur', handleBlur);
     canvas.addEventListener('pointerdown', handlePointerDown);
-    canvas.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
 
     function ultimateAttack() {
         if (ultCooldown > 0) return;
@@ -905,11 +865,10 @@ export function initEmberArena(canvas, opts) {
 
         let mvx = 0;
         let mvy = 0;
-        const joy = joystickVector();
-        if (joy) {
-            mvx = joy.x;
-            mvy = joy.y;
-        } else if (!joystick) {
+        if (stick) {
+            mvx = stick.x;
+            mvy = stick.y;
+        } else {
             if (keys.left) mvx -= 1;
             if (keys.right) mvx += 1;
             if (keys.up) mvy -= 1;
@@ -1327,38 +1286,6 @@ export function initEmberArena(canvas, opts) {
         ctx.fillText(isFinal ? strings.finalBossBar : strings.bossBar, W / 2, by + 22);
     }
 
-    function drawJoystick() {
-        // The knob mirrors whatever is steering: the finger, or the arrow keys.
-        let v = joystickVector();
-        if (!v && !joystick) {
-            const kx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-            const ky = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-            const len = Math.hypot(kx, ky);
-            if (len > 0) v = { x: kx / len, y: ky / len };
-        }
-        const active = !!joystick;
-        const kx = JOY_BASE.x + (v ? v.x * JOY_RADIUS : 0);
-        const ky = JOY_BASE.y + (v ? v.y * JOY_RADIUS : 0);
-        ctx.save();
-        const jc = themeColors();
-        ctx.globalAlpha = active ? 0.45 : 0.22;
-        ctx.fillStyle = jc.ink;
-        ctx.beginPath();
-        ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS + 10, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = active ? 0.6 : 0.35;
-        ctx.strokeStyle = jc.ink;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = active || v ? 0.85 : 0.5;
-        ctx.beginPath();
-        ctx.arc(kx, ky, 18, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-
     function draw() {
         const colors = themeColors();
         ctx.fillStyle = colors.bg;
@@ -1392,7 +1319,6 @@ export function initEmberArena(canvas, opts) {
             ctx.fillRect(0, 0, W, H);
         }
         drawBossBar(colors);
-        drawJoystick();
         drawLevelFlash(colors);
 
         if (state === 'ready') {
@@ -1428,6 +1354,21 @@ export function initEmberArena(canvas, opts) {
         },
         chooseUpgrade,
         resize,
+        // The page's stick hands the direction over here: -1..1 per axis, or null on
+        // release. Everything downstream (speed, facing, the walk cycle) is unchanged.
+        setStick(x, y) {
+            if (x === null || x === undefined) {
+                stick = null;
+                return;
+            }
+            const len = Math.hypot(x, y);
+            if (len < 0.001) {
+                stick = null;
+                return;
+            }
+            const mag = Math.min(1, len);
+            stick = { x: (x / len) * mag, y: (y / len) * mag };
+        },
         setStrings(next) {
             strings = Object.assign({}, DEFAULT_STRINGS, next || {});
         },
@@ -1449,8 +1390,6 @@ export function initEmberArena(canvas, opts) {
             document.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('blur', handleBlur);
             canvas.removeEventListener('pointerdown', handlePointerDown);
-            canvas.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
         },
     };
 }
