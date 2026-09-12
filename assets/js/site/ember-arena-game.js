@@ -176,10 +176,13 @@ export function initEmberArena(canvas, opts) {
         walkT: 0,
     };
     const keys = { up: false, down: false, left: false, right: false };
-    // Virtual joystick: anchored where the finger lands, follows that pointer only.
+    // Fixed analog stick in the bottom-left corner: always drawn, engaged by a
+    // pointer landing near it, and it follows only that pointer afterwards.
     let joystick = null;
     const JOY_RADIUS = 40;
     const JOY_DEAD = 8;
+    const JOY_BASE = { x: 72, y: H - 72 };
+    const JOY_GRAB = JOY_RADIUS * 2;
     const MELEE_CD = 0.4;
     const FIRE_CD = 2;
     const ULT_CD = 15;
@@ -311,7 +314,8 @@ export function initEmberArena(canvas, opts) {
         }
         if (joystick) return;
         const p = pointerPos(e);
-        joystick = { id: e.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y };
+        if (Math.hypot(p.x - JOY_BASE.x, p.y - JOY_BASE.y) > JOY_GRAB) return;
+        joystick = { id: e.pointerId, ox: JOY_BASE.x, oy: JOY_BASE.y, x: p.x, y: p.y };
         try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
         e.preventDefault();
     }
@@ -725,21 +729,32 @@ export function initEmberArena(canvas, opts) {
     }
 
     function drawJoystick() {
-        if (!joystick) return;
-        const v = joystickVector();
-        const kx = joystick.ox + (v ? v.x * JOY_RADIUS : 0);
-        const ky = joystick.oy + (v ? v.y * JOY_RADIUS : 0);
+        // The knob mirrors whatever is steering: the finger, or the arrow keys.
+        let v = joystickVector();
+        if (!v && !joystick) {
+            const kx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+            const ky = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+            const len = Math.hypot(kx, ky);
+            if (len > 0) v = { x: kx / len, y: ky / len };
+        }
+        const active = !!joystick;
+        const kx = JOY_BASE.x + (v ? v.x * JOY_RADIUS : 0);
+        const ky = JOY_BASE.y + (v ? v.y * JOY_RADIUS : 0);
         ctx.save();
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = active ? 0.45 : 0.22;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS + 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = active ? 0.6 : 0.35;
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(joystick.ox, joystick.oy, JOY_RADIUS, 0, Math.PI * 2);
+        ctx.arc(JOY_BASE.x, JOY_BASE.y, JOY_RADIUS, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.globalAlpha = 0.6;
-        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = active || v ? 0.85 : 0.5;
         ctx.beginPath();
-        ctx.arc(kx, ky, 16, 0, Math.PI * 2);
+        ctx.arc(kx, ky, 18, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }
