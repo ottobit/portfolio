@@ -2192,16 +2192,21 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.8rem;
     line-height: 1.5;
 }
-/* The heading that introduces the game: same titled rule as the project pages, but
-   held to the arena's own column so the rule, the canvas, the instructions and the
-   legend all line up on the same edges. */
+/* The heading that introduces the game. The rule goes ABOVE the title, not under it:
+   its job is to close the memory piece and open the arena, so the title already belongs
+   to what comes after it. Held to the arena's own column so the line starts and ends
+   where the canvas does. */
 .ember-heading {
     max-width: 480px;
     margin: 2.5rem auto 1.4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
     gap: 0;
 }
 .ember-heading .doc-section h2 {
     margin-bottom: 0.7rem;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 .game-credits a {
     color: var(--accent);
