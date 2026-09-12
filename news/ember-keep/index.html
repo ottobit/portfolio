@@ -123,8 +123,7 @@
             <canvas id="ember-canvas" width="480" height="480" role="img" aria-label="Ember Keep game canvas"></canvas>
             <div class="game-touch-controls">
                 <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword attack" data-aria-label-it="Attacco con la spada">⚔️</button>
-                <button class="game-touch-btn" id="ember-fire-btn" type="button" aria-label="Fireball attack" data-aria-label-it="Palla di fuoco">🔥</button>
-                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Firestorm (full-arena fireball)" data-aria-label-it="Tempesta di fuoco (tutta l'arena)">💥</button>
+                <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Firestorm (full-arena fireball)" data-aria-label-it="Tempesta di fuoco (tutta l'arena)">🔥</button>
             </div>
             <div class="game-overlay" id="ember-overlay" hidden>
                 <h2 data-it="Sei caduto">You fell</h2>
@@ -132,7 +131,7 @@
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
             </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada, X per la palla di fuoco, C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword, X for the fireball, C for the full-arena firestorm (long cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada, X o C per la tempesta di fuoco a tutta arena (ricarica lunga). Su touch: stick analogico in basso a sinistra, bottoni a destra. Un boss ogni 5 livelli.">Arrow keys or WASD to move, Space for the sword, X or C for the full-arena firestorm (long cooldown). On touch: analog stick bottom-left, buttons on the right. A boss every 5 levels.</p>
         <p class="game-credits" data-it="Ember Keep e questa pagina sono nati in una sessione di pair programming con Claude Code, l'agente di Anthropic, a partire dai ricordi qui sopra. Codice e cronologia dei commit su &lt;a href=&quot;https://github.com/ottobit/portfolio&quot;&gt;GitHub&lt;/a&gt;.">Ember Keep and this page came out of a pair-programming session with Claude Code, Anthropic's agent, starting from the memories above. Code and commit history on <a href="https://github.com/ottobit/portfolio">GitHub</a>.</p>
     </main>
 
@@ -146,7 +145,7 @@
     <script type="module">
     import '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=4';
+    import { initEmberArena } from '../../assets/js/site/ember-arena-game.js?v=5';
 
     initDiagramPage();
 
@@ -159,7 +158,6 @@
     const overlayStats = document.getElementById('ember-overlay-stats');
     const restartBtn = document.getElementById('ember-restart');
     const meleeBtn = document.getElementById('ember-melee-btn');
-    const fireBtn = document.getElementById('ember-fire-btn');
     const ultBtn = document.getElementById('ember-ult-btn');
 
     function setCooldown(btn, fraction) {
@@ -168,9 +166,8 @@
     }
 
     const game = initEmberArena(canvas, {
-        onCooldownChange(melee, fire, ult) {
+        onCooldownChange(melee, ult) {
             setCooldown(meleeBtn, melee);
-            setCooldown(fireBtn, fire);
             setCooldown(ultBtn, ult);
         },
         onStatsChange(hp, maxHp, level, xp, xpToNext, best) {
@@ -196,7 +193,6 @@
         btn.addEventListener('pointerdown', (e) => { e.preventDefault(); action(); });
     };
     bindAction(meleeBtn, () => game.meleeAttack());
-    bindAction(fireBtn, () => game.fireballAttack());
     bindAction(ultBtn, () => game.ultimateAttack());
     </script>
 </body>

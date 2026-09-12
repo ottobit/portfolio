@@ -184,13 +184,11 @@ export function initEmberArena(canvas, opts) {
     const JOY_BASE = { x: 72, y: H - 72 };
     const JOY_GRAB = JOY_RADIUS * 2;
     const MELEE_CD = 0.4;
-    const FIRE_CD = 2;
     const ULT_CD = 15;
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
 
     let monsters = [];
-    let fireballs = [];
     let explosions = [];
     let level = 1;
     let xp = 0;
@@ -201,7 +199,6 @@ export function initEmberArena(canvas, opts) {
     let elapsed = 0;
     let spawnTimer = 0;
     let meleeCooldown = 0;
-    let fireCooldown = 0;
     let ultCooldown = 0;
     let levelFlash = 0;
     let flashText = '';
@@ -215,15 +212,15 @@ export function initEmberArena(canvas, opts) {
     function onStateChange(s, stats) {
         if (typeof options.onStateChange === 'function') options.onStateChange(s, stats);
     }
-    function onCooldownChange(melee, fire, ult) {
-        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(melee, fire, ult);
+    function onCooldownChange(melee, ult) {
+        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(melee, ult);
     }
 
     function pushStats() {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
     function pushCooldowns() {
-        onCooldownChange(meleeCooldown / MELEE_CD, fireCooldown / FIRE_CD, ultCooldown / ULT_CD);
+        onCooldownChange(meleeCooldown / MELEE_CD, ultCooldown / ULT_CD);
     }
     pushStats();
     pushCooldowns();
@@ -242,7 +239,6 @@ export function initEmberArena(canvas, opts) {
         player.meleeDamage = 18;
         player.fireDamage = 14;
         monsters = [];
-        fireballs = [];
         explosions = [];
         level = 1;
         xp = 0;
@@ -251,7 +247,6 @@ export function initEmberArena(canvas, opts) {
         elapsed = 0;
         spawnTimer = 0;
         meleeCooldown = 0;
-        fireCooldown = 0;
         ultCooldown = 0;
         levelFlash = 0;
         screenFlash = 0;
@@ -281,11 +276,7 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') meleeAttack();
             else start();
         }
-        if (e.key === 'x' || e.key === 'X') {
-            if (state === 'playing') fireballAttack();
-            else start();
-        }
-        if (e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V') {
+        if (e.key === 'x' || e.key === 'X' || e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V') {
             if (state === 'playing') ultimateAttack();
             else start();
         }
@@ -367,18 +358,6 @@ export function initEmberArena(canvas, opts) {
                 damageMonster(i, player.meleeDamage);
             }
         }
-    }
-    function fireballAttack() {
-        if (fireCooldown > 0) return;
-        fireCooldown = FIRE_CD;
-        fireballs.push({
-            x: player.x,
-            y: player.y,
-            vx: player.facing.x * 260,
-            vy: player.facing.y * 260,
-            traveled: 0,
-            maxRange: 260,
-        });
     }
     function damageMonster(index, amount) {
         const m = monsters[index];
@@ -470,7 +449,6 @@ export function initEmberArena(canvas, opts) {
         if (player.moving) player.walkT += dt;
 
         meleeCooldown = Math.max(0, meleeCooldown - dt);
-        fireCooldown = Math.max(0, fireCooldown - dt);
         ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
@@ -511,30 +489,6 @@ export function initEmberArena(canvas, opts) {
                     gameOver();
                     return;
                 }
-            }
-        }
-
-        for (let i = fireballs.length - 1; i >= 0; i--) {
-            const f = fireballs[i];
-            const step = Math.hypot(f.vx * dt, f.vy * dt);
-            f.x += f.vx * dt;
-            f.y += f.vy * dt;
-            f.traveled += step;
-            let hit = false;
-            for (let j = monsters.length - 1; j >= 0; j--) {
-                if (Math.hypot(monsters[j].x - f.x, monsters[j].y - f.y) < monsters[j].r + 8) {
-                    hit = true;
-                    break;
-                }
-            }
-            if (hit || f.traveled >= f.maxRange || f.x < 0 || f.x > W || f.y < 0 || f.y > H) {
-                explosions.push({ x: f.x, y: f.y, r: 0, maxR: 55, life: 0.35, dur: 0.35 });
-                for (let j = monsters.length - 1; j >= 0; j--) {
-                    if (Math.hypot(monsters[j].x - f.x, monsters[j].y - f.y) < 55) {
-                        damageMonster(j, player.fireDamage);
-                    }
-                }
-                fireballs.splice(i, 1);
             }
         }
 
@@ -670,22 +624,7 @@ export function initEmberArena(canvas, opts) {
         });
     }
 
-    function drawFireballs() {
-        fireballs.forEach((f) => {
-            const flicker = 1 + Math.sin(elapsed * 40) * 0.15;
-            ctx.fillStyle = 'rgba(249, 202, 36, 0.35)';
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, 11 * flicker, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = FIRE_COLOR;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, 6 * flicker, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = FIRE_GLOW;
-            ctx.beginPath();
-            ctx.arc(f.x - f.vx * 0.01, f.y - f.vy * 0.01, 3, 0, Math.PI * 2);
-            ctx.fill();
-        });
+    function drawExplosions() {
         explosions.forEach((ex) => {
             const a = Math.max(0, ex.life / ex.dur);
             ctx.globalAlpha = a * 0.35;
@@ -764,7 +703,7 @@ export function initEmberArena(canvas, opts) {
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, W, H);
         drawMonsters();
-        drawFireballs();
+        drawExplosions();
         if (state !== 'over') drawPlayer(colors);
         if (screenFlash > 0) {
             ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.25) * 0.35})`;
@@ -798,10 +737,6 @@ export function initEmberArena(canvas, opts) {
         start,
         meleeAttack() {
             if (state === 'playing') meleeAttack();
-            else start();
-        },
-        fireballAttack() {
-            if (state === 'playing') fireballAttack();
             else start();
         },
         ultimateAttack() {
