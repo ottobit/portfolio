@@ -183,9 +183,12 @@ export function initEmberArena(canvas, opts) {
     const JOY_DEAD = 8;
     const JOY_BASE = { x: 72, y: H - 72 };
     const JOY_GRAB = JOY_RADIUS * 2;
-    const MELEE_CD = 0.4;
-    const SPIN_DUR = 0.22; // seconds of the 360° spin attack animation
-    const ULT_CD = 15;
+    // The sword has no cooldown: holding the action keeps the hero spinning like a
+    // top, and a tap is just a spin that stops after its first full turn.
+    const SPIN_DUR = 0.22; // seconds per full turn
+    const SPIN_RATE = (Math.PI * 2) / SPIN_DUR;
+    const TAU = Math.PI * 2;
+    const ULT_CD = 8;
     const ULT_DUR = 0.6;
     const startLevel = Math.max(1, options.startLevel || 1);
 
@@ -199,7 +202,10 @@ export function initEmberArena(canvas, opts) {
     let state = 'ready'; // ready | playing | over
     let elapsed = 0;
     let spawnTimer = 0;
-    let meleeCooldown = 0;
+    let spinning = false;   // the hero is turning right now
+    let spinHeld = false;   // the action is held down
+    let spinAngle = 0;      // radians turned since this spin started
+    let spinHitTimer = 0;   // time left before the next damage tick
     let ultCooldown = 0;
     let levelFlash = 0;
     let flashText = '';
@@ -213,15 +219,15 @@ export function initEmberArena(canvas, opts) {
     function onStateChange(s, stats) {
         if (typeof options.onStateChange === 'function') options.onStateChange(s, stats);
     }
-    function onCooldownChange(melee, ult) {
-        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(melee, ult);
+    function onCooldownChange(ult) {
+        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult);
     }
 
     function pushStats() {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
     function pushCooldowns() {
-        onCooldownChange(meleeCooldown / MELEE_CD, ultCooldown / ULT_CD);
+        onCooldownChange(ultCooldown / ULT_CD);
     }
     pushStats();
     pushCooldowns();
@@ -247,7 +253,10 @@ export function initEmberArena(canvas, opts) {
         monstersKilled = 0;
         elapsed = 0;
         spawnTimer = 0;
-        meleeCooldown = 0;
+        spinning = false;
+        spinHeld = false;
+        spinAngle = 0;
+        spinHitTimer = 0;
         ultCooldown = 0;
         levelFlash = 0;
         screenFlash = 0;
@@ -288,6 +297,12 @@ export function initEmberArena(canvas, opts) {
         if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        if (e.key === ' ' || e.key === 'z' || e.key === 'Z') meleeRelease();
+    }
+    // Losing the window while the action is held would leave the hero spinning forever.
+    function handleBlur() {
+        meleeRelease();
+        keys.up = keys.down = keys.left = keys.right = false;
     }
 
     function pointerPos(e) {
@@ -334,6 +349,7 @@ export function initEmberArena(canvas, opts) {
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
     canvas.addEventListener('pointerdown', handlePointerDown);
     canvas.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
@@ -349,9 +365,20 @@ export function initEmberArena(canvas, opts) {
             ult: true, hit: new Set(),
         });
     }
+    // Press: start turning and land a hit at once. Hold: keep turning, one hit per
+    // turn. Release: stop once the turn in progress completes, so a tap is one spin.
     function meleeAttack() {
-        if (meleeCooldown > 0) return;
-        meleeCooldown = MELEE_CD;
+        spinHeld = true;
+        if (spinning) return;
+        spinning = true;
+        spinAngle = 0;
+        spinHitTimer = SPIN_DUR;
+        meleeHit();
+    }
+    function meleeRelease() {
+        spinHeld = false;
+    }
+    function meleeHit() {
         const range = 44;
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
@@ -449,7 +476,19 @@ export function initEmberArena(canvas, opts) {
         player.moving = player.x !== prevX || player.y !== prevY;
         if (player.moving) player.walkT += dt;
 
-        meleeCooldown = Math.max(0, meleeCooldown - dt);
+        if (spinning) {
+            const turnedBefore = spinAngle;
+            spinAngle += SPIN_RATE * dt;
+            spinHitTimer -= dt;
+            if (spinHitTimer <= 0) {
+                meleeHit();
+                spinHitTimer = SPIN_DUR;
+            }
+            if (!spinHeld && Math.floor(spinAngle / TAU) > Math.floor(turnedBefore / TAU)) {
+                spinning = false;
+                spinAngle = 0;
+            }
+        }
         ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
@@ -516,6 +555,9 @@ export function initEmberArena(canvas, opts) {
 
     function gameOver() {
         state = 'over';
+        spinning = false;
+        spinHeld = false;
+        spinAngle = 0;
         if (level >= bestLevel) {
             bestLevel = level;
             writeBestLevel(bestLevel);
@@ -564,16 +606,16 @@ export function initEmberArena(canvas, opts) {
         // together, the blade leaving a circular trail); otherwise the sword rests along the
         // facing direction.
         const angle = Math.atan2(player.facing.y, player.facing.x);
-        const spinning = meleeCooldown > MELEE_CD - SPIN_DUR;
-        const spinT = spinning ? (MELEE_CD - meleeCooldown) / SPIN_DUR : 1;
-        const spin = spinning ? spinT * Math.PI * 2 : 0;
-        const swordAngle = spinning ? angle + spin : angle + 0.35;
+        const swordAngle = spinning ? angle + spinAngle : angle + 0.35;
         if (spinning) {
+            // A tail behind the blade: it grows over the first turn, then stays put, so
+            // holding the action doesn't just paint a solid ring.
+            const tail = Math.min(spinAngle, 1.8);
             ctx.save();
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30, angle, angle + spin);
+            ctx.arc(player.x, player.y + bob, 30, swordAngle - tail, swordAngle);
             ctx.stroke();
             ctx.restore();
         }
@@ -592,7 +634,7 @@ export function initEmberArena(canvas, opts) {
             // The hero sprite turns together with the blade.
             ctx.save();
             ctx.translate(player.x, player.y + bob);
-            ctx.rotate(spin);
+            ctx.rotate(spinAngle);
             drawSprite(HERO_FRAMES[frame], palette, 0, 0, cell, flip);
             ctx.restore();
             return;
@@ -752,6 +794,7 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') meleeAttack();
             else start();
         },
+        meleeRelease,
         ultimateAttack() {
             if (state === 'playing') ultimateAttack();
             else start();
@@ -760,6 +803,7 @@ export function initEmberArena(canvas, opts) {
             if (rafId) cancelAnimationFrame(rafId);
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', handleBlur);
             canvas.removeEventListener('pointerdown', handlePointerDown);
             canvas.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
