@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.26">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.27">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -146,6 +146,10 @@
                 <span class="game-rotate-icon" aria-hidden="true">📱</span>
                 <p data-it="Ruota il telefono per giocare">Rotate your phone to play</p>
             </div>
+            <div class="game-overlay game-familiar-announce" id="ember-familiar-announce" hidden>
+                <canvas class="game-familiar-announce-icon" id="ember-familiar-announce-icon" width="64" height="64" role="img" aria-hidden="true"></canvas>
+                <h2 id="ember-familiar-announce-text"></h2>
+            </div>
         </div>
 
         <div class="game-controls">
@@ -214,7 +218,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=21';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=22';
 
     initDiagramPage();
 
@@ -231,6 +235,9 @@
     const upgradeOverlay = document.getElementById('ember-upgrade');
     const upgradeCards = document.getElementById('ember-upgrade-cards');
     const rotatePrompt = document.getElementById('ember-rotate-prompt');
+    const familiarAnnounceOverlay = document.getElementById('ember-familiar-announce');
+    const familiarAnnounceIcon = document.getElementById('ember-familiar-announce-icon');
+    const familiarAnnounceText = document.getElementById('ember-familiar-announce-text');
     const muteBtn = document.getElementById('ember-mute');
     const wrap = document.querySelector('.game-stage');
     const stick = document.getElementById('ember-stick');
@@ -262,8 +269,8 @@
             finalBoss: 'Boss finale!',
             bossBar: 'Boss',
             finalBossBar: 'Boss finale',
-            cookieAppears: 'Cookie appare!',
-            mayAppears: 'May appare!',
+            cookieAnnounce: 'Cookie è apparso!',
+            mayAnnounce: 'May è apparsa!',
         },
         en: {
             start: 'Tap or press Space to start',
@@ -272,8 +279,8 @@
             finalBoss: 'Final boss!',
             bossBar: 'Boss',
             finalBossBar: 'Final boss',
-            cookieAppears: 'Cookie appears!',
-            mayAppears: 'May appears!',
+            cookieAnnounce: 'Cookie has appeared!',
+            mayAnnounce: 'May has appeared!',
         },
     };
     const arenaText = () => ARENA_TEXT[getLang() === 'it' ? 'it' : 'en'];
@@ -293,6 +300,15 @@
         },
         onChoices(choices) {
             renderCards(choices);
+        },
+        onFamiliarAnnounce(kind) {
+            if (kind) {
+                familiarAnnounceText.textContent = kind === 'cookie' ? arenaText().cookieAnnounce : arenaText().mayAnnounce;
+                drawArenaIcon(familiarAnnounceIcon, kind, 64);
+                familiarAnnounceOverlay.hidden = false;
+            } else {
+                familiarAnnounceOverlay.hidden = true;
+            }
         },
         onStateChange(state, stats) {
             if (state === 'playing') {
