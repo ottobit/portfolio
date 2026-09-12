@@ -426,9 +426,15 @@
         e.stopImmediatePropagation();
         rotatePrompt.hidden = false;
     }, true);
-    // Rotating to landscape while the prompt is up clears it on its own.
+    // Rotating clears/raises the prompt to match — back to landscape hides it,
+    // back to portrait (mid-session, after the very first load) raises it again
+    // right away instead of waiting for another tap: the controls are already
+    // gone at that point, so silence would just leave the player stranded.
+    // 'resize' doesn't fire on initial page load, only on a real viewport change,
+    // so a cold load in portrait is untouched by this — still idle canvas, still
+    // waiting for that first tap, exactly as before.
     window.addEventListener('resize', () => {
-        if (!isPortraitPhone()) rotatePrompt.hidden = true;
+        rotatePrompt.hidden = !isPortraitPhone();
     });
 
     // --- Movement stick -----------------------------------------------------
