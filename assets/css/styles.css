@@ -2014,19 +2014,13 @@ a.info-card:focus-visible .info-card-title::after {
     font-weight: 400;
     margin-right: 0.35em;
 }
-/* The arena never grows past 480px, and never past the height the window has left
-   once the nav, the stat bar, the control deck and the fixed footer have had their
-   share — capping the width is what keeps the 3:4 while doing it. That way a run
-   starts with HP bar, boss bar, arena and buttons all on one screen, which is what
-   full screen used to be here for. The deck follows the same width, so the two stay
-   one block, down to the room its own stick and buttons need. */
-.game-stage {
-    --arena-w: min(480px, calc((100svh - 25rem) * 0.75));
-}
+/* Same 480px column as the stat bar above and the controls below — the arena is
+   never wider than that, and never narrower than the room actually has, so nothing
+   here shrinks the arena on its own to squeeze inside a short window. */
 .game-canvas-wrap {
     position: relative;
     width: 100%;
-    max-width: var(--arena-w, 480px);
+    max-width: 480px;
     margin: 0 auto;
     border-radius: 16px;
     overflow: hidden;
@@ -2124,33 +2118,19 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.6);
 }
-/* The control deck. It used to sit on the canvas — stick drawn in the arena's
-   bottom-left corner, buttons floating over the bottom-right — and between them they
-   covered exactly the strip you get pushed into when the monsters close in. */
+/* Comandi sotto l'arena, non sopra: stick e bottoni coprivano la fascia bassa dove
+   i mostri spingono il giocatore. Nessun pannello attorno — sono distanziati come
+   quando stavano ancorati agli angoli della canvas: movimento a sinistra, azioni a
+   destra, stessa larghezza di 480px della barra di stato sopra. */
 .game-controls {
-    max-width: max(300px, var(--arena-w, 480px));
-    margin: 0.75rem auto 0;
-    padding: 0.7rem 0.85rem 0.85rem;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--surface);
-    user-select: none;
-    -webkit-user-select: none;
-}
-.game-controls-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-.game-controls-row {
+    max-width: 480px;
+    margin: 1.1rem auto 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    user-select: none;
+    -webkit-user-select: none;
 }
 .game-controls-actions {
     display: flex;
