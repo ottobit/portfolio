@@ -34,35 +34,38 @@ const HEART_FRAME = [
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
 // colour and by scale (see FAMILIAR_SCALE below) rather than a second hand-drawn shape.
-const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608' };
-const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608' };
+const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a' };
+const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a' };
+// Side profile, facing right (drawFamiliar flips it when the visit is heading left):
+// an ear, a snout with a nose, one eye, a tail curling up over the back, then four legs.
 const DOG_FRAME = [
-    '...aa.....',
-    '..aAAa....',
-    '.aAAAAa...',
-    '.AAEAAAa..',
-    '.AAAAAAAa.',
-    'AAAAAAAAAa',
-    'AAAA.AAAAa',
-    'A..A.A..A.',
+    '........aa..',
+    '.......aAAa.',
+    '......AAAAAn',
+    '..a...AAEAAA',
+    '..aa.aAAAAAA',
+    '.aAAAAAAAAAA',
+    'aAAAAAAAAAAa',
+    '.AA.....AA..',
+    '.aa.....aa..',
 ];
 // May's own frame swaps some body cells for the patch colour B — same silhouette,
-// different coat: one ear and a saddle patch across the back, so the marking reads
-// as one deliberate shape instead of scattered spots.
+// different coat: a saddle patch across the back, so the marking reads as one
+// deliberate shape instead of scattered spots.
 const MAY_FRAME = [
-    '...BB.....',
-    '..BAAB....',
-    '.aAAAAa...',
-    '.AAEAAAa..',
-    '.AAAAAAAa.',
-    'ABBBBBBBAa',
-    'AAAA.AAAAa',
-    'A..A.A..A.',
+    '........aa..',
+    '.......aAAa.',
+    '......AAAAAn',
+    '..a...AAEAAA',
+    '..aa.aAAAAAA',
+    '.aAABBBBBBAA',
+    'aAABBBBBBAAa',
+    '.AA.....AA..',
+    '.aa.....aa..',
 ];
 // How rare each visit is, and what triggers it — tunable in one place instead of
 // buried in update().
-const FAMILIAR_MANY_MONSTERS = 6;     // Cookie needs at least this many non-boss monsters up
-const FAMILIAR_LOW_HP_FRACTION = 0.25; // May needs the hero at or under this HP fraction
+const FAMILIAR_MANY_MONSTERS = 6;     // both need at least this many non-boss monsters up
 const FAMILIAR_CHECK_INTERVAL = 2;    // seconds between eligibility rolls
 const FAMILIAR_CHANCE = 0.12;         // chance a visit actually starts on an eligible roll
 const FAMILIAR_COOLDOWN = 25;         // minimum seconds between two visits
@@ -320,6 +323,8 @@ const DEFAULT_STRINGS = {
     finalBoss: 'Final boss!',
     bossBar: 'Boss',
     finalBossBar: 'Final boss',
+    cookieAppears: 'Cookie appears!',
+    mayAppears: 'May appears!',
 };
 
 // Each card's apply() reads p.pickIndex — how many copies were already taken,
@@ -983,12 +988,8 @@ export function initEmberArena(canvas, opts) {
                 familiarCheckTimer = FAMILIAR_CHECK_INTERVAL;
                 if (familiarCooldown <= 0) {
                     const manyMonsters = monsters.filter((m) => m.type !== 'boss' && m.type !== 'finalBoss').length >= FAMILIAR_MANY_MONSTERS;
-                    const lowHp = player.hp / player.maxHp <= FAMILIAR_LOW_HP_FRACTION;
-                    // Cookie checked first: if both conditions happen to be true at once,
-                    // the fuller-looking emergency (a swarm) gets first crack this tick —
-                    // May still gets her own roll next tick if the player is still low.
-                    if (manyMonsters && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('cookie');
-                    else if (lowHp && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit('may');
+                    // Cookie and May share the same trigger; which one shows up is a coin flip.
+                    if (manyMonsters && Math.random() < FAMILIAR_CHANCE) startFamiliarVisit(Math.random() < 0.5 ? 'cookie' : 'may');
                 }
             }
             return;
@@ -1496,7 +1497,7 @@ export function initEmberArena(canvas, opts) {
     // with — this is a guest appearance, not another thing trying to blend into the
     // swarm — and a little bounce while barking is the only animation either needs.
     const FAMILIAR_CELL = 4.2;
-    function drawFamiliar() {
+    function drawFamiliar(colors) {
         const v = familiarVisit;
         if (!v) return;
         const frame = v.kind === 'cookie' ? DOG_FRAME : MAY_FRAME;
@@ -1506,6 +1507,15 @@ export function initEmberArena(canvas, opts) {
         const movingLeft = v.phase === 'leave' ? v.fromX < v.restX : v.restX < v.fromX;
         drawShadow(v.x, v.y + 16, 16);
         drawSprite(frame, palette, v.x, v.y - bounce, FAMILIAR_CELL, movingLeft);
+        // A name label follows it for the whole visit — the whole point is that this
+        // is a rare, noteworthy guest, not something to miss or mistake for a monster.
+        const label = v.kind === 'cookie' ? strings.cookieAppears : strings.mayAppears;
+        ctx.textAlign = 'center';
+        ctx.font = '700 13px system-ui, sans-serif';
+        ctx.fillStyle = colors.text;
+        ctx.globalAlpha = Math.min(1, v.phase === 'enter' ? v.t / 0.5 : v.phase === 'leave' ? 1 - v.t / 0.5 : 1);
+        ctx.fillText(label, v.x, v.y - 34);
+        ctx.globalAlpha = 1;
     }
 
     function drawBolts() {
@@ -1685,7 +1695,7 @@ export function initEmberArena(canvas, opts) {
         ctx.translate(sx, sy);
         drawHearts();
         drawMonsters(colors);
-        drawFamiliar();
+        drawFamiliar(colors);
         drawBolts();
         drawExplosions(colors);
         drawParticles();
