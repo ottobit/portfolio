@@ -2351,15 +2351,13 @@ a.info-card:focus-visible .info-card-title::after {
     opacity: 1;
 }
 
-/* Hidden by default — only shown in the portrait-phone media query below, in
-   place of the canvas and controls it replaces there. */
+/* A third overlay in the .game-overlay family (alongside the end screen and the
+   upgrade cards) — shown on top of the canvas, not in place of it. The canvas
+   itself stays visible and interactive in portrait; this only appears once the
+   player actually tries to play (see the pointerdown/keydown interceptors in
+   index.html), and hides itself again the moment the phone is rotated. */
 .game-rotate-prompt {
-    display: none;
-    flex-direction: column;
-    align-items: center;
     gap: 0.6rem;
-    padding: 3rem 1rem;
-    text-align: center;
     color: var(--text-muted);
 }
 .game-rotate-icon {
@@ -2378,17 +2376,15 @@ a.info-card:focus-visible .info-card-title::after {
 }
 
 /* Portrait phone: touch controls don't fit a narrow, tall arena the way the
-   landscape one does, so this is no longer a valid way to play — the prompt
-   above replaces both the canvas and the controls until the phone is
-   rotated. Same 480px "phone" threshold the rest of the site already uses
-   (e.g. line ~1560), so a portrait tablet (well past 480px wide) is
-   unaffected and keeps playing normally, same as today. */
+   landscape one does, so this is no longer a valid way to play — but the
+   canvas itself stays put, showing its own "tap or press Space" idle prompt
+   same as always. It's the attempt to actually play (see index.html) that
+   surfaces .game-rotate-prompt over it. Same 480px "phone" threshold the rest
+   of the site already uses (e.g. line ~1560), so a portrait tablet (well past
+   480px wide) is unaffected and keeps playing normally, same as today. */
 @media (orientation: portrait) and (max-width: 480px) {
-    .game-stage {
+    .game-controls {
         display: none;
-    }
-    .game-rotate-prompt {
-        display: flex;
     }
 }
 

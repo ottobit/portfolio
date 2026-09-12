@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.25">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.26">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -142,6 +142,10 @@
                 <div class="game-upgrade-cards" id="ember-upgrade-cards"></div>
                 <p class="game-upgrade-hint" data-it="Da tastiera: 1, 2, 3">On the keyboard: 1, 2, 3</p>
             </div>
+            <div class="game-overlay game-rotate-prompt" id="ember-rotate-prompt" hidden>
+                <span class="game-rotate-icon" aria-hidden="true">📱</span>
+                <p data-it="Ruota il telefono per giocare">Rotate your phone to play</p>
+            </div>
         </div>
 
         <div class="game-controls">
@@ -153,10 +157,6 @@
                 <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
             </div>
         </div>
-        </div>
-        <div class="game-rotate-prompt">
-            <span class="game-rotate-icon" aria-hidden="true">📱</span>
-            <p data-it="Ruota il telefono per giocare">Rotate your phone to play</p>
         </div>
         </div>
         <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena fireball (has a cooldown).</p>
@@ -222,6 +222,7 @@
     const overlayWon = document.getElementById('ember-overlay-won');
     const upgradeOverlay = document.getElementById('ember-upgrade');
     const upgradeCards = document.getElementById('ember-upgrade-cards');
+    const rotatePrompt = document.getElementById('ember-rotate-prompt');
     const muteBtn = document.getElementById('ember-mute');
     const wrap = document.querySelector('.game-stage');
     const stick = document.getElementById('ember-stick');
@@ -395,6 +396,40 @@
     // The arena follows the window: rebuild the drawing surface so the pixel art is
     // redrawn at the new size instead of being blown up.
     window.addEventListener('resize', () => game.resize());
+
+    // --- Portrait-phone rotate gate ------------------------------------------
+    // The touch deck doesn't fit a narrow, tall arena, so landscape is the only
+    // valid way to actually play there — but the canvas itself stays visible and
+    // showing its own "tap or press Space" idle prompt the whole time (see the
+    // .game-controls-only media query in styles.css). It's the attempt to play —
+    // a tap on the canvas or a start key — that's redirected here, not the page
+    // load itself.
+    function isPortraitPhone() {
+        // Same condition as the media query in styles.css (~line 2386) — kept in
+        // sync by hand with it.
+        return window.matchMedia('(orientation: portrait) and (max-width: 480px)').matches;
+    }
+    const START_KEYS = [' ', 'Enter', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V'];
+    // Capture-phase on window: this runs before any listener the game module
+    // attaches to the canvas or document, regardless of which script registered
+    // its listener first — a bubble-phase listener on the same node the module
+    // uses would depend on that ordering, capture-phase on an ancestor doesn't.
+    window.addEventListener('pointerdown', (e) => {
+        if (e.target !== canvas || !isPortraitPhone()) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        rotatePrompt.hidden = false;
+    }, true);
+    window.addEventListener('keydown', (e) => {
+        if (!isPortraitPhone() || !START_KEYS.includes(e.key)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        rotatePrompt.hidden = false;
+    }, true);
+    // Rotating to landscape while the prompt is up clears it on its own.
+    window.addEventListener('resize', () => {
+        if (!isPortraitPhone()) rotatePrompt.hidden = true;
+    });
 
     // --- Movement stick -----------------------------------------------------
     // Same dead zone and same travel the on-canvas stick had, so the hero steers
