@@ -38,15 +38,20 @@ const HEART_FRAME = [
 // pulsing halo behind the sprite while the arrival banner is up (see drawFamiliar).
 const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a', glow: '#f5a623' };
 const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a', glow: '#f0d878' };
-// Side profile, facing right (drawFamiliar flips it when the visit is heading left):
-// an ear, a snout with a nose, one eye, a tail curling up over the back, then four legs.
+// Side profile, facing right (drawFamiliar flips it when the visit is heading left).
+// Reworked from reference photos of the two real dogs: the original had a pointed,
+// upright ear, but both actually have a floppy, drooping one. It sits at the BACK of
+// the skull (poking out left of the head silhouette, cols 5-6) rather than beside the
+// eye, so it reads as its own flap instead of blending into cheek shading — 2 cells
+// wide where it meets the skull, tapering to a single trailing column as it droops.
 const DOG_FRAME = [
-    '........aa..',
-    '.......aAAa.',
-    '......AAAAAn',
-    '..a...AAEAAA',
-    '..aa.aAAAAAA',
-    '.aAAAAAAAAAA',
+    '.......AAA..',
+    '.....aaAAAA.',
+    '.....aaAAEA.',
+    '......aAAAAn',
+    '......aAAAA.',
+    '.a....AAAAA.',
+    '.aaAAAAAAAA.',
     'aAAAAAAAAAAa',
     '.AA.....AA..',
     '.aa.....aa..',
@@ -55,13 +60,14 @@ const DOG_FRAME = [
 // different coat: a saddle patch across the back, so the marking reads as one
 // deliberate shape instead of scattered spots.
 const MAY_FRAME = [
-    '........aa..',
-    '.......aAAa.',
-    '......AAAAAn',
-    '..a...AAEAAA',
-    '..aa.aAAAAAA',
-    '.aAABBBBBBAA',
-    'aAABBBBBBAAa',
+    '.......AAA..',
+    '.....aaAAAA.',
+    '.....aaAAEA.',
+    '......aAAAAn',
+    '......aAAAA.',
+    '.a....AAAAA.',
+    '.aaAABBBBBA.',
+    'aAABBBBBBBAa',
     '.AA.....AA..',
     '.aa.....aa..',
 ];
