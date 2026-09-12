@@ -1013,18 +1013,21 @@ export function initEmberArena(canvas, opts) {
             if (p >= 1) {
                 v.phase = 'act';
                 v.t = 0;
-                // The banner freezes the arena for a beat before the bark lands — see
-                // the familiarAnnounce gate at the top of update().
+                // The banner freezes the arena for a beat before the effect lands — see
+                // the familiarAnnounce gate at the top of update(). The bark itself
+                // plays right here, not alongside the effect: Cookie's kill sweep and
+                // May's level-up each throw a burst of their own same-pitched chirps a
+                // moment later, which would otherwise bury the bark completely.
+                sfx('bark');
                 familiarAnnounce = { kind: v.kind, t: 0 };
                 onFamiliarAnnounce(v.kind);
             }
         } else if (v.phase === 'act') {
-            // The bark, and whatever it does, lands once, partway through the pause —
-            // not the instant it arrives, so the visit reads as an actual beat rather
-            // than a switch flipped on entry.
+            // Whatever the visit does lands once, partway through the pause — not the
+            // instant it arrives, so the visit reads as an actual beat rather than a
+            // switch flipped on entry.
             if (!v.acted && v.t >= 0.3) {
                 v.acted = true;
-                sfx('bark');
                 if (!reducedMotion) shake = Math.max(shake, 6);
                 screenFlash = 0.18;
                 if (v.kind === 'cookie') {
