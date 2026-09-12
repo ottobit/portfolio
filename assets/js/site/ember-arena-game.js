@@ -1,6 +1,12 @@
 const BEST_LEVEL_KEY = 'emberKeepBestLevel';
 const FIRE_COLOR = '#e67e22';
 const FIRE_GLOW = '#f9ca24';
+// Enemy bolts are magenta on purpose: never the hero's own fire orange, so what
+// hurts you is never confused with what you threw.
+const BOLT_COLOR = '#9b59b6';
+const BOLT_GLOW = '#e056fd';
+const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
+const KNOCK_DECAY = 6;   // how quickly that shove dies down
 
 // Pixel-art sprites drawn with fillRect on a small grid — same technique as
 // the Triple Triad icon, so no external image assets. '.' is transparent.
@@ -52,7 +58,7 @@ const MONSTER_TYPES = {
             'aAAAAAAAAa',
             '.aaaaaaaa.',
         ]],
-        cell: 2.6, r: 13, speedMul: 1, hpMul: 1, weight: 5, minLevel: 1,
+        cell: 2.6, r: 13, speedMul: 1, hpMul: 1, weight: 5, minLevel: 1, knockMul: 1,
     },
     imp: {
         palette: { A: '#c0392b', a: '#7b241c', E: '#ffffff', p: '#1a1a1a', M: '#f1c40f' },
@@ -68,7 +74,7 @@ const MONSTER_TYPES = {
             '..A....A..',
             '.a......a.',
         ]],
-        cell: 2.6, r: 12, speedMul: 1.15, hpMul: 0.85, weight: 3, minLevel: 1,
+        cell: 2.6, r: 12, speedMul: 1.15, hpMul: 0.85, weight: 3, minLevel: 1, knockMul: 1.1,
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },
@@ -92,7 +98,29 @@ const MONSTER_TYPES = {
                 '....A..A....',
             ],
         ],
-        cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2,
+        cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2, knockMul: 1.35,
+    },
+    // Keeps its distance and throws bolts, so standing still stops being an option.
+    caster: {
+        // Eyes and staff orb use the dimmer purple: the bright BOLT_GLOW belongs to a
+        // bolt in flight alone, so what is travelling towards you always reads brightest.
+        palette: { C: '#2980b9', c: '#1b4f72', A: '#0b1a2a', p: '#9b59b6', S: '#8d6e63', O: '#9b59b6' },
+        frames: [[
+            '...cCCc...',
+            '..cCCCCc.O',
+            '..cAAAAc.S',
+            '..cApApc.S',
+            '..cCCCCc.S',
+            '.cCCCCCCcS',
+            '.cCCCCCCcS',
+            '.cCCCCCCc.',
+            '..cCCCCc..',
+            '...c..c...',
+        ]],
+        cell: 2.6, r: 12, speedMul: 0.85, hpMul: 0.8, weight: 3, minLevel: 3, knockMul: 1.2,
+        // range covers most of the arena: a shooter that has to walk into view first just
+        // loiters at the edge instead of putting the player under pressure.
+        shoot: { interval: 1.8, speed: 165, damage: 12, range: 420, standoff: 170, approach: 0.6 },
     },
     // Never picked by the random spawn (weight 0): spawned explicitly every 5 levels.
     boss: {
@@ -113,9 +141,52 @@ const MONSTER_TYPES = {
             '...aa....aa...',
             '..aaa....aaa..',
         ]],
-        cell: 3.6, r: 26, speedMul: 0.55, hpMul: 12, weight: 0, minLevel: Infinity, contactDamage: 25,
+        cell: 3.6, r: 26, speedMul: 0.55, hpMul: 12, weight: 0, minLevel: Infinity, contactDamage: 25, knockMul: 0.12,
     },
 };
+
+// Paints one sprite grid. Module level so the arena and the legend under it draw the
+// very same art instead of keeping two copies that drift apart.
+function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
+    const w = rows[0].length * cell;
+    const h = rows.length * cell;
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (flipX) ctx.scale(-1, 1);
+    for (let r = 0; r < rows.length; r++) {
+        for (let c = 0; c < rows[r].length; c++) {
+            const ch = rows[r][c];
+            if (ch === '.') continue;
+            ctx.fillStyle = override || palette[ch];
+            // +0.3 overlap hides hairline seams between cells at fractional scales.
+            ctx.fillRect(-w / 2 + c * cell, -h / 2 + r * cell, cell + 0.3, cell + 0.3);
+        }
+    }
+    ctx.restore();
+}
+
+// Draws one arena sprite into a small standalone canvas, for the legend on the page.
+// key is 'hero' or any MONSTER_TYPES key.
+export function drawArenaIcon(canvas, key, size = 44) {
+    const hero = key === 'hero';
+    const def = hero ? null : MONSTER_TYPES[key];
+    if (!hero && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : def.frames[0];
+    const palette = hero
+        ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
+        : def.palette;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    // Fit the grid in the box with a little air around it.
+    const cell = Math.min(size / rows[0].length, size / rows.length) * 0.88;
+    paintSprite(ctx, rows, palette, size / 2, size / 2, cell);
+}
 
 function pickMonsterType(level) {
     const pool = Object.keys(MONSTER_TYPES).filter((k) => MONSTER_TYPES[k].weight > 0 && MONSTER_TYPES[k].minLevel <= level);
@@ -194,6 +265,7 @@ export function initEmberArena(canvas, opts) {
 
     let monsters = [];
     let explosions = [];
+    let bolts = [];
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -247,6 +319,7 @@ export function initEmberArena(canvas, opts) {
         player.fireDamage = 14;
         monsters = [];
         explosions = [];
+        bolts = [];
         level = 1;
         xp = 0;
         xpToNext = 6;
@@ -382,10 +455,27 @@ export function initEmberArena(canvas, opts) {
         const range = 44;
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
-            if (Math.hypot(m.x - player.x, m.y - player.y) < range + m.r) {
+            const dx = m.x - player.x;
+            const dy = m.y - player.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            if (dist < range + m.r) {
+                // Shove it away from the hero: the spin buys room, it doesn't only deal damage.
+                const push = KNOCKBACK * (MONSTER_TYPES[m.type].knockMul || 1);
+                m.kx += (dx / dist) * push;
+                m.ky += (dy / dist) * push;
                 damageMonster(i, player.meleeDamage);
             }
         }
+    }
+    function fireBolt(m, cfg) {
+        const dx = player.x - m.x;
+        const dy = player.y - m.y;
+        const d = Math.hypot(dx, dy) || 1;
+        bolts.push({
+            x: m.x, y: m.y,
+            vx: (dx / d) * cfg.speed, vy: (dy / d) * cfg.speed,
+            r: 5, damage: cfg.damage, life: 5,
+        });
     }
     function damageMonster(index, amount) {
         const m = monsters[index];
@@ -439,6 +529,9 @@ export function initEmberArena(canvas, opts) {
             x, y, r, speed, type, hp: maxHp, maxHp, xpValue,
             flash: 0, phase: Math.random() * Math.PI * 2,
             chargeTimer: 3, charging: 0,
+            kx: 0, ky: 0,
+            // Stagger the first shot so a pair spawned together doesn't fire in lockstep.
+            shootTimer: def.shoot ? 0.8 + Math.random() * def.shoot.interval : 0,
         });
     }
 
@@ -507,6 +600,16 @@ export function initEmberArena(canvas, opts) {
             const dy = player.y - m.y;
             const dist = Math.hypot(dx, dy) || 1;
             let speedMul = 1;
+            if (def.shoot) {
+                m.shootTimer -= dt;
+                if (dist < def.shoot.range && m.shootTimer <= 0) {
+                    fireBolt(m, def.shoot);
+                    m.shootTimer = def.shoot.interval;
+                }
+                // Inside its comfort zone it backs off instead of closing in.
+                if (dist < def.shoot.standoff) speedMul = -0.5;
+                else if (dist < def.shoot.range) speedMul = def.shoot.approach;
+            }
             if (m.type === 'boss') {
                 m.chargeTimer -= dt;
                 if (m.chargeTimer <= 0) {
@@ -520,6 +623,20 @@ export function initEmberArena(canvas, opts) {
             }
             m.x += (dx / dist) * m.speed * speedMul * dt;
             m.y += (dy / dist) * m.speed * speedMul * dt;
+            if (m.kx !== 0 || m.ky !== 0) {
+                m.x += m.kx * dt;
+                m.y += m.ky * dt;
+                const decay = Math.exp(-KNOCK_DECAY * dt);
+                m.kx *= decay;
+                m.ky *= decay;
+                if (Math.abs(m.kx) < 2 && Math.abs(m.ky) < 2) {
+                    m.kx = 0;
+                    m.ky = 0;
+                }
+                // Never shove one so far out that it takes seconds to walk back in.
+                m.x = clamp(m.x, -m.r * 2, W + m.r * 2);
+                m.y = clamp(m.y, -m.r * 2, H + m.r * 2);
+            }
             m.flash = Math.max(0, m.flash - dt);
             if (dist < player.r + m.r && elapsed >= player.invulnUntil) {
                 player.hp -= def.contactDamage || 10;
@@ -528,6 +645,29 @@ export function initEmberArena(canvas, opts) {
                     player.hp = 0;
                     gameOver();
                     return;
+                }
+            }
+        }
+
+        for (let i = bolts.length - 1; i >= 0; i--) {
+            const b = bolts[i];
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+            b.life -= dt;
+            if (b.life <= 0 || b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) {
+                bolts.splice(i, 1);
+                continue;
+            }
+            if (Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
+                bolts.splice(i, 1);
+                if (elapsed >= player.invulnUntil) {
+                    player.hp -= b.damage;
+                    player.invulnUntil = elapsed + 0.6;
+                    if (player.hp <= 0) {
+                        player.hp = 0;
+                        gameOver();
+                        return;
+                    }
                 }
             }
         }
@@ -544,6 +684,9 @@ export function initEmberArena(canvas, opts) {
                         ex.hit.add(m);
                         damageMonster(j, player.fireDamage * 3);
                     }
+                }
+                for (let j = bolts.length - 1; j >= 0; j--) {
+                    if (Math.hypot(bolts[j].x - ex.x, bolts[j].y - ex.y) < ex.r) bolts.splice(j, 1);
                 }
             }
             if (ex.life <= 0) explosions.splice(i, 1);
@@ -567,21 +710,7 @@ export function initEmberArena(canvas, opts) {
     }
 
     function drawSprite(rows, palette, cx, cy, cell, flipX, override) {
-        const w = rows[0].length * cell;
-        const h = rows.length * cell;
-        ctx.save();
-        ctx.translate(cx, cy);
-        if (flipX) ctx.scale(-1, 1);
-        for (let r = 0; r < rows.length; r++) {
-            for (let c = 0; c < rows[r].length; c++) {
-                const ch = rows[r][c];
-                if (ch === '.') continue;
-                ctx.fillStyle = override || palette[ch];
-                // +0.3 overlap hides hairline seams between cells at fractional scales.
-                ctx.fillRect(-w / 2 + c * cell, -h / 2 + r * cell, cell + 0.3, cell + 0.3);
-            }
-        }
-        ctx.restore();
+        paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override);
     }
 
     function drawShadow(cx, cy, rx) {
@@ -679,6 +808,27 @@ export function initEmberArena(canvas, opts) {
         });
     }
 
+    function drawBolts() {
+        bolts.forEach((b) => {
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = BOLT_GLOW;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r * 2.2, 0, TAU);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = BOLT_COLOR;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, TAU);
+            ctx.fill();
+            ctx.fillStyle = BOLT_GLOW;
+            ctx.beginPath();
+            ctx.arc(b.x - b.vx * 0.004, b.y - b.vy * 0.004, b.r * 0.5, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+        });
+    }
+
     function drawExplosions() {
         explosions.forEach((ex) => {
             const a = Math.max(0, ex.life / ex.dur);
@@ -758,6 +908,7 @@ export function initEmberArena(canvas, opts) {
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, W, H);
         drawMonsters();
+        drawBolts();
         drawExplosions();
         if (state !== 'over') drawPlayer(colors);
         if (screenFlash > 0) {
