@@ -2208,6 +2208,11 @@ a.info-card:focus-visible .info-card-title::after {
     padding-bottom: 0;
     border-bottom: none;
 }
+/* Title and credits sit centred over the arena, like the instructions under it: the
+   rule spans the column, the text does not hang off its left edge. */
+.ember-heading .doc-section {
+    text-align: center;
+}
 .game-credits a {
     color: var(--accent);
 }
