@@ -14,6 +14,11 @@ const BOLT_GLOW = '#e056fd';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 const HEART_PALETTE = { h: '#e74c3c', H: '#ff7675' };
+// Two tiers a monster's palette can be tinted towards as the run climbs — see
+// tintPalette(). Chosen far from every existing monster hue and from the fire/bolt
+// colours above, so a tinted monster never reads as "on fire" or "a projectile".
+const TIER_TINT_TARGET = { 1: '#c0392b', 2: '#180a24' };
+const TIER_TINT_AMOUNT = { 1: 0.4, 2: 0.42 };
 const HEART_FRAME = [
     '.hh...hh.',
     'hhhhhhhhh',
@@ -161,7 +166,10 @@ const MONSTER_TYPES = {
             '...aa......aa...',
             '..aaa......aaa..',
         ]],
-        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 19, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
+        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 8, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
+        // A second attack on top of the charge it already shares with the regular boss:
+        // a ring of fire arrows launched all at once, telegraphed so it stays dodgeable.
+        starAttack: { interval: 4.5, telegraph: 0.5, count: 12, speed: 190, damage: 10 },
     },
     boss: {
         palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
@@ -229,6 +237,38 @@ export function drawArenaIcon(canvas, key, size = 44) {
     paintSprite(ctx, rows, palette, size / 2, size / 2, cell);
 }
 
+// Mixes a hex colour toward another by `amount` (0..1). Pure white and the shared
+// near-black outline colour are the ones every sprite uses for eyes/pupils, so a
+// caller skips those — a monster's gaze has to read the same at every tier.
+function blendHex(hex, target, amount) {
+    const a = /^#([0-9a-f]{6})$/i.exec(hex);
+    const b = /^#([0-9a-f]{6})$/i.exec(target);
+    if (!a || !b) return hex;
+    const mix = (x, y) => Math.round(x + (y - x) * amount);
+    const toHex = (n) => n.toString(16).padStart(2, '0');
+    const channel = (str, i) => parseInt(str.slice(i, i + 2), 16);
+    return `#${toHex(mix(channel(a[1], 0), channel(b[1], 0)))}${toHex(mix(channel(a[1], 2), channel(b[1], 2)))}${toHex(mix(channel(a[1], 4), channel(b[1], 4)))}`;
+}
+// A monster's palette tinted for how far the run has climbed since it spawned —
+// so a slime met at level 12 doesn't look like the one met at level 1, even though
+// it is drawn from the very same sprite. Cached per (type, tier): the blend is pure
+// colour math, no reason to redo it every frame a monster is on screen.
+const tintCache = {};
+function tintPalette(palette, type, tier) {
+    if (!tier) return palette;
+    const key = type + ':' + tier;
+    if (tintCache[key]) return tintCache[key];
+    const target = TIER_TINT_TARGET[tier];
+    const amount = TIER_TINT_AMOUNT[tier];
+    const out = {};
+    Object.keys(palette).forEach((k) => {
+        const v = palette[k];
+        out[k] = (v === '#ffffff' || v === '#1a1a1a') ? v : blendHex(v, target, amount);
+    });
+    tintCache[key] = out;
+    return out;
+}
+
 // Level-up cards. Every point of growth comes from one of these, so two runs are
 // never the same. `apply` mutates the run's player and tuning in place.
 // Text the arena draws on itself. English defaults; the page hands over its own
@@ -243,60 +283,96 @@ const DEFAULT_STRINGS = {
     finalBossBar: 'Final boss',
 };
 
+// Each card's apply() reads p.pickIndex — how many copies were already taken,
+// before this one — to look up its step in a table of shrinking increments. The
+// ceiling itself moved out too (a higher max): the same rough total power, reached
+// over more level-ups instead of a handful of picks that used to trivialise a run.
 const UPGRADES = [
     {
-        id: 'strength', icon: '💪', max: 5,
+        id: 'strength', icon: '💪', max: 7,
         name: { it: 'Forza', en: 'Strength' },
         desc: { it: 'La spada fa più male.', en: 'The sword hits harder.' },
-        apply: (p) => { p.player.meleeDamage += 7; },
+        apply: (p) => {
+            const steps = [6, 5, 5, 4, 4, 3, 3];
+            p.player.meleeDamage += steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
     {
-        id: 'blade', icon: '⚔️', max: 3,
+        id: 'blade', icon: '⚔️', max: 4,
         name: { it: 'Lama lunga', en: 'Long blade' },
         desc: { it: 'Colpisci da più lontano.', en: 'Reach further out.' },
-        apply: (p) => { p.tuning.meleeRange += 11; },
+        apply: (p) => {
+            const steps = [9, 7, 6, 5];
+            p.tuning.meleeRange += steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
     {
-        id: 'fury', icon: '🌀', max: 3,
+        id: 'fury', icon: '🌀', max: 4,
         name: { it: 'Furia', en: 'Fury' },
         desc: { it: 'Giri più in fretta, colpisci più spesso.', en: 'Spin faster, hit more often.' },
-        apply: (p) => { p.tuning.spinDur *= 0.82; },
+        apply: (p) => {
+            const steps = [0.85, 0.88, 0.90, 0.92];
+            const mult = steps[Math.min(p.pickIndex, steps.length - 1)];
+            // A floor on how short a turn can get, so this can never stack into a
+            // near-zero spin duration alongside other cards.
+            p.tuning.spinDur = Math.max(0.1, p.tuning.spinDur * mult);
+        },
     },
     {
-        id: 'shove', icon: '👊', max: 3,
+        id: 'shove', icon: '👊', max: 4,
         name: { it: 'Spinta', en: 'Shove' },
         desc: { it: 'I mostri volano via più lontano.', en: 'Monsters fly further back.' },
-        apply: (p) => { p.tuning.knockback *= 1.4; },
+        apply: (p) => {
+            const steps = [1.32, 1.26, 1.2, 1.16];
+            p.tuning.knockback *= steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
     {
-        id: 'ember', icon: '🔥', max: 5,
+        id: 'ember', icon: '🔥', max: 7,
         name: { it: 'Braci', en: 'Embers' },
         desc: { it: 'La palla di fuoco brucia di più.', en: 'The fireball burns hotter.' },
-        apply: (p) => { p.player.fireDamage += 6; },
+        apply: (p) => {
+            const steps = [5, 4, 4, 3, 3, 3, 2];
+            p.player.fireDamage += steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
     {
-        id: 'storm', icon: '⏱️', max: 3,
+        id: 'storm', icon: '⏱️', max: 4,
         name: { it: 'Ricarica rapida', en: 'Quick reload' },
         desc: { it: 'La palla di fuoco torna prima.', en: 'The fireball comes back sooner.' },
-        apply: (p) => { p.tuning.ultCd = Math.max(3, p.tuning.ultCd - 1.6); },
+        apply: (p) => {
+            const steps = [1.3, 1.1, 0.9, 0.7];
+            p.tuning.ultCd = Math.max(3, p.tuning.ultCd - steps[Math.min(p.pickIndex, steps.length - 1)]);
+        },
     },
     {
-        id: 'vigor', icon: '❤️', max: 5,
+        id: 'vigor', icon: '❤️', max: 7,
         name: { it: 'Vigore', en: 'Vigour' },
         desc: { it: 'Più vita massima, e te la dà subito.', en: 'More max health, granted at once.' },
-        apply: (p) => { p.player.maxHp += 30; p.player.hp = Math.min(p.player.maxHp, p.player.hp + 30); },
+        apply: (p) => {
+            const steps = [22, 18, 15, 13, 11, 9, 7];
+            const amt = steps[Math.min(p.pickIndex, steps.length - 1)];
+            p.player.maxHp += amt;
+            p.player.hp = Math.min(p.player.maxHp, p.player.hp + amt);
+        },
     },
     {
-        id: 'boots', icon: '👢', max: 3,
+        id: 'boots', icon: '👢', max: 4,
         name: { it: 'Passo svelto', en: 'Swift boots' },
         desc: { it: 'Ti muovi più veloce: schivi meglio.', en: 'Move faster, dodge better.' },
-        apply: (p) => { p.tuning.speed += 20; },
+        apply: (p) => {
+            const steps = [16, 13, 11, 9];
+            p.tuning.speed += steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
     {
-        id: 'luck', icon: '🍀', max: 3,
+        id: 'luck', icon: '🍀', max: 4,
         name: { it: 'Fortuna', en: 'Fortune' },
         desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
-        apply: (p) => { p.tuning.heartChance += 0.09; },
+        apply: (p) => {
+            const steps = [0.07, 0.06, 0.05, 0.04];
+            p.tuning.heartChance += steps[Math.min(p.pickIndex, steps.length - 1)];
+        },
     },
 ];
 
@@ -339,7 +415,7 @@ function chirp({ from, to, duration, type = 'square', gain = 0.05, delay = 0 }) 
     osc.start(t0);
     osc.stop(t0 + duration);
 }
-function noiseBurst(duration, gain, filterFreq) {
+function noiseBurst(duration, gain, filterFreq, delay = 0) {
     const ctx = getAudioCtx();
     if (!ctx) return;
     const size = Math.max(1, Math.floor(ctx.sampleRate * duration));
@@ -354,7 +430,7 @@ function noiseBurst(duration, gain, filterFreq) {
     const vol = ctx.createGain();
     vol.gain.value = gain;
     src.connect(filter).connect(vol).connect(ctx.destination);
-    src.start();
+    src.start(ctx.currentTime + delay);
 }
 
 function pickMonsterType(level) {
@@ -522,6 +598,56 @@ export function initEmberArena(canvas, opts) {
         else if (name === 'boss') { chirp({ from: 120, to: 60, duration: 0.7, type: 'sawtooth', gain: 0.06 }); noiseBurst(0.5, 0.05, 400); }
         else if (name === 'win') [0, 0.13, 0.26, 0.42].forEach((d, i) => chirp({ from: [523, 659, 784, 1046][i], to: [523, 659, 784, 1046][i], duration: 0.22, type: 'triangle', gain: 0.05, delay: d }));
         else if (name === 'over') chirp({ from: 300, to: 70, duration: 0.7, type: 'sawtooth', gain: 0.05 });
+        else if (name === 'starburst') { chirp({ from: 700, to: 1500, duration: 0.12, type: 'sawtooth', gain: 0.045 }); chirp({ from: 1500, to: 2200, duration: 0.1, type: 'sawtooth', gain: 0.03, delay: 0.08 }); }
+        else if (name === 'slam') { noiseBurst(0.12, 0.06, 500); chirp({ from: 140, to: 50, duration: 0.22, type: 'sawtooth', gain: 0.05 }); }
+    }
+
+    // --- Background music --------------------------------------------------
+    // A procedural loop, same synthesis approach as the sfx above: nothing to load.
+    // Scheduled with a lookahead (look a little into the future on every tick and
+    // queue whatever falls due) rather than one setTimeout per note, which is the
+    // standard way to keep Web Audio timing steady over a loop that runs for minutes.
+    const MUSIC_BEAT = 60 / 100; // seconds per beat at 100 BPM
+    const MUSIC_LOOKAHEAD = 0.12;
+    const MUSIC_TICK_MS = 25;
+    const MUSIC_BASS_NOTES = [73.42, 73.42, 87.31, 73.42]; // D2, D2, F2, D2
+    const MUSIC_ARP_NOTES = [293.66, 349.23, 440.0, 349.23]; // D4, F4, A4, F4
+    let musicNextTime = 0;
+    let musicBeatIndex = 0;
+    let musicIntervalId = null;
+    function scheduleMusicTick() {
+        const ac = getAudioCtx();
+        if (!ac) return;
+        while (musicNextTime < ac.currentTime + MUSIC_LOOKAHEAD) {
+            if (!muted) {
+                const delay = musicNextTime - ac.currentTime;
+                const bar = musicBeatIndex % MUSIC_BASS_NOTES.length;
+                chirp({ from: MUSIC_BASS_NOTES[bar], to: MUSIC_BASS_NOTES[bar], duration: MUSIC_BEAT * 0.85, type: 'triangle', gain: 0.032, delay });
+                chirp({ from: MUSIC_ARP_NOTES[bar], to: MUSIC_ARP_NOTES[bar], duration: MUSIC_BEAT * 0.3, type: 'square', gain: 0.016, delay: delay + MUSIC_BEAT / 2 });
+                if (bar % 2 === 1) noiseBurst(0.05, 0.01, 2600, delay + MUSIC_BEAT * 0.25);
+            }
+            musicNextTime += MUSIC_BEAT;
+            musicBeatIndex++;
+        }
+    }
+    // Starts on the first real run and just keeps going through every state
+    // (choosing/over/won included) until muted or destroyed — a small arcade loop
+    // does not need separate music per screen. Idempotent: a restart mid-run must
+    // not stack a second scheduler.
+    function startMusic() {
+        if (musicIntervalId) return;
+        const ac = getAudioCtx();
+        if (!ac) return;
+        musicNextTime = ac.currentTime + 0.05;
+        musicBeatIndex = 0;
+        scheduleMusicTick();
+        musicIntervalId = setInterval(scheduleMusicTick, MUSIC_TICK_MS);
+    }
+    function stopMusic() {
+        if (musicIntervalId) {
+            clearInterval(musicIntervalId);
+            musicIntervalId = null;
+        }
     }
 
     function pushStats() {
@@ -586,6 +712,7 @@ export function initEmberArena(canvas, opts) {
     function start() {
         reset();
         state = 'playing';
+        startMusic();
         onStateChange(state);
     }
 
@@ -651,7 +778,7 @@ export function initEmberArena(canvas, opts) {
     function ultimateAttack() {
         if (ultCooldown > 0) return;
         ultCooldown = tuning.ultCd;
-        screenFlash = 0.18;
+        screenFlash = 0.22;
         sfx('storm');
         if (!reducedMotion) shake = Math.max(shake, 5);
         explosions.push({
@@ -701,6 +828,30 @@ export function initEmberArena(canvas, opts) {
             vx: (dx / d) * cfg.speed, vy: (dy / d) * cfg.speed,
             r: 5, damage: cfg.damage, life: 5,
         });
+    }
+    // The final boss's second attack: a whole ring of fire arrows launched together,
+    // not aimed — the telegraph before this (drawn in drawMonsters) is the warning,
+    // not the bolts themselves. fireArrow marks them so drawBolts and the player can
+    // tell them apart from an ordinary caster's bolt on sight.
+    function fireStarVolley(m, cfg) {
+        for (let i = 0; i < cfg.count; i++) {
+            const a = (i / cfg.count) * TAU;
+            bolts.push({
+                x: m.x, y: m.y,
+                vx: Math.cos(a) * cfg.speed, vy: Math.sin(a) * cfg.speed,
+                r: 5, damage: cfg.damage, life: 5, fireArrow: true,
+            });
+        }
+        sfx('starburst');
+        if (!reducedMotion) shake = Math.max(shake, 3);
+    }
+    // The regular boss's shockwave, right where its charge ends. Its own entry in
+    // `explosions` (flagged `boss`, not `ult`) so it is handled and drawn as its own
+    // thing — never the player's own fireball, which it must never be confused with.
+    function triggerBossSlam(m) {
+        explosions.push({ x: m.x, y: m.y, r: 0, maxR: 110, life: 0.35, dur: 0.35, boss: true, hit: false, seed: Math.random() * TAU });
+        if (!reducedMotion) shake = Math.max(shake, 8);
+        sfx('slam');
     }
     function damageMonster(index, amount) {
         const m = monsters[index];
@@ -761,7 +912,7 @@ export function initEmberArena(canvas, opts) {
     function grantUpgrade(id) {
         const up = UPGRADES.find((u) => u.id === id);
         if (!up) return false;
-        up.apply({ player, tuning });
+        up.apply({ player, tuning, pickIndex: taken[id] || 0 });
         taken[id] = (taken[id] || 0) + 1;
         return true;
     }
@@ -846,13 +997,18 @@ export function initEmberArena(canvas, opts) {
         const speed = (40 + Math.random() * 20 + level * 3) * def.speedMul;
         const maxHp = Math.round((20 + level * 6) * def.hpMul);
         const xpValue = type === 'boss' ? Math.round(xpToNext * 1.8) : 3 + level;
+        // How far the run has climbed at the moment this one steps in, not its type:
+        // the same slime looks tougher met at level 12 than at level 1. Boss sprites
+        // are already their own thing and skip this (see drawMonsters).
+        const tier = level >= 11 ? 2 : level >= 6 ? 1 : 0;
         monsters.push({
-            x, y, r, speed, type, hp: maxHp, maxHp, xpValue,
+            x, y, r, speed, type, hp: maxHp, maxHp, xpValue, tier,
             flash: 0, phase: Math.random() * Math.PI * 2,
             chargeTimer: 3, charging: 0,
             kx: 0, ky: 0,
             // Stagger the first shot so a pair spawned together doesn't fire in lockstep.
             shootTimer: def.shoot ? 0.8 + Math.random() * def.shoot.interval : 0,
+            starTimer: def.starAttack ? def.starAttack.interval : 0,
         });
     }
 
@@ -974,6 +1130,17 @@ export function initEmberArena(canvas, opts) {
                 if (m.charging > 0) {
                     m.charging -= dt;
                     speedMul = 3;
+                    // The regular boss only: the charge just ended this frame, so a
+                    // shockwave lands where it stopped — no more standing still and
+                    // trading hits once it's done closing the distance.
+                    if (m.charging <= 0 && m.type === 'boss') triggerBossSlam(m);
+                }
+            }
+            if (def.starAttack) {
+                m.starTimer -= dt;
+                if (m.starTimer <= 0) {
+                    fireStarVolley(m, def.starAttack);
+                    m.starTimer = def.starAttack.interval;
                 }
             }
             m.x += (dx / dist) * m.speed * speedMul * dt;
@@ -1028,6 +1195,9 @@ export function initEmberArena(canvas, opts) {
                 for (let j = bolts.length - 1; j >= 0; j--) {
                     if (Math.hypot(bolts[j].x - ex.x, bolts[j].y - ex.y) < ex.r) bolts.splice(j, 1);
                 }
+            } else if (ex.boss && !ex.hit && Math.hypot(player.x - ex.x, player.y - ex.y) < ex.r + player.r) {
+                ex.hit = true;
+                if (hurtPlayer(18)) return;
             }
             if (ex.life <= 0) explosions.splice(i, 1);
         }
@@ -1145,10 +1315,24 @@ export function initEmberArena(canvas, opts) {
                 dy = Math.sin(t) * 3 - 4;
             }
             if (m.type !== 'bat') drawShadow(m.x, m.y + m.r * 0.8, m.r * 0.9);
+            // The telegraph before the final boss's star volley: a pulsing glow so the
+            // ring of arrows about to come out reads as a warning, not a surprise.
+            if (def.starAttack && m.starTimer > 0 && m.starTimer <= def.starAttack.telegraph) {
+                ctx.save();
+                ctx.globalAlpha = 0.35 + 0.35 * Math.sin(elapsed * 18);
+                ctx.fillStyle = FIRE_GLOW;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.r * 1.6, 0, TAU);
+                ctx.fill();
+                ctx.restore();
+            }
+            // Boss sprites are already their own unique look; the tier tint is only for
+            // the four regular monster types, so it can't be mistaken for a boss cue.
+            const palette = m.tier && !def.starAttack && m.type !== 'boss' ? tintPalette(def.palette, m.type, m.tier) : def.palette;
             ctx.save();
             ctx.translate(m.x, m.y + dy);
             ctx.scale(sx, sy);
-            drawSprite(def.frames[frame], def.palette, 0, 0, def.cell, m.x > player.x, override);
+            drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
 
             if (m.hp < m.maxHp && m.type !== 'boss') {
@@ -1168,18 +1352,22 @@ export function initEmberArena(canvas, opts) {
 
     function drawBolts() {
         bolts.forEach((b) => {
+            // The final boss's star volley reads warm (fire), never the caster's cold
+            // magenta — the two must never be mistaken for one another mid-dodge.
+            const color = b.fireArrow ? FIRE_COLOR : BOLT_COLOR;
+            const glow = b.fireArrow ? FIRE_GLOW : BOLT_GLOW;
             ctx.save();
             ctx.globalAlpha = 0.35;
-            ctx.fillStyle = BOLT_GLOW;
+            ctx.fillStyle = glow;
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.r * 2.2, 0, TAU);
             ctx.fill();
             ctx.globalAlpha = 1;
-            ctx.fillStyle = BOLT_COLOR;
+            ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.r, 0, TAU);
             ctx.fill();
-            ctx.fillStyle = BOLT_GLOW;
+            ctx.fillStyle = glow;
             ctx.beginPath();
             ctx.arc(b.x - b.vx * 0.004, b.y - b.vy * 0.004, b.r * 0.5, 0, TAU);
             ctx.fill();
@@ -1187,10 +1375,51 @@ export function initEmberArena(canvas, opts) {
         });
     }
 
-    function drawExplosions() {
+    // One glowing ring of fire, `progress` (0..1) of the way from the origin to the
+    // arena's edge. Used twice per fireball, a beat apart, so the blast reads as two
+    // waves chasing each other out to every corner — not just a bright spot at the
+    // player's feet.
+    function drawFireRing(cx, cy, maxR, progress, widthScale, alpha) {
+        if (progress <= 0) return;
+        const r = progress * maxR;
+        ctx.save();
+        ctx.globalAlpha = alpha * (1 - progress * 0.15);
+        const grad = ctx.createRadialGradient(cx, cy, Math.max(0, r - 22), cx, cy, r + 6);
+        grad.addColorStop(0, 'rgba(230, 126, 34, 0)');
+        grad.addColorStop(0.55, 'rgba(249, 202, 36, 0.55)');
+        grad.addColorStop(0.85, 'rgba(255, 243, 196, 0.9)');
+        grad.addColorStop(1, 'rgba(230, 126, 34, 0)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 14 * widthScale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawExplosions(colors) {
         explosions.forEach((ex) => {
             const a = Math.max(0, ex.life / ex.dur);   // 1 at the blast, 0 when spent
             const seed = ex.seed || 0;
+            if (ex.boss) {
+                // The ogre's shockwave: a plain impact ring in the theme's ink, never
+                // fire-coloured — it must never be mistaken for the player's own blast.
+                ctx.save();
+                ctx.globalAlpha = a * 0.8;
+                ctx.strokeStyle = colors.ink;
+                ctx.lineWidth = 3 * a + 1;
+                ctx.beginPath();
+                ctx.arc(ex.x, ex.y, ex.r, 0, TAU);
+                ctx.stroke();
+                ctx.restore();
+                return;
+            }
+            // Two rings racing out to the arena's edge, tied to the very radius that
+            // decides the actual hit — what you see is exactly what the blast reaches.
+            const p1 = 1 - Math.max(0, ex.life) / ex.dur;
+            const p2 = Math.max(0, p1 - 0.15);
+            drawFireRing(ex.x, ex.y, ex.maxR, p1, 1, a);
+            drawFireRing(ex.x, ex.y, ex.maxR, p2, 0.7, a);
             // A fireball, not a travelling hoop: it swells fast, then burns down. The
             // damage still sweeps the whole arena — you see it in the monsters popping
             // as the wave reaches them, which reads far better than a geometric circle.
@@ -1299,13 +1528,13 @@ export function initEmberArena(canvas, opts) {
         drawHearts();
         drawMonsters(colors);
         drawBolts();
-        drawExplosions();
+        drawExplosions(colors);
         drawParticles();
         if (state !== 'over' && state !== 'won') drawPlayer(colors);
         drawFloaters();
         ctx.restore();
         if (screenFlash > 0) {
-            ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.18) * 0.16})`;
+            ctx.fillStyle = `rgba(249, 202, 36, ${(screenFlash / 0.22) * 0.16})`;
             ctx.fillRect(0, 0, W, H);
         }
         if (hurtFlash > 0) {
@@ -1386,6 +1615,7 @@ export function initEmberArena(canvas, opts) {
         finalLevel: FINAL_LEVEL,
         destroy() {
             if (rafId) cancelAnimationFrame(rafId);
+            stopMusic();
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('blur', handleBlur);
