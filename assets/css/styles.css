@@ -2351,6 +2351,47 @@ a.info-card:focus-visible .info-card-title::after {
     opacity: 1;
 }
 
+/* Hidden by default — only shown in the portrait-phone media query below, in
+   place of the canvas and controls it replaces there. */
+.game-rotate-prompt {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+.game-rotate-icon {
+    font-size: 2.6rem;
+    line-height: 1;
+    animation: game-rotate-icon-tilt 1.8s ease-in-out infinite;
+}
+@keyframes game-rotate-icon-tilt {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .game-rotate-icon {
+        animation: none;
+    }
+}
+
+/* Portrait phone: touch controls don't fit a narrow, tall arena the way the
+   landscape one does, so this is no longer a valid way to play — the prompt
+   above replaces both the canvas and the controls until the phone is
+   rotated. Same 480px "phone" threshold the rest of the site already uses
+   (e.g. line ~1560), so a portrait tablet (well past 480px wide) is
+   unaffected and keeps playing normally, same as today. */
+@media (orientation: portrait) and (max-width: 480px) {
+    .game-stage {
+        display: none;
+    }
+    .game-rotate-prompt {
+        display: flex;
+    }
+}
+
 /* Rotate the phone, get the fullscreen use case back — without the Fullscreen API
    this site tried and dropped (it squeezed the arena and cut the buttons off). This
    is CSS only: it turns on and off with the physical orientation, so it can never get
