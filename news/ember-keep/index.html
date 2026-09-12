@@ -436,7 +436,12 @@
     ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => stick.addEventListener(type, (e) => {
         if (e.pointerId === stickId) releaseStick();
     }));
-    window.addEventListener('pointerup', releaseStick);
+    // The window-level listener is the safety net for a release the pad never sees,
+    // but it has to check whose finger went up: without it, letting go of the sword
+    // button also dropped the stick, and the hero stopped dead while still steered.
+    window.addEventListener('pointerup', (e) => {
+        if (stickId === null || e.pointerId === stickId) releaseStick();
+    });
     window.addEventListener('blur', releaseStick);
 
     // --- Sound toggle -------------------------------------------------------
@@ -460,14 +465,28 @@
     // The sword is a hold: keep the pointer captured so the release still lands on the
     // button if the thumb drifts off it, and stop spinning on every way the press can end.
     const bindHold = (btn, press, release) => {
+        // Which finger is holding the button, so a pointerup belonging to the other
+        // thumb cannot end the press. This is what broke attacking while moving:
+        // letting go of the stick raised a pointerup on the window, the sword took it
+        // as its own release and the hero stopped spinning with the button still down
+        // — and since that finger never lifted, no new press could restart it either.
+        let heldId = null;
+        const stop = (e) => {
+            if (heldId === null) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== heldId) return;
+            heldId = null;
+            release();
+        };
         btn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             if (btn.setPointerCapture) { try { btn.setPointerCapture(e.pointerId); } catch (err) {} }
+            heldId = e.pointerId;
             press();
         });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => btn.addEventListener(type, release));
-        window.addEventListener('pointerup', release);
-        window.addEventListener('blur', release);
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => btn.addEventListener(type, stop));
+        window.addEventListener('pointerup', stop);
+        // Losing the window is not a finger: whoever was holding, the press ends.
+        window.addEventListener('blur', () => stop(null));
     };
     bindHold(meleeBtn, () => game.meleeAttack(), () => game.meleeRelease());
     bindAction(ultBtn, () => game.ultimateAttack());
