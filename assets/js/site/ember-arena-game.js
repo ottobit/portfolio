@@ -34,30 +34,34 @@ const HEART_FRAME = [
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
 // colour and by scale (see FAMILIAR_SCALE below) rather than a second hand-drawn shape.
-const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608' };
-const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608' };
+const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a' };
+const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a' };
+// Side profile, facing right (drawFamiliar flips it when the visit is heading left):
+// an ear, a snout with a nose, one eye, a tail curling up over the back, then four legs.
 const DOG_FRAME = [
-    '...aa.....',
-    '..aAAa....',
-    '.aAAAAa...',
-    '.AAEAAAa..',
-    '.AAAAAAAa.',
-    'AAAAAAAAAa',
-    'AAAA.AAAAa',
-    'A..A.A..A.',
+    '........aa..',
+    '.......aAAa.',
+    '......AAAAAn',
+    '..a...AAEAAA',
+    '..aa.aAAAAAA',
+    '.aAAAAAAAAAA',
+    'aAAAAAAAAAAa',
+    '.AA.....AA..',
+    '.aa.....aa..',
 ];
 // May's own frame swaps some body cells for the patch colour B — same silhouette,
-// different coat: one ear and a saddle patch across the back, so the marking reads
-// as one deliberate shape instead of scattered spots.
+// different coat: a saddle patch across the back, so the marking reads as one
+// deliberate shape instead of scattered spots.
 const MAY_FRAME = [
-    '...BB.....',
-    '..BAAB....',
-    '.aAAAAa...',
-    '.AAEAAAa..',
-    '.AAAAAAAa.',
-    'ABBBBBBBAa',
-    'AAAA.AAAAa',
-    'A..A.A..A.',
+    '........aa..',
+    '.......aAAa.',
+    '......AAAAAn',
+    '..a...AAEAAA',
+    '..aa.aAAAAAA',
+    '.aAABBBBBBAA',
+    'aAABBBBBBAAa',
+    '.AA.....AA..',
+    '.aa.....aa..',
 ];
 // How rare each visit is, and what triggers it — tunable in one place instead of
 // buried in update().
