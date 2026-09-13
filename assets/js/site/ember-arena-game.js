@@ -28,6 +28,12 @@ const ICE_COLOR = '#74c0fc';
 const ICE_GLOW = '#d0f0ff';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
+// The sword's own size never changes with upgrades (only its colour does, see
+// drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
+// reads as held out from the hand instead of hugging the hero's centre.
+const BLADE_START = 14;
+const BLADE_LEN = 17;
+const BLADE_TIP = BLADE_START + BLADE_LEN + 2;
 
 // How rare each familiar visit is, and what triggers it — tunable in one place
 // instead of buried in update(). Cookie/May's own sprite data lives in
@@ -1030,22 +1036,31 @@ export function initEmberArena(canvas, opts) {
         // screen: how far Forza/Lama lunga/Braci have been taken above their base
         // value (18, 44, 14) reads directly off player.meleeDamage/fireDamage and
         // tuning.meleeRange — the very same numbers finalStats() reports — instead
-        // of a separate "which card was picked" tally.
-        const meleeT = clamp((player.meleeDamage - 18) / 40, 0, 1);
-        const bladeLen = clamp(17 + (tuning.meleeRange - baseTuning.meleeRange) * 0.4, 17, 37);
+        // of a separate "which card was picked" tally. The blade itself keeps its
+        // original fixed size — only its colour shifts hotter, from either melee
+        // card, never its length. Denominators are deliberately low (a couple of
+        // picks reaches full heat, not all seven/four) so the shift reads on the
+        // second or third level-up, not only once a run is nearly maxed out.
+        const meleeT = Math.max(
+            clamp((player.meleeDamage - 18) / 18, 0, 1),
+            clamp((tuning.meleeRange - baseTuning.meleeRange) / 18, 0, 1),
+        );
         const bladeColor = meleeT > 0 ? blendHex(colors.blade, FIRE_COLOR, meleeT) : colors.blade;
-        const bladeEdgeColor = meleeT > 0 ? blendHex(colors.bladeEdge, FIRE_GLOW, meleeT) : colors.bladeEdge;
+        // The edge outruns the body on purpose — a hotter, brighter rim reads as
+        // "glowing" at a glance instead of just "slightly less grey".
+        const edgeT = clamp(meleeT * 1.4, 0, 1);
+        const bladeEdgeColor = edgeT > 0 ? blendHex(colors.bladeEdge, FIRE_GLOW, edgeT) : colors.bladeEdge;
 
         // A pulsing ember aura once at least one Braci card is in, same technique as
         // the ice-paralysis ring above — grows with fireDamage, absent on a build
-        // that never took fire at all.
-        const fireT = clamp((player.fireDamage - 14) / 30, 0, 1);
+        // that never took fire at all. Same low-denominator logic as meleeT above.
+        const fireT = clamp((player.fireDamage - 14) / 14, 0, 1);
         if (fireT > 0) {
             ctx.save();
-            ctx.globalAlpha = (0.18 + 0.12 * Math.sin(elapsed * 10)) * fireT;
+            ctx.globalAlpha = (0.3 + 0.18 * Math.sin(elapsed * 10)) * fireT;
             ctx.fillStyle = FIRE_GLOW;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, (player.r + 6 + fireT * 6) * giantScale, 0, TAU);
+            ctx.arc(player.x, player.y + bob, (player.r + 8 + fireT * 12) * giantScale, 0, TAU);
             ctx.fill();
             ctx.restore();
         }
@@ -1063,7 +1078,7 @@ export function initEmberArena(canvas, opts) {
             ctx.strokeStyle = colors.inkSoft;
             ctx.lineWidth = 3 * giantScale;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, (13 + bladeLen) * giantScale, swordAngle - tail, swordAngle);
+            ctx.arc(player.x, player.y + bob, BLADE_TIP * giantScale, swordAngle - tail, swordAngle);
             ctx.stroke();
             ctx.restore();
         }
@@ -1072,11 +1087,11 @@ export function initEmberArena(canvas, opts) {
         ctx.rotate(swordAngle);
         ctx.scale(giantScale, giantScale);
         ctx.fillStyle = '#5d4037';
-        ctx.fillRect(8, -4, 3, 8);
+        ctx.fillRect(BLADE_START - 3, -4, 3, 8);
         ctx.fillStyle = bladeColor;
-        ctx.fillRect(11, -1.5, bladeLen, 3);
+        ctx.fillRect(BLADE_START, -1.5, BLADE_LEN, 3);
         ctx.fillStyle = bladeEdgeColor;
-        ctx.fillRect(11, -1.5, bladeLen, 1);
+        ctx.fillRect(BLADE_START, -1.5, BLADE_LEN, 1);
         ctx.restore();
 
         if (spinning) {
