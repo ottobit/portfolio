@@ -98,6 +98,38 @@ nell'eccezione dei piani approvati):
    distruttiva (crea un commit di merge, non riscrive storia), ma resta
    un'azione che tocca git e va confermata come le altre.
 
+## Dopo ogni merge: riparti da main, non continuare sullo stesso branch
+
+Il branch di lavoro designato (`claude/github-main-connection-r3povj`)
+accumula, PR dopo PR, una storia pre-squash che diverge sempre di più da
+quella squashata su `main` — è la causa diretta del falso positivo di
+merge conflict descritto sopra, e si ripresenta a ogni PR se non lo si
+tronca. Appena una PR è mergiata, prima di iniziare il prossimo lavoro:
+
+```
+git fetch origin main
+git checkout -B claude/github-main-connection-r3povj origin/main
+git push --force-with-lease origin claude/github-main-connection-r3povj
+```
+
+Così il branch riparte pulito da `main` aggiornato invece di trascinarsi
+dietro la storia vecchia, ed evita il rituale di risoluzione conflitti ad
+ogni merge. Il force push è su un branch che è comunque a uso esclusivo di
+queste sessioni (non condiviso con altri collaboratori), quindi non serve
+chiedere conferma per questo passaggio specifico.
+
+## Se il check "syntax" non parte su un push
+
+Il trigger `pull_request`/`push` di `check-js.yml` a volte non si attiva
+su un push (causa non chiarita, capitato più volte in questa sessione).
+Dato che `syntax` è un required status check su `main`, non aspettare a
+scoprirlo dopo minuti di polling: appena fatto un push sul branch di
+lavoro, lancia subito anche `actions_run_trigger` (`method:
+run_workflow`, `workflow_id: check-js.yml`, `ref: <branch>`) —
+`workflow_dispatch` è configurato apposta come rete di sicurezza. Se la
+run `pull_request` risulta già partita da sola, quella manuale è
+ridondante ma innocua (nessun conflitto, nessun costo per repo pubblici).
+
 ## La timeline è chiusa
 
 `projects/evolution/index.html` racconta i salti creativi del sito, non il
