@@ -194,6 +194,53 @@ const MONSTER_TYPES = {
         // loiters at the edge instead of putting the player under pressure.
         shoot: { interval: 1.8, speed: 165, damage: 12, range: 420, standoff: 170, approach: 0.6 },
     },
+    // A mutating shapeshifter: three unrelated silhouettes it cycles between (picked
+    // per-instance in drawMonsters, keyed off its spawn-time phase so a pack of them
+    // doesn't mutate in lockstep) instead of one fixed look. Its name is drawn above
+    // it in drawMonsters too — the only monster with a floating label, since nothing
+    // else needs to be called out as "this one keeps changing".
+    sprungal: {
+        palette: { A: '#b39ddb', a: '#5e4b8b', E: '#ffffff', p: '#2c1e4a' },
+        frames: [
+            [
+                '...AA...',
+                '...AA...',
+                '..AEEA..',
+                '..AppA..',
+                '...AA...',
+                '...AA...',
+                '...AA...',
+                '..a..a..',
+                '..a..a..',
+                '.a....a.',
+                'a......a',
+            ],
+            [
+                '..AA....',
+                '..AA....',
+                '.AEEA...',
+                '.AppA...',
+                '..AA....',
+                '..AAa...',
+                '...Aa...',
+                '...Aaa..',
+                '..a...a.',
+                '.a.....a',
+            ],
+            [
+                '....AA.....',
+                '....AA.....',
+                '...AEEA....',
+                '...AppA....',
+                '....AA.....',
+                '.a..AA..a..',
+                '..a.AA.a...',
+                '...a..a....',
+                '..a....a...',
+            ],
+        ],
+        cell: 2.4, r: 10, speedMul: 1.2, hpMul: 0.7, weight: 2, minLevel: 4, knockMul: 1.25,
+    },
     // Neither boss is ever picked by the random spawn (weight 0): both are summoned
     // explicitly, the ogre every 5 levels and the warlord once, at FINAL_LEVEL.
     finalBoss: {
@@ -1540,6 +1587,14 @@ export function initEmberArena(canvas, opts) {
             } else if (m.type === 'bat') {
                 frame = Math.floor(elapsed * 10 + m.phase) % 2;
                 dy = Math.sin(t) * 3 - 4;
+            } else if (m.type === 'sprungal') {
+                // A new silhouette roughly every 1.2s, offset by its own spawn phase so a
+                // pack of them never mutates in lockstep. Always thinner-and-taller than
+                // its rest pose, on top of the frame swap, so it reads as filiform even
+                // mid-mutation.
+                frame = Math.floor(elapsed / 1.2 + m.phase) % def.frames.length;
+                sx = 0.75 + Math.sin(t * 0.7) * 0.1;
+                sy = 1.15 + Math.sin(t * 0.9 + 1) * 0.1;
             }
             if (m.type !== 'bat') drawShadow(m.x, m.y + m.r * 0.8, m.r * 0.9);
             // The telegraph before the final boss's star volley: a pulsing glow so the
@@ -1561,6 +1616,19 @@ export function initEmberArena(canvas, opts) {
             ctx.scale(sx, sy);
             drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
+
+            // The only monster called out by name: it's the one whose look you can't
+            // pin down, so the label is what tells you you're still looking at the
+            // same thing. Sits above where the health bar goes, whether or not one is
+            // showing right now, so the two never collide.
+            if (m.type === 'sprungal') {
+                ctx.save();
+                ctx.font = '600 8px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = colors.inkSoft;
+                ctx.fillText('Sprungal', m.x, m.y - m.r - 20);
+                ctx.restore();
+            }
 
             if (m.hp < m.maxHp && m.type !== 'boss') {
                 const bw = 22;

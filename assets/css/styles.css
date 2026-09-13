@@ -2169,14 +2169,16 @@ a.info-card:focus-visible .info-card-title::after {
     background: none;
     border: none;
     font: inherit;
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: underline;
+    text-underline-offset: 0.2em;
     cursor: pointer;
 }
 .game-overlay-reset:hover,
 .game-overlay-reset:focus-visible {
-    color: rgba(255, 255, 255, 0.85);
+    color: #fff;
 }
 /* Comandi sotto l'arena, non sopra: stick e bottoni coprivano la fascia bassa dove
    i mostri spingono il giocatore. Nessun pannello attorno — sono distanziati come
