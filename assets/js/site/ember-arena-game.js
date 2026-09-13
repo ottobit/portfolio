@@ -484,10 +484,11 @@ const UPGRADES = [
     {
         id: 'giant', icon: '🗿', max: 1,
         name: { it: 'Colosso', en: 'Colossus' },
-        desc: { it: 'Diventi 4× più grande e travolgi i mostri comuni.', en: 'Grow 4× larger and crush regular monsters.' },
+        desc: { it: 'Per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'For 5 seconds, grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
         apply: (p) => {
             p.player.giantScale = 4;
             p.player.r = 56;
+            p.player.giantTimer = 5;
             p.player.meleeDamage = Math.round(p.player.meleeDamage * 1.35);
             p.tuning.meleeRange = Math.max(p.tuning.meleeRange, 100);
         },
@@ -634,6 +635,7 @@ export function initEmberArena(canvas, opts) {
         y: H / 2,
         r: 14,
         giantScale: 1,
+        giantTimer: 0,
         facing: { x: 1, y: 0 },
         maxHp: 100,
         hp: 100,
@@ -823,6 +825,7 @@ export function initEmberArena(canvas, opts) {
         player.facing = { x: 1, y: 0 };
         player.r = 14;
         player.giantScale = 1;
+        player.giantTimer = 0;
         player.maxHp = 100;
         player.hp = 100;
         player.invulnUntil = 0;
@@ -1358,6 +1361,15 @@ export function initEmberArena(canvas, opts) {
         screenFlash = Math.max(0, screenFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
         shake = Math.max(0, shake - dt * 26);
+        // The Colossus card's size/crush effect is a 5s burst, not a permanent change
+        // — only the melee damage/range bonus it also grants sticks around after.
+        if (player.giantTimer > 0) {
+            player.giantTimer = Math.max(0, player.giantTimer - dt);
+            if (player.giantTimer === 0) {
+                player.giantScale = 1;
+                player.r = 14;
+            }
+        }
 
         for (let i = floaters.length - 1; i >= 0; i--) {
             const f = floaters[i];
