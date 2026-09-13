@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- touch-action: pan-y (on the scrollable end-of-run panel) was two attempts at
+         blocking double-tap-zoom in landscape and neither one fully held on real mobile
+         WebKit: an element that is both scrollable and touch-action-restricted is a
+         known unreliable combination there. Locking the zoom level at the viewport
+         itself is honoured far more consistently, and this page has nothing that
+         benefits from pinch-zooming anyway. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ottobit — Pomeriggi da leggenda</title>
     <meta name="description" content="Da Ocarina of Time a Baldur's Gate: i ricordi che hanno reso possibile Ember Keep, una piccola arena di combattimento giocabile nel browser.">
     <meta property="og:type" content="website">
