@@ -2051,6 +2051,10 @@ a.info-card:focus-visible .info-card-title::after {
     color: #fff;
     text-align: center;
     padding: 1.5rem;
+    /* The end-of-run detail list can outgrow a short landscape-phone panel — scroll
+       rather than clip, or the buttons below it (Play again, Reset record) become
+       unreachable instead of just tight on space. */
+    overflow-y: auto;
 }
 .game-overlay h2 {
     margin: 0;
@@ -2162,6 +2166,13 @@ a.info-card:focus-visible .info-card-title::after {
     flex: 1;
     height: 1px;
     background: rgba(255, 255, 255, 0.18);
+}
+.game-overlay-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
 }
 .game-overlay-reset {
     margin: 0;
