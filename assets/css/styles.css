@@ -2540,10 +2540,11 @@ a.info-card:focus-visible .info-card-title::after {
         grid-row: 1;
         /* Bottom-left, not centred on the edge: a two-handed grip rests the left
            thumb low, and centring it vertically just left empty air above and
-           below it that the arena couldn't use either. A little lift off the very
-           bottom edge keeps the thumb's resting spot clear of the panel's corner. */
+           below it that the arena couldn't use either. A bit more lift than a bare
+           minimum keeps the thumb's resting spot clear of the panel's corner and
+           lands closer to where a resting thumb naturally curls. */
         align-self: end;
-        margin-bottom: 1rem;
+        margin-bottom: 1.4rem;
     }
     .game-play .game-controls-actions {
         grid-column: 3;
@@ -2556,13 +2557,13 @@ a.info-card:focus-visible .info-card-title::after {
        hit accurately) — the full-shape arena still leaves enough room next to it,
        even at the tightest tested phone height (~280px real), to go bigger still. */
     .game-play .game-stick {
-        width: 116px;
-        height: 116px;
+        width: 138px;
+        height: 138px;
     }
     .game-play .game-stick-knob {
-        width: 46px;
-        height: 46px;
-        margin: -23px 0 0 -23px;
+        width: 56px;
+        height: 56px;
+        margin: -28px 0 0 -28px;
     }
     .game-play .game-touch-btn {
         width: 74px;
