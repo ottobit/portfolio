@@ -2055,6 +2055,11 @@ a.info-card:focus-visible .info-card-title::after {
        rather than clip, or the buttons below it (Play again, Reset record) become
        unreachable instead of just tight on space. */
     overflow-y: auto;
+    /* Making this scrollable reopened the double-tap-zoom hole .game-play's own
+       touch-action: none used to close: a scrollable element needs its own explicit
+       touch-action, an ancestor's isn't enough. pan-y keeps the scroll working while
+       still blocking pinch/double-tap zoom. */
+    touch-action: pan-y;
 }
 .game-overlay h2 {
     margin: 0;
