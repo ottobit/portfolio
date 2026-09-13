@@ -1,30 +1,26 @@
 name: Giant power-up patch
 
-on:
-  push:
-    branches:
-      - feat/giant-powerup
+on: [push]
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: feat/giant-powerup
-      - name: Add giant upgrade
+      - name: Patch game
+        if: github.actor != 'github-actions[bot]'
+        shell: bash
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
+          p = Path('assets/js/site/ember-arena-game.js')
+          s = p.read_text()
 
-          path = Path('assets/js/site/ember-arena-game.js')
-          s = path.read_text()
-
-          old = """    {
+          replacements = [
+          ("""    {
         id: 'luck', icon: '🍀', max: 4,
         name: { it: 'Fortuna', en: 'Fortune' },
         desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
@@ -33,8 +29,7 @@ jobs:
             p.tuning.heartChance += steps[Math.min(p.pickIndex, steps.length - 1)];
         },
     },
-];"""
-          new = """    {
+];""", """    {
         id: 'luck', icon: '🍀', max: 4,
         name: { it: 'Fortuna', en: 'Fortune' },
         desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
@@ -54,31 +49,19 @@ jobs:
             p.tuning.meleeRange = Math.max(p.tuning.meleeRange, 100);
         },
     },
-];"""
-          assert old in s, 'upgrade anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """        r: 14,
-        facing: { x: 1, y: 0 },"""
-          new = """        r: 14,
+];"""),
+          ("""        r: 14,
+        facing: { x: 1, y: 0 },""", """        r: 14,
         giantScale: 1,
-        facing: { x: 1, y: 0 },"""
-          assert old in s, 'player anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """        player.facing = { x: 1, y: 0 };
-        player.maxHp = 100;"""
-          new = """        player.facing = { x: 1, y: 0 };
+        facing: { x: 1, y: 0 },"""),
+          ("""        player.facing = { x: 1, y: 0 };
+        player.maxHp = 100;""", """        player.facing = { x: 1, y: 0 };
         player.r = 14;
         player.giantScale = 1;
-        player.maxHp = 100;"""
-          assert old in s, 'reset anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """            m.flash = Math.max(0, m.flash - dt);
+        player.maxHp = 100;"""),
+          ("""            m.flash = Math.max(0, m.flash - dt);
             if (dist < player.r + m.r && hurtPlayer(def.contactDamage || 10)) return;
-        }"""
-          new = """            m.flash = Math.max(0, m.flash - dt);
+        }""", """            m.flash = Math.max(0, m.flash - dt);
             if (dist < player.r + m.r) {
                 if (player.giantScale >= 4 && m.type !== 'boss' && m.type !== 'finalBoss') {
                     damageMonster(i, Math.max(m.hp, player.meleeDamage * 2));
@@ -87,51 +70,37 @@ jobs:
                 }
                 if (hurtPlayer(def.contactDamage || 10)) return;
             }
-        }"""
-          assert old in s, 'collision anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """        const cell = 3;
+        }"""),
+          ("""        const cell = 3;
         const frame = player.moving ? Math.floor(player.walkT * 8) % 2 : 0;
-        const bob = player.moving ? (frame === 0 ? 0 : -1.5) : 0;"""
-          new = """        const giantScale = player.giantScale || 1;
+        const bob = player.moving ? (frame === 0 ? 0 : -1.5) : 0;""", """        const giantScale = player.giantScale || 1;
         const cell = 3 * giantScale;
         const frame = player.moving ? Math.floor(player.walkT * 8) % 2 : 0;
-        const bob = player.moving ? (frame === 0 ? 0 : -1.5 * giantScale) : 0;"""
-          assert old in s, 'draw scale anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """        drawShadow(player.x, player.y + 18, 12);"""
-          new = """        drawShadow(player.x, player.y + 18 * giantScale, 12 * giantScale);"""
-          assert old in s, 'shadow anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """            ctx.lineWidth = 3;
+        const bob = player.moving ? (frame === 0 ? 0 : -1.5 * giantScale) : 0;"""),
+          ("""        drawShadow(player.x, player.y + 18, 12);""", """        drawShadow(player.x, player.y + 18 * giantScale, 12 * giantScale);"""),
+          ("""            ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30, swordAngle - tail, swordAngle);"""
-          new = """            ctx.lineWidth = 3 * giantScale;
+            ctx.arc(player.x, player.y + bob, 30, swordAngle - tail, swordAngle);""", """            ctx.lineWidth = 3 * giantScale;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30 * giantScale, swordAngle - tail, swordAngle);"""
-          assert old in s, 'spin trail anchor not found'
-          s = s.replace(old, new, 1)
-
-          old = """        ctx.fillStyle = '#5d4037';
+            ctx.arc(player.x, player.y + bob, 30 * giantScale, swordAngle - tail, swordAngle);"""),
+          ("""        ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
         ctx.fillStyle = colors.blade;
         ctx.fillRect(11, -1.5, 17, 3);
         ctx.fillStyle = colors.bladeEdge;
-        ctx.fillRect(11, -1.5, 17, 1);"""
-          new = """        ctx.scale(giantScale, giantScale);
+        ctx.fillRect(11, -1.5, 17, 1);""", """        ctx.scale(giantScale, giantScale);
         ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
         ctx.fillStyle = colors.blade;
         ctx.fillRect(11, -1.5, 17, 3);
         ctx.fillStyle = colors.bladeEdge;
-        ctx.fillRect(11, -1.5, 17, 1);"""
-          assert old in s, 'sword anchor not found'
-          s = s.replace(old, new, 1)
+        ctx.fillRect(11, -1.5, 17, 1);""")]
 
-          path.write_text(s)
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit('patch anchor not found: ' + old.splitlines()[0])
+              s = s.replace(old, new, 1)
+          p.write_text(s)
           PY
           node --check assets/js/site/ember-arena-game.js
           rm .github/workflows/giant-powerup-patch.yml
