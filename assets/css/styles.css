@@ -2474,6 +2474,12 @@ a.info-card:focus-visible .info-card-title::after {
            that keeps a genuinely tighter phone from spilling controls past the edge of
            the panel instead of just quietly clipping them. */
         overflow: hidden;
+        /* A quick double-tap anywhere in here — the gap between buttons, the arena
+           itself — used to trigger the browser's default double-tap-to-zoom, which
+           then hid the controls off-screen. The stick/buttons already stop it on
+           themselves; this stops it everywhere else in the panel too, and there is
+           nothing here that needs to scroll or pinch-zoom in the first place. */
+        touch-action: none;
     }
     .game-play .game-statbar {
         flex: 0 0 auto;
