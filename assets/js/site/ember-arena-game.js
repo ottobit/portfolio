@@ -12,6 +12,8 @@ const FIRE_GLOW = '#f9ca24';
 // hurts you is never confused with what you threw.
 const BOLT_COLOR = '#9b59b6';
 const BOLT_GLOW = '#e056fd';
+const ICE_COLOR = '#74c0fc';
+const ICE_GLOW = '#d0f0ff';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 const HEART_PALETTE = { h: '#e74c3c', H: '#ff7675' };
@@ -240,6 +242,8 @@ const MONSTER_TYPES = {
             ],
         ],
         cell: 2.4, r: 10, speedMul: 1.2, hpMul: 0.7, weight: 2, minLevel: 4, knockMul: 1.25,
+        // Low damage on purpose: the paralysis is the actual threat, not the hit itself.
+        shoot: { interval: 2.2, speed: 140, damage: 6, range: 380, standoff: 150, approach: 0.5, ice: true, paralyzeDuration: 1 },
     },
     // Neither boss is ever picked by the random spawn (weight 0): both are summoned
     // explicitly, the ogre every 5 levels and the warlord once, at FINAL_LEVEL.
@@ -622,6 +626,7 @@ export function initEmberArena(canvas, opts) {
         maxHp: 100,
         hp: 100,
         invulnUntil: 0,
+        paralyzedUntil: 0,
         meleeDamage: 18,
         fireDamage: 14,
         moving: false,
@@ -807,6 +812,7 @@ export function initEmberArena(canvas, opts) {
         player.maxHp = 100;
         player.hp = 100;
         player.invulnUntil = 0;
+        player.paralyzedUntil = 0;
         player.meleeDamage = 18;
         player.fireDamage = 14;
         monsters = [];
@@ -943,6 +949,7 @@ export function initEmberArena(canvas, opts) {
     canvas.addEventListener('pointerdown', handlePointerDown);
 
     function ultimateAttack() {
+        if (elapsed < player.paralyzedUntil) return;
         if (ultCooldown > 0) return;
         ultCooldown = tuning.ultCd;
         screenFlash = 0.22;
@@ -959,6 +966,7 @@ export function initEmberArena(canvas, opts) {
     // Press: start turning and land a hit at once. Hold: keep turning, one hit per
     // turn. Release: stop once the turn in progress completes, so a tap is one spin.
     function meleeAttack() {
+        if (elapsed < player.paralyzedUntil) return;
         spinHeld = true;
         if (spinning) return;
         spinning = true;
@@ -995,6 +1003,7 @@ export function initEmberArena(canvas, opts) {
             x: m.x, y: m.y,
             vx: (dx / d) * cfg.speed, vy: (dy / d) * cfg.speed,
             r: 5, damage: cfg.damage, life: 5,
+            ice: !!cfg.ice, paralyzeDuration: cfg.paralyzeDuration || 0,
         });
     }
     // The final boss's second attack: a whole ring of fire arrows launched together,
@@ -1152,6 +1161,19 @@ export function initEmberArena(canvas, opts) {
         }
         return false;
     }
+    // A status effect, not damage: separate from hurtPlayer so contact hits, the boss
+    // slam and the star volley never trigger it by accident. Interrupts an in-progress
+    // sword spin — staying mid-swing while frozen would look wrong — and skips the
+    // usual hurt sfx since the ice bolt's own damage already played one.
+    function applyParalysis(duration) {
+        if (state !== 'playing') return;
+        player.paralyzedUntil = elapsed + duration;
+        if (spinning) {
+            spinning = false;
+            spinHeld = false;
+        }
+        burst(player.x, player.y, { a: '#74c0fc', b: '#d0f0ff', c: '#a5d8ff' }, 10);
+    }
     function availableUpgrades() {
         return UPGRADES.filter((u) => (taken[u.id] || 0) < u.max);
     }
@@ -1292,7 +1314,9 @@ export function initEmberArena(canvas, opts) {
                 mvy /= len;
             }
         }
-        if (mvx !== 0 || mvy !== 0) {
+        // Frozen by an ice bolt: input is read as normal above (so it resumes the
+        // instant paralyzedUntil passes) but never turned into movement below.
+        if ((mvx !== 0 || mvy !== 0) && elapsed >= player.paralyzedUntil) {
             const len = Math.hypot(mvx, mvy);
             player.facing = { x: mvx / len, y: mvy / len };
             player.x = clamp(player.x + mvx * tuning.speed * dt, player.r, W - player.r);
@@ -1436,7 +1460,11 @@ export function initEmberArena(canvas, opts) {
             }
             if (Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
                 bolts.splice(i, 1);
+                // Read before hurtPlayer: a hit blocked by the invuln window still
+                // returns false, so this is the only way to tell "landed" from "no-op".
+                const landed = elapsed >= player.invulnUntil;
                 if (hurtPlayer(b.damage)) return;
+                if (b.ice && landed) applyParalysis(b.paralyzeDuration);
             }
         }
 
@@ -1529,6 +1557,18 @@ export function initEmberArena(canvas, opts) {
         const palette = Object.assign({ P: colors.accent, T: colors.accent }, HERO_PALETTE);
 
         drawShadow(player.x, player.y + 18, 12);
+
+        // Frozen by an ice bolt: a pulsing ring, same visual language as the boss's
+        // star-volley telegraph, so "you're locked out of input" reads at a glance.
+        if (elapsed < player.paralyzedUntil) {
+            ctx.save();
+            ctx.globalAlpha = 0.35 + 0.35 * Math.sin(elapsed * 18);
+            ctx.fillStyle = ICE_GLOW;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r * 1.6, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+        }
 
         // Sword: a full spin attack right after a melee press (hero and blade turn 360°
         // together, the blade leaving a circular trail); otherwise the sword rests along the
@@ -1676,10 +1716,11 @@ export function initEmberArena(canvas, opts) {
 
     function drawBolts() {
         bolts.forEach((b) => {
-            // The final boss's star volley reads warm (fire), never the caster's cold
-            // magenta — the two must never be mistaken for one another mid-dodge.
-            const color = b.fireArrow ? FIRE_COLOR : BOLT_COLOR;
-            const glow = b.fireArrow ? FIRE_GLOW : BOLT_GLOW;
+            // The final boss's star volley reads warm (fire), the sprungal's ice bolts
+            // read cold (pale blue) — never the caster's magenta, so none of the three
+            // gets mistaken for another mid-dodge.
+            const color = b.ice ? ICE_COLOR : b.fireArrow ? FIRE_COLOR : BOLT_COLOR;
+            const glow = b.ice ? ICE_GLOW : b.fireArrow ? FIRE_GLOW : BOLT_GLOW;
             ctx.save();
             ctx.globalAlpha = 0.35;
             ctx.fillStyle = glow;
