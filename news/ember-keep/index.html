@@ -582,6 +582,15 @@
     });
 
     restartBtn.addEventListener('click', () => game.start());
+    // The overlay sits on top of the canvas, so its own already-tap-to-restart
+    // behaviour never reaches it while the end screen is up — reaching the small
+    // "Play again" button precisely is the only way in. Let a tap anywhere on the
+    // overlay restart instead, same as tapping the canvas does before a run starts;
+    // buttons (this one included) keep handling their own tap first.
+    overlay.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        game.start();
+    });
     resetRecordBtn.addEventListener('click', () => {
         const it = getLang() === 'it';
         const sure = confirm(it ? 'Azzerare il record?' : 'Reset the record?');
