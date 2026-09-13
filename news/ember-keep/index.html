@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.33">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.34">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -135,8 +135,10 @@
                 <h2 id="ember-overlay-lost" data-it="Sei caduto">You fell</h2>
                 <h2 id="ember-overlay-won" data-it="Hai vinto!" hidden>You won!</h2>
                 <dl class="game-overlay-detail" id="ember-overlay-detail"></dl>
-                <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
-                <button class="game-overlay-reset" id="ember-reset-record" type="button" data-it="Azzera record">Reset record</button>
+                <div class="game-overlay-actions">
+                    <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
+                    <button class="game-overlay-reset" id="ember-reset-record" type="button" data-it="Azzera record">Reset record</button>
+                </div>
             </div>
             <div class="game-overlay game-upgrade" id="ember-upgrade" hidden>
                 <h2 data-it="Scegli un potenziamento">Choose an upgrade</h2>
