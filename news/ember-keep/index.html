@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- touch-action: pan-y (on the scrollable end-of-run panel) was two attempts at
+         blocking double-tap-zoom in landscape and neither one fully held on real mobile
+         WebKit: an element that is both scrollable and touch-action-restricted is a
+         known unreliable combination there. Locking the zoom level at the viewport
+         itself is honoured far more consistently, and this page has nothing that
+         benefits from pinch-zooming anyway. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ottobit — Pomeriggi da leggenda</title>
     <meta name="description" content="Da Ocarina of Time a Baldur's Gate: i ricordi che hanno reso possibile Ember Keep, una piccola arena di combattimento giocabile nel browser.">
     <meta property="og:type" content="website">
@@ -225,7 +231,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=29';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=30';
 
     initDiagramPage();
 
@@ -254,6 +260,10 @@
     let hasWon = false;
     let wasRunning = false;
     let lastLevel = 1;
+    // Tracked so the rotate prompt (below) knows not to cover the end-of-run screen:
+    // once the run is over there's nothing left that needs landscape, just the
+    // results and the Play again/Reset record buttons.
+    let currentState = 'ready';
     function paintLevel() {
         // The target is visible from the first second: this run can be won, not only survived.
         levelText.textContent = `${lastLevel} / ${FINAL_LEVEL}${hasWon ? ' ★' : ''}`;
@@ -319,6 +329,7 @@
             }
         },
         onStateChange(state, stats) {
+            currentState = state;
             if (state === 'playing') {
                 // Only a fresh run scrolls the page; coming back from the cards does not.
                 if (!wasRunning) focusArena();
@@ -515,6 +526,13 @@
     // so a cold load in portrait is untouched by this — still idle canvas, still
     // waiting for that first tap, exactly as before.
     window.addEventListener('resize', () => {
+        // The run is over: there's nothing left that needs landscape, and the results
+        // screen (Play again/Reset record) already has its own hidden state to manage.
+        // Only raise the prompt for states that actually need the controls back.
+        if (currentState === 'over' || currentState === 'won') {
+            rotatePrompt.hidden = true;
+            return;
+        }
         rotatePrompt.hidden = !isPortraitPhone();
     });
 
