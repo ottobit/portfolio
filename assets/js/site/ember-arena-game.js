@@ -1,7 +1,19 @@
-const BEST_LEVEL_KEY = 'emberKeepBestLevel';
-const RECORD_KEY = 'emberKeepRecord';
-const WON_KEY = 'emberKeepWon';
-const MUTE_KEY = 'emberKeepMuted';
+// Data, sprites, upgrades, audio, storage and colour helpers used to all live
+// in this one file — they're now split out (none of them need the closure
+// below, which is the part that actually has to stay one piece: it shares
+// mutable run state — player, monsters, bolts, tuning — across ~50 functions).
+import {
+    drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
+    COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
+} from './ember-arena-sprites.js?v=1';
+export { drawArenaIcon };
+import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
+import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
+import {
+    WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
+} from './ember-arena-storage.js?v=1';
+import { blendHex, tintPalette, themeColors, circlesOverlap } from './ember-arena-color.js?v=1';
+
 // Kill the warlord that shows up here and the run is over — won, not just survived.
 // Exported so the page can show the target ("7 / 15") without reaching into a game
 // instance that does not exist yet while initEmberArena is still running.
@@ -16,605 +28,15 @@ const ICE_COLOR = '#74c0fc';
 const ICE_GLOW = '#d0f0ff';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
-const HEART_PALETTE = { h: '#e74c3c', H: '#ff7675' };
-// Two tiers a monster's palette can be tinted towards as the run climbs — see
-// tintPalette(). Chosen far from every existing monster hue and from the fire/bolt
-// colours above, so a tinted monster never reads as "on fire" or "a projectile".
-const TIER_TINT_TARGET = { 1: '#c0392b', 2: '#180a24' };
-const TIER_TINT_AMOUNT = { 1: 0.4, 2: 0.42 };
-const HEART_FRAME = [
-    '.hh...hh.',
-    'hhhhhhhhh',
-    'hHhhhhhhh',
-    'hhhhhhhhh',
-    '.hhhhhhh.',
-    '..hhhhh..',
-    '...hhh...',
-    '....h....',
-];
 
-// Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
-// by the random spawn table. Same sprite technique as everything else (paintSprite),
-// same shape shared between them so the pair reads as two dogs, differentiated by
-// colour and by scale (see FAMILIAR_SCALE below) rather than a second hand-drawn shape.
-// 'glow' isn't a sprite pixel — paintSprite never draws it — it's the colour of the
-// pulsing halo behind the sprite while the arrival banner is up (see drawFamiliar).
-const COOKIE_PALETTE = { A: '#d9a066', a: '#a9743f', E: '#2c1608', n: '#1a1a1a', glow: '#f5a623' };
-const MAY_PALETTE = { A: '#ede2cc', a: '#c9b896', B: '#7a4a24', E: '#2c1608', n: '#1a1a1a', glow: '#f0d878' };
-// Side profile, facing right (drawFamiliar flips it when the visit is heading left).
-// Reworked from reference photos of the two real dogs: the original had a pointed,
-// upright ear, but both actually have a floppy, drooping one. It sits at the BACK of
-// the skull (poking out left of the head silhouette, cols 5-6) rather than beside the
-// eye, so it reads as its own flap instead of blending into cheek shading — 2 cells
-// wide where it meets the skull, tapering to a single trailing column as it droops.
-const DOG_FRAME = [
-    '.......AAA..',
-    '.....aaAAAA.',
-    '.....aaAAEA.',
-    '......aAAAAn',
-    '......aAAAA.',
-    '.a....AAAAA.',
-    '.aaAAAAAAAA.',
-    'aAAAAAAAAAAa',
-    '.AA.....AA..',
-    '.aa.....aa..',
-];
-// May's own frame swaps some body cells for the patch colour B — same silhouette,
-// different coat: a saddle patch across the back, so the marking reads as one
-// deliberate shape instead of scattered spots.
-const MAY_FRAME = [
-    '.......AAA..',
-    '.....aaAAAA.',
-    '.....aaAAEA.',
-    '......aAAAAn',
-    '......aAAAA.',
-    '.a....AAAAA.',
-    '.aaAABBBBBA.',
-    'aAABBBBBBBAa',
-    '.AA.....AA..',
-    '.aa.....aa..',
-];
-// How rare each visit is, and what triggers it — tunable in one place instead of
-// buried in update().
+// How rare each familiar visit is, and what triggers it — tunable in one place
+// instead of buried in update(). Cookie/May's own sprite data lives in
+// ember-arena-sprites.js.
 const FAMILIAR_MANY_MONSTERS = 6;     // both need at least this many non-boss monsters up
 const FAMILIAR_CHECK_INTERVAL = 2;    // seconds between eligibility rolls
 const FAMILIAR_CHANCE = 0.12;         // chance a visit actually starts on an eligible roll
 const FAMILIAR_COOLDOWN = 25;         // minimum seconds between two visits
 const FAMILIAR_ANNOUNCE_DURATION = 1.8; // seconds the arena freezes for the name banner
-
-// Pixel-art sprites drawn with fillRect on a small grid — same technique as
-// the Triple Triad icon, so no external image assets. '.' is transparent.
-const HERO_PALETTE = {
-    H: '#2c3e50', S: '#f1c27d', E: '#1a1a1a', B: '#5d4037',
-    L: '#34495e', O: '#2c3e50', D: '#8d6e63', M: '#bdc3c7',
-};
-const HERO_FRAMES = [
-    [
-        '...PHHH...',
-        '..HHHHHH..',
-        '..HSSSSH..',
-        '..HSESES..',
-        '...SSSS...',
-        '.DTTTTTT..',
-        'DMTTTTTTS.',
-        'DMTTTTTT..',
-        '.DBBBBBB..',
-        '..LL.LL...',
-        '..LL.LL...',
-        '.OOO.OOO..',
-    ],
-    [
-        '...PHHH...',
-        '..HHHHHH..',
-        '..HSSSSH..',
-        '..HSESES..',
-        '...SSSS...',
-        '.DTTTTTT..',
-        'DMTTTTTTS.',
-        'DMTTTTTT..',
-        '.DBBBBBB..',
-        '..LL..LL..',
-        '.LL....LL.',
-        'OOO....OOO',
-    ],
-];
-
-const MONSTER_TYPES = {
-    slime: {
-        palette: { A: '#2ecc71', a: '#27ae60', E: '#ffffff', p: '#1a1a1a', M: '#1a1a1a' },
-        frames: [[
-            '...AAAA...',
-            '..AAAAAA..',
-            '.AAEAAEAA.',
-            '.AApAApAA.',
-            'AAAAAAAAAA',
-            'AAAAMMAAAA',
-            'aAAAAAAAAa',
-            '.aaaaaaaa.',
-        ]],
-        cell: 2.6, r: 13, speedMul: 1, hpMul: 1, weight: 5, minLevel: 1, knockMul: 1,
-    },
-    imp: {
-        palette: { A: '#c0392b', a: '#7b241c', E: '#ffffff', p: '#1a1a1a', M: '#f1c40f' },
-        frames: [[
-            '.a......a.',
-            '..a....a..',
-            '..AAAAAA..',
-            '.AAEAAEAA.',
-            '.AApAApAA.',
-            '.AAAMMAAA.',
-            '..AAAAAA..',
-            '...AAAA...',
-            '..A....A..',
-            '.a......a.',
-        ]],
-        cell: 2.6, r: 12, speedMul: 1.15, hpMul: 0.85, weight: 3, minLevel: 1, knockMul: 1.1,
-    },
-    bat: {
-        palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },
-        frames: [
-            [
-                'a..........a',
-                'aa...AA...aa',
-                '.aa.AAAA.aa.',
-                '..aaAEEAaa..',
-                '....AppA....',
-                '....AAAA....',
-                '....A..A....',
-            ],
-            [
-                '............',
-                '.....AA.....',
-                '....AAAA....',
-                'aaaaAEEAaaaa',
-                '.aaaAppAaaa.',
-                '....AAAA....',
-                '....A..A....',
-            ],
-        ],
-        cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2, knockMul: 1.35,
-    },
-    // Keeps its distance and throws bolts, so standing still stops being an option.
-    caster: {
-        // Eyes and staff orb use the dimmer purple: the bright BOLT_GLOW belongs to a
-        // bolt in flight alone, so what is travelling towards you always reads brightest.
-        palette: { C: '#2980b9', c: '#1b4f72', A: '#0b1a2a', p: '#9b59b6', S: '#8d6e63', O: '#9b59b6' },
-        frames: [[
-            '...cCCc...',
-            '..cCCCCc.O',
-            '..cAAAAc.S',
-            '..cApApc.S',
-            '..cCCCCc.S',
-            '.cCCCCCCcS',
-            '.cCCCCCCcS',
-            '.cCCCCCCc.',
-            '..cCCCCc..',
-            '...c..c...',
-        ]],
-        cell: 2.6, r: 12, speedMul: 0.85, hpMul: 0.8, weight: 3, minLevel: 3, knockMul: 1.2,
-        // range covers most of the arena: a shooter that has to walk into view first just
-        // loiters at the edge instead of putting the player under pressure.
-        shoot: { interval: 1.8, speed: 165, damage: 12, range: 420, standoff: 170, approach: 0.6 },
-    },
-    // A mutating shapeshifter: three unrelated silhouettes it cycles between (picked
-    // per-instance in drawMonsters, keyed off its spawn-time phase so a pack of them
-    // doesn't mutate in lockstep) instead of one fixed look. Its name is drawn above
-    // it in drawMonsters too — the only monster with a floating label, since nothing
-    // else needs to be called out as "this one keeps changing".
-    sprungal: {
-        palette: { A: '#b39ddb', a: '#5e4b8b', E: '#ffffff', p: '#2c1e4a' },
-        frames: [
-            [
-                '...AA...',
-                '...AA...',
-                '..AEEA..',
-                '..AppA..',
-                '...AA...',
-                '...AA...',
-                '...AA...',
-                '..a..a..',
-                '..a..a..',
-                '.a....a.',
-                'a......a',
-            ],
-            [
-                '..AA....',
-                '..AA....',
-                '.AEEA...',
-                '.AppA...',
-                '..AA....',
-                '..AAa...',
-                '...Aa...',
-                '...Aaa..',
-                '..a...a.',
-                '.a.....a',
-            ],
-            [
-                '....AA.....',
-                '....AA.....',
-                '...AEEA....',
-                '...AppA....',
-                '....AA.....',
-                '.a..AA..a..',
-                '..a.AA.a...',
-                '...a..a....',
-                '..a....a...',
-            ],
-        ],
-        cell: 2.4, r: 10, speedMul: 1.2, hpMul: 0.7, weight: 2, minLevel: 4, knockMul: 1.25,
-        // Low damage on purpose: the paralysis is the actual threat, not the hit itself.
-        shoot: { interval: 2.2, speed: 140, damage: 6, range: 380, standoff: 150, approach: 0.5, ice: true, paralyzeDuration: 1 },
-    },
-    // Neither boss is ever picked by the random spawn (weight 0): both are summoned
-    // explicitly, the ogre every 5 levels and the warlord once, at FINAL_LEVEL.
-    finalBoss: {
-        palette: { A: '#7b241c', a: '#4a1410', E: '#ffffff', p: '#f1c40f', C: '#f1c40f', T: '#dfe6e9', K: '#2c3e50' },
-        frames: [[
-            '..C..C....C..C..',
-            '..CCCCCCCCCCCC..',
-            '...AAAAAAAAAA...',
-            '..AAAAAAAAAAAA..',
-            '..AAEEAAAAEEAA..',
-            '..AAppAAAAppAA..',
-            '..AAAAAAAAAAAA..',
-            '..AAATTTTTTAAA..',
-            '.aAAAAAAAAAAAAa.',
-            'aAAAAAAAAAAAAAAa',
-            'aAAAAKKKKKKAAAAa',
-            'aAAAAKKKKKKAAAAa',
-            '.aAAAAAAAAAAAAa.',
-            '..aAAAAAAAAAAa..',
-            '...aa......aa...',
-            '..aaa......aaa..',
-        ]],
-        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 8, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
-        // A second attack on top of the charge it already shares with the regular boss:
-        // a ring of fire arrows launched all at once, telegraphed so it stays dodgeable.
-        // Tighter interval and a couple more arrows than before — the telegraph stays
-        // the same 0.5s, so it's still readable, just less time to breathe between rings.
-        starAttack: { interval: 3.5, telegraph: 0.5, count: 14, speed: 190, damage: 10 },
-    },
-    boss: {
-        palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
-        frames: [[
-            '....C..C..C...',
-            '....CCCCCC....',
-            '...AAAAAAAA...',
-            '..AAAAAAAAAA..',
-            '..AEEAAAAEEA..',
-            '..AppAAAAppA..',
-            '..AAAAAAAAAA..',
-            '..AAATAATAAA..',
-            '.aAAAAAAAAAAa.',
-            '.aAAAAAAAAAAa.',
-            '..aAAAAAAAAa..',
-            '...aAAAAAAa...',
-            '...aa....aa...',
-            '..aaa....aaa..',
-        ]],
-        cell: 3.6, r: 26, speedMul: 0.55, hpMul: 12, weight: 0, minLevel: Infinity, contactDamage: 25, knockMul: 0.12,
-    },
-};
-
-// Paints one sprite grid. Module level so the arena and the legend under it draw the
-// very same art instead of keeping two copies that drift apart.
-function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
-    const w = rows[0].length * cell;
-    const h = rows.length * cell;
-    ctx.save();
-    ctx.translate(cx, cy);
-    if (flipX) ctx.scale(-1, 1);
-    for (let r = 0; r < rows.length; r++) {
-        for (let c = 0; c < rows[r].length; c++) {
-            const ch = rows[r][c];
-            if (ch === '.') continue;
-            ctx.fillStyle = override || palette[ch];
-            // +0.3 overlap hides hairline seams between cells at fractional scales.
-            ctx.fillRect(-w / 2 + c * cell, -h / 2 + r * cell, cell + 0.3, cell + 0.3);
-        }
-    }
-    ctx.restore();
-}
-
-// Draws one arena sprite into a small standalone canvas, for the legend on the page.
-// key is 'hero' or any MONSTER_TYPES key.
-export function drawArenaIcon(canvas, key, size = 44) {
-    const hero = key === 'hero';
-    const heart = key === 'heart';
-    const cookie = key === 'cookie';
-    const may = key === 'may';
-    const def = hero || heart || cookie || may ? null : MONSTER_TYPES[key];
-    if (!hero && !heart && !cookie && !may && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
-    const palette = hero
-        ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : heart ? HEART_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(size * dpr);
-    canvas.height = Math.round(size * dpr);
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size, size);
-    // Fit the grid in the box with a little air around it.
-    const cell = Math.min(size / rows[0].length, size / rows.length) * 0.88;
-    paintSprite(ctx, rows, palette, size / 2, size / 2, cell);
-}
-
-// Mixes a hex colour toward another by `amount` (0..1). Pure white and the shared
-// near-black outline colour are the ones every sprite uses for eyes/pupils, so a
-// caller skips those — a monster's gaze has to read the same at every tier.
-function blendHex(hex, target, amount) {
-    const a = /^#([0-9a-f]{6})$/i.exec(hex);
-    const b = /^#([0-9a-f]{6})$/i.exec(target);
-    if (!a || !b) return hex;
-    const mix = (x, y) => Math.round(x + (y - x) * amount);
-    const toHex = (n) => n.toString(16).padStart(2, '0');
-    const channel = (str, i) => parseInt(str.slice(i, i + 2), 16);
-    return `#${toHex(mix(channel(a[1], 0), channel(b[1], 0)))}${toHex(mix(channel(a[1], 2), channel(b[1], 2)))}${toHex(mix(channel(a[1], 4), channel(b[1], 4)))}`;
-}
-// A monster's palette tinted for how far the run has climbed since it spawned —
-// so a slime met at level 12 doesn't look like the one met at level 1, even though
-// it is drawn from the very same sprite. Cached per (type, tier): the blend is pure
-// colour math, no reason to redo it every frame a monster is on screen.
-const tintCache = {};
-function tintPalette(palette, type, tier) {
-    if (!tier) return palette;
-    const key = type + ':' + tier;
-    if (tintCache[key]) return tintCache[key];
-    const target = TIER_TINT_TARGET[tier];
-    const amount = TIER_TINT_AMOUNT[tier];
-    const out = {};
-    Object.keys(palette).forEach((k) => {
-        const v = palette[k];
-        out[k] = (v === '#ffffff' || v === '#1a1a1a') ? v : blendHex(v, target, amount);
-    });
-    tintCache[key] = out;
-    return out;
-}
-
-// Level-up cards. Every point of growth comes from one of these, so two runs are
-// never the same. `apply` mutates the run's player and tuning in place.
-// Text the arena draws on itself. English defaults; the page hands over its own
-// translations and re-sends them when the visitor switches language, so the canvas
-// never ends up speaking a different language than the page around it.
-const DEFAULT_STRINGS = {
-    start: 'Tap or press Space to start',
-    level: (n) => `Level ${n}!`,
-    boss: 'Boss!',
-    finalBoss: 'Final boss!',
-    bossBar: 'Boss',
-    finalBossBar: 'Final boss',
-    cookieAnnounce: 'Cookie has appeared!',
-    mayAnnounce: 'May has appeared!',
-};
-
-// Each card's apply() reads p.pickIndex — how many copies were already taken,
-// before this one — to look up its step in a table of shrinking increments. The
-// ceiling itself moved out too (a higher max): the same rough total power, reached
-// over more level-ups instead of a handful of picks that used to trivialise a run.
-const UPGRADES = [
-    {
-        id: 'strength', icon: '💪', max: 7,
-        name: { it: 'Forza', en: 'Strength' },
-        desc: { it: 'La spada fa più male.', en: 'The sword hits harder.' },
-        apply: (p) => {
-            const steps = [6, 5, 5, 4, 4, 3, 3];
-            p.player.meleeDamage += steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'blade', icon: '⚔️', max: 4,
-        name: { it: 'Lama lunga', en: 'Long blade' },
-        desc: { it: 'Colpisci da più lontano.', en: 'Reach further out.' },
-        apply: (p) => {
-            const steps = [9, 7, 6, 5];
-            p.tuning.meleeRange += steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'fury', icon: '🌀', max: 4,
-        name: { it: 'Furia', en: 'Fury' },
-        desc: { it: 'Giri più in fretta, colpisci più spesso.', en: 'Spin faster, hit more often.' },
-        apply: (p) => {
-            const steps = [0.85, 0.88, 0.90, 0.92];
-            const mult = steps[Math.min(p.pickIndex, steps.length - 1)];
-            // A floor on how short a turn can get, so this can never stack into a
-            // near-zero spin duration alongside other cards.
-            p.tuning.spinDur = Math.max(0.1, p.tuning.spinDur * mult);
-        },
-    },
-    {
-        id: 'shove', icon: '👊', max: 4,
-        name: { it: 'Spinta', en: 'Shove' },
-        desc: { it: 'I mostri volano via più lontano.', en: 'Monsters fly further back.' },
-        apply: (p) => {
-            const steps = [1.32, 1.26, 1.2, 1.16];
-            p.tuning.knockback *= steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'ember', icon: '🔥', max: 7,
-        name: { it: 'Braci', en: 'Embers' },
-        desc: { it: 'La palla di fuoco brucia di più.', en: 'The fireball burns hotter.' },
-        apply: (p) => {
-            const steps = [5, 4, 4, 3, 3, 3, 2];
-            p.player.fireDamage += steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'storm', icon: '⏱️', max: 4,
-        name: { it: 'Ricarica rapida', en: 'Quick reload' },
-        desc: { it: 'La palla di fuoco torna prima.', en: 'The fireball comes back sooner.' },
-        apply: (p) => {
-            const steps = [1.3, 1.1, 0.9, 0.7];
-            p.tuning.ultCd = Math.max(3, p.tuning.ultCd - steps[Math.min(p.pickIndex, steps.length - 1)]);
-        },
-    },
-    {
-        id: 'vigor', icon: '❤️', max: 7,
-        name: { it: 'Vigore', en: 'Vigour' },
-        desc: { it: 'Più vita massima, e te la dà subito.', en: 'More max health, granted at once.' },
-        apply: (p) => {
-            const steps = [22, 18, 15, 13, 11, 9, 7];
-            const amt = steps[Math.min(p.pickIndex, steps.length - 1)];
-            p.player.maxHp += amt;
-            p.player.hp = Math.min(p.player.maxHp, p.player.hp + amt);
-        },
-    },
-    {
-        id: 'boots', icon: '👢', max: 4,
-        name: { it: 'Passo svelto', en: 'Swift boots' },
-        desc: { it: 'Ti muovi più veloce: schivi meglio.', en: 'Move faster, dodge better.' },
-        apply: (p) => {
-            const steps = [16, 13, 11, 9];
-            p.tuning.speed += steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'luck', icon: '🍀', max: 4,
-        name: { it: 'Fortuna', en: 'Fortune' },
-        desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
-        apply: (p) => {
-            const steps = [0.07, 0.06, 0.05, 0.04];
-            p.tuning.heartChance += steps[Math.min(p.pickIndex, steps.length - 1)];
-        },
-    },
-    {
-        id: 'giant', icon: '🗿', max: 1,
-        name: { it: 'Colosso', en: 'Colossus' },
-        desc: { it: 'Per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'For 5 seconds, grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
-        apply: (p) => {
-            p.player.giantScale = 4;
-            p.player.r = 56;
-            p.player.giantTimer = 5;
-            p.player.meleeDamage = Math.round(p.player.meleeDamage * 1.35);
-            p.tuning.meleeRange = Math.max(p.tuning.meleeRange, 100);
-        },
-    },
-];
-
-function readFlag(key) {
-    try {
-        return localStorage.getItem(key) === '1';
-    } catch (e) {
-        return false;
-    }
-}
-function writeFlag(key, value) {
-    try {
-        localStorage.setItem(key, value ? '1' : '0');
-    } catch (e) {}
-}
-
-// Sound is synthesised, same approach as mascot.js: no files to load, and the
-// AudioContext is only created once something actually asks for a sound — which
-// can't happen before the player presses start.
-let audioCtx = null;
-function getAudioCtx() {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return null;
-    if (!audioCtx) audioCtx = new Ctx();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
-}
-function chirp({ from, to, duration, type = 'square', gain = 0.05, delay = 0 }) {
-    const ctx = getAudioCtx();
-    if (!ctx) return;
-    const t0 = ctx.currentTime + delay;
-    const osc = ctx.createOscillator();
-    const vol = ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(from, t0);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(to, 1), t0 + duration);
-    vol.gain.setValueAtTime(gain, t0);
-    vol.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-    osc.connect(vol).connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + duration);
-}
-function noiseBurst(duration, gain, filterFreq, delay = 0) {
-    const ctx = getAudioCtx();
-    if (!ctx) return;
-    const size = Math.max(1, Math.floor(ctx.sampleRate * duration));
-    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = filterFreq;
-    const vol = ctx.createGain();
-    vol.gain.value = gain;
-    src.connect(filter).connect(vol).connect(ctx.destination);
-    src.start(ctx.currentTime + delay);
-}
-
-function pickMonsterType(level) {
-    const pool = Object.keys(MONSTER_TYPES).filter((k) => MONSTER_TYPES[k].weight > 0 && MONSTER_TYPES[k].minLevel <= level);
-    const total = pool.reduce((s, k) => s + MONSTER_TYPES[k].weight, 0);
-    let roll = Math.random() * total;
-    for (const k of pool) {
-        roll -= MONSTER_TYPES[k].weight;
-        if (roll <= 0) return k;
-    }
-    return pool[0];
-}
-
-function readBestLevel() {
-    try {
-        return parseInt(localStorage.getItem(BEST_LEVEL_KEY), 10) || 1;
-    } catch (e) {
-        return 1;
-    }
-}
-function writeBestLevel(level) {
-    try {
-        localStorage.setItem(BEST_LEVEL_KEY, String(level));
-    } catch (e) {}
-}
-// The record run's full detail — monsters killed, time, hits, and the final
-// stats its upgrades added up to — kept alongside the plain bestLevel number
-// so the fast "best" read in onStatsChange doesn't need to parse JSON every
-// frame. `null` clears it (see resetRecord).
-function writeBestRecord(record) {
-    try {
-        if (record) localStorage.setItem(RECORD_KEY, JSON.stringify(record));
-        else localStorage.removeItem(RECORD_KEY);
-    } catch (e) {}
-}
-
-// Rough perceived brightness of a CSS colour, enough to tell a light theme from a
-// dark one without pulling in a colour library.
-function isLight(color) {
-    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((color || '').trim());
-    if (!hex) return false;
-    let h = hex[1];
-    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 140;
-}
-function themeColors() {
-    const style = getComputedStyle(document.documentElement);
-    const bg = style.getPropertyValue('--bg').trim() || '#101014';
-    const light = isLight(bg);
-    return {
-        bg,
-        light,
-        text: style.getPropertyValue('--text').trim() || '#f2f2f5',
-        textMuted: style.getPropertyValue('--text-muted').trim() || '#a3a3ad',
-        accent: style.getPropertyValue('--accent').trim() || '#0d9488',
-        // Ink is whatever stands out against the arena floor: everything that used to
-        // be hardcoded white now asks for this instead.
-        ink: light ? '#1a1a1a' : '#ffffff',
-        inkSoft: light ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.55)',
-        inkFaint: light ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.3)',
-        blade: light ? '#5f6b76' : '#dfe6e9',
-        bladeEdge: light ? '#2f3a44' : '#ffffff',
-    };
-}
 
 export function initEmberArena(canvas, opts) {
     const options = opts || {};
@@ -1393,7 +815,7 @@ export function initEmberArena(canvas, opts) {
                 hearts.splice(i, 1);
                 continue;
             }
-            if (Math.hypot(h.x - player.x, h.y - player.y) < player.r + 12) {
+            if (circlesOverlap(h.x, h.y, 12, player.x, player.y, player.r)) {
                 const healed = Math.round(player.maxHp * 0.25);
                 player.hp = Math.min(player.maxHp, player.hp + healed);
                 floaters.push({ x: player.x, y: player.y - player.r - 6, text: `+${healed}`, life: 0.9, color: '#2ecc71' });
@@ -1491,7 +913,7 @@ export function initEmberArena(canvas, opts) {
                 bolts.splice(i, 1);
                 continue;
             }
-            if (Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
+            if (circlesOverlap(b.x, b.y, b.r, player.x, player.y, player.r)) {
                 bolts.splice(i, 1);
                 // Read before hurtPlayer: a hit blocked by the invuln window still
                 // returns false, so this is the only way to tell "landed" from "no-op".
@@ -1509,7 +931,7 @@ export function initEmberArena(canvas, opts) {
                 // The expanding ring hits each monster once as it sweeps past.
                 for (let j = monsters.length - 1; j >= 0; j--) {
                     const m = monsters[j];
-                    if (!ex.hit.has(m) && Math.hypot(m.x - ex.x, m.y - ex.y) < ex.r + m.r) {
+                    if (!ex.hit.has(m) && circlesOverlap(m.x, m.y, m.r, ex.x, ex.y, ex.r)) {
                         ex.hit.add(m);
                         burst(m.x, m.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 4 : 9);
                         damageMonster(j, player.fireDamage * 3);
@@ -1519,7 +941,7 @@ export function initEmberArena(canvas, opts) {
                 for (let j = bolts.length - 1; j >= 0; j--) {
                     if (Math.hypot(bolts[j].x - ex.x, bolts[j].y - ex.y) < ex.r) bolts.splice(j, 1);
                 }
-            } else if (ex.boss && !ex.hit && Math.hypot(player.x - ex.x, player.y - ex.y) < ex.r + player.r) {
+            } else if (ex.boss && !ex.hit && circlesOverlap(player.x, player.y, player.r, ex.x, ex.y, ex.r)) {
                 ex.hit = true;
                 if (hurtPlayer(ex.damage)) return;
             }
@@ -1604,6 +1026,30 @@ export function initEmberArena(canvas, opts) {
             ctx.restore();
         }
 
+        // The build a run picks stays visible on the hero, not just on the results
+        // screen: how far Forza/Lama lunga/Braci have been taken above their base
+        // value (18, 44, 14) reads directly off player.meleeDamage/fireDamage and
+        // tuning.meleeRange — the very same numbers finalStats() reports — instead
+        // of a separate "which card was picked" tally.
+        const meleeT = clamp((player.meleeDamage - 18) / 40, 0, 1);
+        const bladeLen = clamp(17 + (tuning.meleeRange - baseTuning.meleeRange) * 0.4, 17, 37);
+        const bladeColor = meleeT > 0 ? blendHex(colors.blade, FIRE_COLOR, meleeT) : colors.blade;
+        const bladeEdgeColor = meleeT > 0 ? blendHex(colors.bladeEdge, FIRE_GLOW, meleeT) : colors.bladeEdge;
+
+        // A pulsing ember aura once at least one Braci card is in, same technique as
+        // the ice-paralysis ring above — grows with fireDamage, absent on a build
+        // that never took fire at all.
+        const fireT = clamp((player.fireDamage - 14) / 30, 0, 1);
+        if (fireT > 0) {
+            ctx.save();
+            ctx.globalAlpha = (0.18 + 0.12 * Math.sin(elapsed * 10)) * fireT;
+            ctx.fillStyle = FIRE_GLOW;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y + bob, (player.r + 6 + fireT * 6) * giantScale, 0, TAU);
+            ctx.fill();
+            ctx.restore();
+        }
+
         // Sword: a full spin attack right after a melee press (hero and blade turn 360°
         // together, the blade leaving a circular trail); otherwise the sword rests along the
         // facing direction.
@@ -1617,7 +1063,7 @@ export function initEmberArena(canvas, opts) {
             ctx.strokeStyle = colors.inkSoft;
             ctx.lineWidth = 3 * giantScale;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30 * giantScale, swordAngle - tail, swordAngle);
+            ctx.arc(player.x, player.y + bob, (13 + bladeLen) * giantScale, swordAngle - tail, swordAngle);
             ctx.stroke();
             ctx.restore();
         }
@@ -1627,10 +1073,10 @@ export function initEmberArena(canvas, opts) {
         ctx.scale(giantScale, giantScale);
         ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
-        ctx.fillStyle = colors.blade;
-        ctx.fillRect(11, -1.5, 17, 3);
-        ctx.fillStyle = colors.bladeEdge;
-        ctx.fillRect(11, -1.5, 17, 1);
+        ctx.fillStyle = bladeColor;
+        ctx.fillRect(11, -1.5, bladeLen, 3);
+        ctx.fillStyle = bladeEdgeColor;
+        ctx.fillRect(11, -1.5, bladeLen, 1);
         ctx.restore();
 
         if (spinning) {
