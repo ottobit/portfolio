@@ -38,7 +38,7 @@
         "@type": "BreadcrumbList",
         "itemListElement": [
             { "@type": "ListItem", "position": 1, "name": "ottobit", "item": "https://ottobit.github.io/portfolio/" },
-            { "@type": "ListItem", "position": 2, "name": "News", "item": "https://ottobit.github.io/portfolio/news/" },
+            { "@type": "ListItem", "position": 2, "name": "Playground", "item": "https://ottobit.github.io/portfolio/news/" },
             { "@type": "ListItem", "position": 3, "name": "Pomeriggi da leggenda", "item": "https://ottobit.github.io/portfolio/news/ember-keep/" }
         ]
     }
@@ -79,7 +79,7 @@
                     <li><a href="../../index.html#home">Home</a></li>
                     <li><span class="nav-menu-soon">CV <small data-it="(presto)">(soon)</small></span></li>
                     <li><a href="../../projects/index.html" data-it="Progetti">Projects</a></li>
-                    <li><a href="../index.html" data-it="Novità">News</a></li>
+                    <li><a href="../index.html" data-it="Playground">Playground</a></li>
                     <li class="nav-menu-divider"></li>
                     <li>
                         <button class="nav-menu-action" id="theme-toggle" type="button" aria-pressed="false">
@@ -134,7 +134,6 @@
             <div class="game-overlay" id="ember-overlay" hidden>
                 <h2 id="ember-overlay-lost" data-it="Sei caduto">You fell</h2>
                 <h2 id="ember-overlay-won" data-it="Hai vinto!" hidden>You won!</h2>
-                <p id="ember-overlay-stats"></p>
                 <dl class="game-overlay-detail" id="ember-overlay-detail"></dl>
                 <button class="btn btn-primary" id="ember-restart" type="button" data-it="Rigioca">Play again</button>
                 <button class="game-overlay-reset" id="ember-reset-record" type="button" data-it="Azzera record">Reset record</button>
@@ -230,7 +229,6 @@
     const xpFill = document.getElementById('ember-xp-fill');
     const levelText = document.getElementById('ember-level-text');
     const overlay = document.getElementById('ember-overlay');
-    const overlayStats = document.getElementById('ember-overlay-stats');
     const overlayDetail = document.getElementById('ember-overlay-detail');
     const resetRecordBtn = document.getElementById('ember-reset-record');
     const restartBtn = document.getElementById('ember-restart');
@@ -377,20 +375,22 @@
         const won = !!lastStats.won;
         overlayLost.hidden = won;
         overlayWon.hidden = !won;
-        overlayStats.textContent = it
-            ? `Livello ${lastStats.level} — ${lastStats.monstersKilled} mostri sconfitti — ${lastStats.time}s — Record: ${lastStats.best}`
-            : `Level ${lastStats.level} — ${lastStats.monstersKilled} monsters defeated — ${lastStats.time}s — Best: ${lastStats.best}`;
         renderOutcomeDetail(it);
     }
 
-    // Hits, then a divider, then the run's final upgrade totals — one row each,
-    // reusing the same icons the upgrade cards already show for the matching stat.
-    // The sword/fireball rows drop the word "damage": it read as the single
-    // biggest hit ever landed, not the level those upgrades reached.
+    // The run's outcome, then hits, then a divider, then the final upgrade
+    // totals — one row each, reusing the same icons the upgrade cards already
+    // show for the matching stat. The sword/fireball rows drop the word
+    // "damage": it read as the single biggest hit ever landed, not the level
+    // those upgrades reached.
     function renderOutcomeDetail(it) {
         overlayDetail.innerHTML = '';
         const fs = lastStats.finalStats || {};
-        const hitRows = [
+        const summaryRows = [
+            [null, it ? 'Livello' : 'Level', lastStats.level],
+            [null, it ? 'Mostri sconfitti' : 'Monsters defeated', lastStats.monstersKilled],
+            [null, it ? 'Tempo' : 'Time', `${lastStats.time}s`],
+            [null, it ? 'Record' : 'Best', lastStats.best],
             [null, it ? 'Colpi dati' : 'Hits landed', lastStats.hitsGiven],
             [null, it ? 'Colpi subiti' : 'Hits taken', lastStats.hitsReceived],
         ];
@@ -405,7 +405,7 @@
             ['⏱️', it ? 'Ricarica ultimate' : 'Ultimate cooldown', `${fs.ultCd.toFixed(1)}s`],
             ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
         ];
-        hitRows.forEach(([icon, label, value]) => {
+        summaryRows.forEach(([icon, label, value]) => {
             const dt = document.createElement('dt');
             dt.textContent = icon ? `${icon} ${label}` : label;
             const dd = document.createElement('dd');
