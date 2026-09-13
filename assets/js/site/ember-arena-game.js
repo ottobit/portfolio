@@ -109,6 +109,7 @@ export function initEmberArena(canvas, opts) {
     let hearts = [];
     let floaters = [];   // damage numbers drifting up
     let particles = [];  // what is left of a monster that just died
+    let playerTrail = []; // recent hero positions, drawn as fading ghosts with Passo svelto
     let familiarVisit = null; // the one rare Cookie/May visit in progress, if any
     let familiarCheckTimer = 0;
     let familiarCooldown = 0; // seconds left before another visit can even be rolled
@@ -266,6 +267,7 @@ export function initEmberArena(canvas, opts) {
         hearts = [];
         floaters = [];
         particles = [];
+        playerTrail = [];
         familiarVisit = null;
         familiarCheckTimer = 0;
         familiarCooldown = 0;
@@ -425,6 +427,9 @@ export function initEmberArena(canvas, opts) {
     }
     function meleeHit() {
         const range = tuning.meleeRange;
+        // Spinta: how much harder a hit shoves, made visible as an impact burst
+        // right where it lands — absent on a build that never took the card.
+        const spintaT = clamp((tuning.knockback / KNOCKBACK - 1) / 0.8, 0, 1);
         for (let i = monsters.length - 1; i >= 0; i--) {
             const m = monsters[i];
             const dx = m.x - player.x;
@@ -435,6 +440,7 @@ export function initEmberArena(canvas, opts) {
                 const push = tuning.knockback * (MONSTER_TYPES[m.type].knockMul || 1);
                 m.kx += (dx / dist) * push;
                 m.ky += (dy / dist) * push;
+                if (spintaT > 0) burst(m.x, m.y, { a: '#95a5a6', b: '#dfe6e9', c: '#ffffff' }, reducedMotion ? 1 : Math.round(2 + spintaT * 4));
                 damageMonster(i, player.meleeDamage);
                 hitsGiven++;
             }
@@ -771,6 +777,18 @@ export function initEmberArena(canvas, opts) {
         player.moving = player.x !== prevX || player.y !== prevY;
         if (player.moving) player.walkT += dt;
 
+        // Passo svelto: a handful of fading ghost copies trailing the hero while
+        // moving — only sampled once the card has actually been taken, so a
+        // vanilla build never pays for an array it doesn't use.
+        const passoT = clamp((tuning.speed - 190) / 30, 0, 1);
+        if (passoT > 0 && player.moving) {
+            const frame = Math.floor(player.walkT * 8) % 2;
+            playerTrail.push({ x: player.x, y: player.y, frame, flip: player.facing.x < 0 });
+            if (playerTrail.length > 5) playerTrail.shift();
+        } else if (playerTrail.length) {
+            playerTrail.shift();
+        }
+
         if (spinning) {
             const turnedBefore = spinAngle;
             spinAngle += (TAU / tuning.spinDur) * dt;
@@ -783,6 +801,23 @@ export function initEmberArena(canvas, opts) {
                 spinning = false;
                 spinAngle = 0;
             }
+            // Furia: sparks flung off the spinning blade, more often the more the
+            // spin has been sped up — absent on a build that never took the card.
+            const furiaT = clamp((1 - tuning.spinDur / BASE_SPIN_DUR) / 0.35, 0, 1);
+            if (furiaT > 0 && Math.random() < furiaT * 0.3) {
+                const tipAngle = Math.atan2(player.facing.y, player.facing.x) + spinAngle;
+                const tipX = player.x + Math.cos(tipAngle) * BLADE_TIP;
+                const tipY = player.y + Math.sin(tipAngle) * BLADE_TIP;
+                burst(tipX, tipY, { a: '#dfe6e9', b: '#ffffff', c: '#b2bec3' }, reducedMotion ? 1 : 2);
+            }
+        }
+
+        // Fortuna: an occasional lucky sparkle, absent on a build that never
+        // took the card — same burst() used everywhere else for particles.
+        const fortunaT = clamp((tuning.heartChance - 0.13) / 0.15, 0, 1);
+        if (fortunaT > 0 && Math.random() < fortunaT * 0.015) {
+            const a = Math.random() * TAU;
+            burst(player.x + Math.cos(a) * player.r, player.y + Math.sin(a) * player.r, { a: '#2ecc71', b: '#f1c40f', c: '#ffffff' }, reducedMotion ? 1 : 3);
         }
         ultCooldown = Math.max(0, ultCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
@@ -1019,6 +1054,46 @@ export function initEmberArena(canvas, opts) {
         const palette = Object.assign({ P: colors.accent, T: colors.accent }, HERO_PALETTE);
 
         drawShadow(player.x, player.y + 18 * giantScale, 12 * giantScale);
+
+        // Passo svelto: fading ghost copies behind the hero, sampled in update(dt)
+        // only once the card is in — an empty trail here just draws nothing.
+        for (let i = 0; i < playerTrail.length; i++) {
+            const t = playerTrail[i];
+            ctx.save();
+            ctx.globalAlpha = ((i + 1) / (playerTrail.length + 1)) * 0.35;
+            drawSprite(HERO_FRAMES[t.frame], palette, t.x, t.y, cell, t.flip);
+            ctx.restore();
+        }
+
+        // Vigore: a soft rim in heart-red just behind the hero, a touch larger than
+        // the sprite itself — grows with maxHp, absent on a build that never took it.
+        const vigoreT = clamp((player.maxHp - 100) / 50, 0, 1);
+        if (vigoreT > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.3 + 0.25 * vigoreT;
+            drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell * 1.18, flip, HEART_PALETTE.H);
+            ctx.restore();
+        }
+
+        // Ricarica rapida: a little comet orbiting the hero, its pace (not its size)
+        // picking up as the fireball's cooldown shrinks — absent on a build that
+        // never took the card. Uses the theme's own accent colour (chosen to read
+        // against both themes already) instead of a fixed pale tone that risked
+        // washing out against a light background.
+        const ricaricaT = clamp((BASE_ULT_CD - tuning.ultCd) / 4, 0, 1);
+        if (ricaricaT > 0) {
+            const orbitR = (player.r + 11) * giantScale;
+            ctx.save();
+            for (let i = 3; i >= 0; i--) {
+                const orbitAngle = elapsed * (2 + ricaricaT * 4) - i * 0.35;
+                ctx.globalAlpha = (1 - i / 4) * (0.55 + 0.25 * Math.sin(elapsed * 14));
+                ctx.fillStyle = i === 0 ? colors.ink : colors.accent;
+                ctx.beginPath();
+                ctx.arc(player.x + Math.cos(orbitAngle) * orbitR, player.y + bob + Math.sin(orbitAngle) * orbitR, (i === 0 ? 3 : 2) * giantScale, 0, TAU);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
 
         // Frozen by an ice bolt: a pulsing ring, same visual language as the boss's
         // star-volley telegraph, so "you're locked out of input" reads at a glance.

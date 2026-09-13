@@ -243,12 +243,12 @@ export const MONSTER_TYPES = {
             '...aa......aa...',
             '..aaa......aaa..',
         ]],
-        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 8, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
+        cell: 3.4, r: 32, speedMul: 0.5, hpMul: 13, weight: 0, minLevel: Infinity, contactDamage: 32, knockMul: 0.07,
         // A second attack on top of the charge it already shares with the regular boss:
         // a ring of fire arrows launched all at once, telegraphed so it stays dodgeable.
         // Tighter interval and a couple more arrows than before — the telegraph stays
         // the same 0.5s, so it's still readable, just less time to breathe between rings.
-        starAttack: { interval: 3.5, telegraph: 0.5, count: 14, speed: 190, damage: 10 },
+        starAttack: { interval: 3.0, telegraph: 0.5, count: 14, speed: 190, damage: 10 },
     },
     boss: {
         palette: { A: '#556b2f', a: '#2f3f1a', E: '#ffffff', p: '#c0392b', C: '#f1c40f', T: '#dfe6e9' },
