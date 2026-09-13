@@ -2069,7 +2069,7 @@ a.info-card:focus-visible .info-card-title::after {
     margin: 0;
     color: rgba(255, 255, 255, 0.8);
 }
-/* Ember Keep: the level-up cards and the sound toggle, both sitting over the arena
+/* Embergale: the level-up cards and the sound toggle, both sitting over the arena
    in the same .game-overlay family as the end screen. */
 .game-upgrade {
     gap: 0.7rem;
@@ -2267,7 +2267,7 @@ a.info-card:focus-visible .info-card-title::after {
     opacity: 1;
 }
 
-/* Ember Keep: legend under the arena. The sprites are painted by the game module
+/* Embergale: legend under the arena. The sprites are painted by the game module
    itself (drawArenaIcon), so they cannot drift from what walks into the fight. */
 .game-legend {
     list-style: none;
@@ -2344,7 +2344,7 @@ a.info-card:focus-visible .info-card-title::after {
 .game-credits a {
     color: var(--accent);
 }
-/* Ember Keep: HP/XP status bars + on-canvas touch attack buttons,
+/* Embergale: HP/XP status bars + on-canvas touch attack buttons,
    an extension of the same game-hud/game-overlay family above. */
 .game-statbar {
     display: flex;
