@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.30">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.31">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -383,16 +383,20 @@
         renderOutcomeDetail(it);
     }
 
-    // Hits and the run's final upgrade totals — one row each, reusing the same
-    // icons the upgrade cards already show for the matching stat.
+    // Hits, then a divider, then the run's final upgrade totals — one row each,
+    // reusing the same icons the upgrade cards already show for the matching stat.
+    // The sword/fireball rows drop the word "damage": it read as the single
+    // biggest hit ever landed, not the level those upgrades reached.
     function renderOutcomeDetail(it) {
         overlayDetail.innerHTML = '';
         const fs = lastStats.finalStats || {};
-        const rows = [
+        const hitRows = [
             [null, it ? 'Colpi dati' : 'Hits landed', lastStats.hitsGiven],
             [null, it ? 'Colpi subiti' : 'Hits taken', lastStats.hitsReceived],
-            ['💪', it ? 'Danno spada' : 'Sword damage', fs.meleeDamage],
-            ['🔥', it ? 'Danno palla di fuoco' : 'Fireball damage', fs.fireDamage],
+        ];
+        const upgradeRows = [
+            ['💪', it ? 'Spada' : 'Sword', fs.meleeDamage],
+            ['🔥', it ? 'Palla di fuoco' : 'Fireball', fs.fireDamage],
             ['❤️', it ? 'Vita massima' : 'Max health', fs.maxHp],
             ['👢', it ? 'Velocità' : 'Speed', fs.speed],
             ['⚔️', it ? 'Portata spada' : 'Sword reach', fs.meleeRange],
@@ -401,7 +405,18 @@
             ['⏱️', it ? 'Ricarica ultimate' : 'Ultimate cooldown', `${fs.ultCd.toFixed(1)}s`],
             ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
         ];
-        rows.forEach(([icon, label, value]) => {
+        hitRows.forEach(([icon, label, value]) => {
+            const dt = document.createElement('dt');
+            dt.textContent = icon ? `${icon} ${label}` : label;
+            const dd = document.createElement('dd');
+            dd.textContent = value;
+            overlayDetail.append(dt, dd);
+        });
+        const divider = document.createElement('dt');
+        divider.className = 'game-overlay-detail-divider';
+        divider.textContent = it ? 'Potenziamenti' : 'Upgrades';
+        overlayDetail.append(divider);
+        upgradeRows.forEach(([icon, label, value]) => {
             const dt = document.createElement('dt');
             dt.textContent = icon ? `${icon} ${label}` : label;
             const dd = document.createElement('dd');
