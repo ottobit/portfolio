@@ -481,6 +481,17 @@ const UPGRADES = [
             p.tuning.heartChance += steps[Math.min(p.pickIndex, steps.length - 1)];
         },
     },
+    {
+        id: 'giant', icon: '🗿', max: 1,
+        name: { it: 'Colosso', en: 'Colossus' },
+        desc: { it: 'Diventi 4× più grande e travolgi i mostri comuni.', en: 'Grow 4× larger and crush regular monsters.' },
+        apply: (p) => {
+            p.player.giantScale = 4;
+            p.player.r = 56;
+            p.player.meleeDamage = Math.round(p.player.meleeDamage * 1.35);
+            p.tuning.meleeRange = Math.max(p.tuning.meleeRange, 100);
+        },
+    },
 ];
 
 function readFlag(key) {
@@ -622,6 +633,7 @@ export function initEmberArena(canvas, opts) {
         x: W / 2,
         y: H / 2,
         r: 14,
+        giantScale: 1,
         facing: { x: 1, y: 0 },
         maxHp: 100,
         hp: 100,
@@ -809,6 +821,8 @@ export function initEmberArena(canvas, opts) {
         player.x = W / 2;
         player.y = H / 2;
         player.facing = { x: 1, y: 0 };
+        player.r = 14;
+        player.giantScale = 1;
         player.maxHp = 100;
         player.hp = 100;
         player.invulnUntil = 0;
@@ -1446,7 +1460,14 @@ export function initEmberArena(canvas, opts) {
                 m.y = clamp(m.y, -m.r * 2, H + m.r * 2);
             }
             m.flash = Math.max(0, m.flash - dt);
-            if (dist < player.r + m.r && hurtPlayer(def.contactDamage || 10)) return;
+            if (dist < player.r + m.r) {
+                if (player.giantScale >= 4 && m.type !== 'boss' && m.type !== 'finalBoss') {
+                    damageMonster(i, Math.max(m.hp, player.meleeDamage * 2));
+                    if (!reducedMotion) shake = Math.max(shake, 3);
+                    continue;
+                }
+                if (hurtPlayer(def.contactDamage || 10)) return;
+            }
         }
 
         for (let i = bolts.length - 1; i >= 0; i--) {
@@ -1550,13 +1571,14 @@ export function initEmberArena(canvas, opts) {
     function drawPlayer(colors) {
         // Blink while invulnerable instead of drawing a box around the hero.
         if (elapsed < player.invulnUntil && Math.floor(elapsed * 20) % 2 === 0) return;
-        const cell = 3;
+        const giantScale = player.giantScale || 1;
+        const cell = 3 * giantScale;
         const frame = player.moving ? Math.floor(player.walkT * 8) % 2 : 0;
-        const bob = player.moving ? (frame === 0 ? 0 : -1.5) : 0;
+        const bob = player.moving ? (frame === 0 ? 0 : -1.5 * giantScale) : 0;
         const flip = player.facing.x < 0;
         const palette = Object.assign({ P: colors.accent, T: colors.accent }, HERO_PALETTE);
 
-        drawShadow(player.x, player.y + 18, 12);
+        drawShadow(player.x, player.y + 18 * giantScale, 12 * giantScale);
 
         // Frozen by an ice bolt: a pulsing ring, same visual language as the boss's
         // star-volley telegraph, so "you're locked out of input" reads at a glance.
@@ -1581,15 +1603,16 @@ export function initEmberArena(canvas, opts) {
             const tail = Math.min(spinAngle, 1.8);
             ctx.save();
             ctx.strokeStyle = colors.inkSoft;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3 * giantScale;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + bob, 30, swordAngle - tail, swordAngle);
+            ctx.arc(player.x, player.y + bob, 30 * giantScale, swordAngle - tail, swordAngle);
             ctx.stroke();
             ctx.restore();
         }
         ctx.save();
         ctx.translate(player.x, player.y + bob);
         ctx.rotate(swordAngle);
+        ctx.scale(giantScale, giantScale);
         ctx.fillStyle = '#5d4037';
         ctx.fillRect(8, -4, 3, 8);
         ctx.fillStyle = colors.blade;
