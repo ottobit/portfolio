@@ -1657,16 +1657,21 @@ export function initEmberArena(canvas, opts) {
             drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
 
-            // The only monster called out by name: it's the one whose look you can't
-            // pin down, so the label is what tells you you're still looking at the
-            // same thing. Sits above where the health bar goes, whether or not one is
-            // showing right now, so the two never collide.
-            if (m.type === 'sprungal') {
+            // Named on screen: the shapeshifter because its look won't hold still long
+            // enough to recognise otherwise, the bosses because they're the two fights
+            // worth calling out by name. Everything else is common enough, and stays
+            // recognisable enough by its fixed silhouette, that a label would just be
+            // clutter — especially with a handful of them on screen at once. Sits above
+            // where the health bar goes, whether or not one is showing, so the two
+            // never collide. Bosses reuse the same string as their health bar up top
+            // (bossBar/finalBossBar) instead of a name of their own.
+            if (m.type === 'sprungal' || m.type === 'boss' || m.type === 'finalBoss') {
+                const label = m.type === 'sprungal' ? 'Sprungal' : m.type === 'boss' ? strings.bossBar : strings.finalBossBar;
                 ctx.save();
                 ctx.font = '600 8px system-ui, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = colors.inkSoft;
-                ctx.fillText('Sprungal', m.x, m.y - m.r - 20);
+                ctx.fillText(label, m.x, m.y - m.r - 20);
                 ctx.restore();
             }
 
