@@ -1,0 +1,19 @@
+name: Check JS syntax
+
+# Catches a broken PR before it needs a human (or Claude) to notice by hand:
+# every JS file on the site gets parsed, nothing more. No build step, no
+# dependencies to install — this repo has none — so it stays fast on every
+# PR from anyone, contributor or not.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: node --check on every JS file
+        run: find assets/js -name '*.js' -print0 | xargs -0 -n1 -t node --check
