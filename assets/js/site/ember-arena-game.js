@@ -962,13 +962,14 @@ export function initEmberArena(canvas, opts) {
             if (b.homing) {
                 const targetAngle = Math.atan2(player.y - b.y, player.x - b.x);
                 const curAngle = Math.atan2(b.vy, b.vx);
-                // Turn toward the player at a gentle, fixed rate (~46°/s)...
+                // Turn toward the player at a gentle, fixed rate (~63°/s)...
                 let diff = ((targetAngle - curAngle + Math.PI) % TAU + TAU) % TAU - Math.PI;
-                let newAngle = curAngle + clamp(diff, -0.8 * dt, 0.8 * dt);
-                // ...and never let it bend more than ~24° off its original aim —
-                // a nudge toward where the player is now, not a lock-on.
+                let newAngle = curAngle + clamp(diff, -1.1 * dt, 1.1 * dt);
+                // ...and never let it bend more than ~34° off its original aim —
+                // a stronger nudge toward where the player is now, but still not a
+                // lock-on.
                 let dev = ((newAngle - b.angle0 + Math.PI) % TAU + TAU) % TAU - Math.PI;
-                newAngle = b.angle0 + clamp(dev, -0.42, 0.42);
+                newAngle = b.angle0 + clamp(dev, -0.6, 0.6);
                 b.vx = Math.cos(newAngle) * b.speed;
                 b.vy = Math.sin(newAngle) * b.speed;
             }
