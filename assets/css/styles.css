@@ -14,6 +14,26 @@
     display: none !important;
 }
 
+/* Anti-FOUC for the Italian toggle: the raw markup is always English (every
+   [data-it] element's English copy lives in the actual HTML, with the
+   Italian swapped in by theme-lang.js once it runs — see that file), so a
+   visitor whose saved language is Italian would otherwise see the page
+   paint in English for a moment before the swap lands. The inline script in
+   every page's <head> sets data-lang-pending as early as possible, before
+   that visitor's non-default case; theme-lang.js clears it once the swap is
+   done. The animation is a pure-CSS fallback in case that script never runs
+   (JS blocked, etc.) — reveals the page after a beat rather than leaving it
+   hidden forever. English visitors (the default) never see this rule at
+   all: the attribute is only ever set for the Italian case.
+*/
+@keyframes lang-reveal {
+    to { visibility: visible; }
+}
+html[data-lang-pending] body {
+    visibility: hidden;
+    animation: lang-reveal 0s 1.2s forwards;
+}
+
 /* Visible only for the pointer/keyboard interactions that actually
    warrant an indicator — a mouse click doesn't need a ring around
    whatever it just clicked, but Tab-ing through the page does. Applied

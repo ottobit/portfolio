@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="nmfHN9_NOJj00MGnLIW31_TxEP7yKY5h1x_-wfxUBjs">
     <title>ottobit — AI Enthusiast | Music | Gaming</title>
@@ -38,19 +39,26 @@
     </script>
     <link rel="icon" href="assets/images/favicon.svg" type="image/svg+xml">
     <script>
-    // Anti-FOUC: applies the saved theme before first paint, so the page
-    // never flashes light before switching to dark a moment later. Kept
-    // tiny and inline (no external request) — theme-lang.js runs the same
-    // logic again once the module loads, this just gets there first.
+    // Anti-FOUC: applies the saved theme before first paint (so the page
+    // never flashes light before switching to dark a moment later) and flags
+    // a pending Italian swap (see the data-lang-pending CSS rule in
+    // styles.css, and theme-lang.js which clears the flag once it applies
+    // the real translation) so an Italian visitor doesn't see the page's raw
+    // English markup for a moment first. Kept tiny and inline (no external
+    // request) — theme-lang.js runs the same logic again once the module
+    // loads, this just gets there first.
     (function () {
         try {
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
+            if (localStorage.getItem('lang') === 'it') {
+                document.documentElement.setAttribute('data-lang-pending', '1');
+            }
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="assets/css/styles.css?v=10.44">
+    <link rel="stylesheet" href="assets/css/styles.css?v=10.45">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];

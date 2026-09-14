@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — Dot World</title>
     <meta name="description" content="Dot World — a small world populated by many autonomous dots, each reasoning on its own with a local or remote model. A deterministic engine, marks as the only channel between dots, and news entering the world as weather.">
@@ -49,6 +50,9 @@
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
+            if (localStorage.getItem('lang') === 'it') {
+                document.documentElement.setAttribute('data-lang-pending', '1');
+            }
         } catch (e) {}
     })();
     </script>
@@ -82,7 +86,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.44">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.45">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];

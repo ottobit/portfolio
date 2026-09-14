@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — Playground</title>
     <meta name="description" content="Small browser games from ottobit, built for fun — grows every so often, whenever a new one is ready.">
@@ -49,10 +50,13 @@
             if (localStorage.getItem('theme') === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
+            if (localStorage.getItem('lang') === 'it') {
+                document.documentElement.setAttribute('data-lang-pending', '1');
+            }
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../assets/css/styles.css?v=10.44">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=10.45">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
