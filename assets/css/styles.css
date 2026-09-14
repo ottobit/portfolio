@@ -2039,6 +2039,15 @@ a.info-card:focus-visible .info-card-title::after {
     touch-action: none;
     cursor: pointer;
 }
+/* --border is a near-invisible 12%-opacity white on dark theme's near-black
+   background — fine for a hairline between page sections, not enough to read
+   as a card floating in a mostly-empty canvas. A brighter border plus a thin
+   accent-tinted ring (the same --glow token used elsewhere in dark theme)
+   gives the arena a real edge without inventing a new color. */
+[data-theme="dark"] .game-canvas-wrap {
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--glow);
+}
 .game-overlay {
     position: absolute;
     inset: 0;
@@ -2311,6 +2320,39 @@ a.info-card:focus-visible .info-card-title::after {
     text-align: center;
     color: var(--text-muted);
     font-size: 0.85rem;
+}
+/* Below this width the arena, its instructions and the monster legend just
+   stack — the same layout as always. Above it there's real horizontal room
+   (the site's own wide-content precedents, .container/.card-grid, sit in
+   this same ~960-1000px range), so the empty space beside a narrow, centred
+   arena becomes a second column instead: the instructions and legend that
+   used to sit under it move beside it. .game-panel is a plain wrapper with
+   no rules of its own outside this query — it does nothing until here. */
+@media (min-width: 960px) {
+    .game-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 560px) 1fr;
+        gap: 2rem;
+        align-items: start;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    .game-panel .game-instructions,
+    .game-panel .game-legend {
+        grid-column: 2;
+        max-width: none;
+        margin-top: 0;
+    }
+    .game-panel .game-instructions {
+        text-align: left;
+    }
+    /* Same aspect ratio, just a bigger canvas — the scale-up resize() already
+       handles today (see its shapeChanged branch in ember-arena-game.js). */
+    .game-canvas-wrap,
+    .game-statbar,
+    .game-controls {
+        max-width: 560px;
+    }
 }
 /* The credits sit under the section heading now, and that heading already carries
    the rule: a second border here would draw two lines a few pixels apart. */
