@@ -187,29 +187,37 @@ export function initEmberArena(canvas, opts) {
     const MUSIC_TICK_MS = 25;
     const MUSIC_BASS_NOTES = [73.42, 73.42, 87.31, 73.42]; // D2, D2, F2, D2
     const MUSIC_ARP_NOTES = [293.66, 349.23, 440.0, 349.23]; // D4, F4, A4, F4
-    // While a boss (regular or final) is up: faster and a half-step down, so it
-    // reads as tenser/grittier rather than a different song — same shape, louder
-    // and quicker instead of a full theme change.
+    // While a regular boss is up: faster and a half-step down, so it reads as
+    // tenser/grittier rather than a different song — same shape, louder and
+    // quicker instead of a full theme change.
     const BOSS_MUSIC_BEAT = 60 / 132;
     const BOSS_BASS_NOTES = [69.30, 69.30, 82.41, 69.30]; // C#2, C#2, E2, C#2
     const BOSS_ARP_NOTES = [277.18, 329.63, 415.30, 329.63]; // C#4, E4, G#4, E4
+    // The final boss gets a theme of its own instead of just a faster/transposed
+    // copy of the regular boss riff: a different melody and bass line, and a
+    // sawtooth lead instead of square/triangle for a dirtier, more menacing tone
+    // that reads as "a different song" even before the melody registers.
+    const FINAL_BOSS_MUSIC_BEAT = 60 / 144;
+    const FINAL_BOSS_BASS_NOTES = [87.31, 87.31, 82.41, 92.50]; // F2, F2, E2, F#2 — chromatic crawl, more dissonant than the regular boss's diatonic riff
+    const FINAL_BOSS_ARP_NOTES = [349.23, 415.30, 466.16, 415.30]; // F4, G#4, A#4, G#4
     let musicNextTime = 0;
     let musicBeatIndex = 0;
     let musicIntervalId = null;
     function scheduleMusicTick() {
         const ac = getAudioCtx();
         if (!ac) return;
-        const boss = bossAlive();
-        const beat = boss ? BOSS_MUSIC_BEAT : MUSIC_BEAT;
-        const bassNotes = boss ? BOSS_BASS_NOTES : MUSIC_BASS_NOTES;
-        const arpNotes = boss ? BOSS_ARP_NOTES : MUSIC_ARP_NOTES;
+        const final = finalBossAlive();
+        const boss = final || bossAlive();
+        const beat = final ? FINAL_BOSS_MUSIC_BEAT : boss ? BOSS_MUSIC_BEAT : MUSIC_BEAT;
+        const bassNotes = final ? FINAL_BOSS_BASS_NOTES : boss ? BOSS_BASS_NOTES : MUSIC_BASS_NOTES;
+        const arpNotes = final ? FINAL_BOSS_ARP_NOTES : boss ? BOSS_ARP_NOTES : MUSIC_ARP_NOTES;
         while (musicNextTime < ac.currentTime + MUSIC_LOOKAHEAD) {
             if (!muted) {
                 const delay = musicNextTime - ac.currentTime;
                 const bar = musicBeatIndex % bassNotes.length;
-                chirp({ from: bassNotes[bar], to: bassNotes[bar], duration: beat * 0.85, type: 'triangle', gain: boss ? 0.04 : 0.032, delay });
-                chirp({ from: arpNotes[bar], to: arpNotes[bar], duration: beat * 0.3, type: 'square', gain: boss ? 0.02 : 0.016, delay: delay + beat / 2 });
-                if (bar % 2 === 1) noiseBurst(0.05, boss ? 0.016 : 0.01, 2600, delay + beat * 0.25);
+                chirp({ from: bassNotes[bar], to: bassNotes[bar], duration: beat * 0.85, type: final ? 'sawtooth' : 'triangle', gain: boss ? 0.04 : 0.032, delay });
+                chirp({ from: arpNotes[bar], to: arpNotes[bar], duration: beat * 0.3, type: final ? 'sawtooth' : 'square', gain: boss ? 0.02 : 0.016, delay: delay + beat / 2 });
+                if (bar % 2 === 1) noiseBurst(0.05, boss ? 0.016 : 0.01, final ? 1400 : 2600, delay + beat * 0.25);
             }
             musicNextTime += beat;
             musicBeatIndex++;
@@ -246,6 +254,9 @@ export function initEmberArena(canvas, opts) {
 
     function bossAlive() {
         return monsters.some((m) => m.type === 'boss' || m.type === 'finalBoss');
+    }
+    function finalBossAlive() {
+        return monsters.some((m) => m.type === 'finalBoss');
     }
 
     function reset() {
@@ -1504,10 +1515,66 @@ export function initEmberArena(canvas, opts) {
         ctx.fillText(isFinal ? strings.finalBossBar : strings.bossBar, W / 2, by + 22);
     }
 
+    // A flat single-colour floor reads as generic — this arena instead reads as a
+    // fire-lit dungeon: a warm glow rising from the centre (the same ember orange
+    // the fireball and bolts already use), a stone floor with a per-tile shade
+    // variation, and a dark vignette toward the edges. Built once onto an offscreen
+    // canvas and cached per (W, H, theme) rather than replayed every frame — a
+    // gradient plus a grid of tile fills is not free, and none of it ever changes
+    // between resizes, so paying for it 60 times a second would be wasted work;
+    // draw() below just blits the cached bitmap.
+    let bgCache = null;
+    function buildArenaBackground(colors) {
+        if (bgCache && bgCache.w === W && bgCache.h === H && bgCache.light === colors.light) {
+            return bgCache.canvas;
+        }
+        const off = document.createElement('canvas');
+        off.width = W;
+        off.height = H;
+        const octx = off.getContext('2d');
+
+        octx.fillStyle = colors.bg;
+        octx.fillRect(0, 0, W, H);
+        const glow = octx.createRadialGradient(W / 2, H * 0.44, 0, W / 2, H * 0.44, Math.max(W, H) * 0.75);
+        const warm = blendHex(colors.bg, FIRE_COLOR, colors.light ? 0.1 : 0.16);
+        glow.addColorStop(0, warm);
+        glow.addColorStop(1, colors.bg);
+        octx.fillStyle = glow;
+        octx.fillRect(0, 0, W, H);
+
+        // Stone floor: a grid of tiles, each a touch lighter or darker than its
+        // neighbours, with a thin gap between them standing in for mortar lines.
+        // Seeded (not Math.random()) so the pattern doesn't visibly reshuffle if
+        // ever rebuilt at the same size — a plain LCG is plenty for a shading dice
+        // roll, no need to pull in a real RNG for this.
+        const TILE = 56;
+        let seed = 1337;
+        const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+        octx.save();
+        octx.globalAlpha = colors.light ? 0.05 : 0.09;
+        for (let y = 0; y < H; y += TILE) {
+            for (let x = 0; x < W; x += TILE) {
+                octx.fillStyle = rand() > 0.5 ? colors.ink : colors.bg;
+                octx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+            }
+        }
+        octx.restore();
+
+        // Vignette: darkens toward the edges so the lit centre (where the action
+        // happens) reads as a pool of torchlight rather than an evenly lit box.
+        const vignette = octx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.7);
+        vignette.addColorStop(0, 'transparent');
+        vignette.addColorStop(1, colors.light ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.35)');
+        octx.fillStyle = vignette;
+        octx.fillRect(0, 0, W, H);
+
+        bgCache = { w: W, h: H, light: colors.light, canvas: off };
+        return off;
+    }
+
     function draw() {
         const colors = themeColors();
-        ctx.fillStyle = colors.bg;
-        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(buildArenaBackground(colors), 0, 0);
         // Everything inside the arena shakes together; the HUD drawn after does not.
         const shaking = shake > 0 && state === 'playing';
         const sx = shaking ? (Math.random() - 0.5) * shake : 0;
