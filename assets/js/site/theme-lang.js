@@ -54,6 +54,11 @@ function applyLangUI() {
     });
 
     document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+
+    // Reveals the body if the inline anti-FOUC script (see every page's <head>)
+    // hid it waiting for this swap — see that script's comment for why. A no-op
+    // on the common English case, where the attribute is never set at all.
+    root.removeAttribute('data-lang-pending');
 }
 
 if (themeToggle) {
