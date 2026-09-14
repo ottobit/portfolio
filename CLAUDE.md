@@ -10,8 +10,8 @@ dimenticata:
   approvare l'approccio prima di implementare.
 - Per le modifiche facili/dirette: implementa, verifica (Playwright quando è
   UI, `node --check` sui file JS coinvolti, nessun errore console), poi
-  commit + push sul branch designato senza bisogno di chiedere il permesso
-  ogni volta.
+  commit + push su un branch nuovo (vedi sotto "Un branch nuovo per ogni
+  sviluppo") senza bisogno di chiedere il permesso ogni volta.
 - In entrambi i casi, apri (o aggiorna) la PR **in draft**.
 - **Se concludere di tua iniziativa dipende dalla portata del lavoro.**
   Regola aggiunta dall'utente dopo che una PR piccola era stata mergiata
@@ -98,25 +98,36 @@ nell'eccezione dei piani approvati):
    distruttiva (crea un commit di merge, non riscrive storia), ma resta
    un'azione che tocca git e va confermata come le altre.
 
-## Dopo ogni merge: riparti da main, non continuare sullo stesso branch
+## Un branch nuovo per ogni sviluppo
 
-Il branch di lavoro designato (`claude/github-main-connection-r3povj`)
-accumula, PR dopo PR, una storia pre-squash che diverge sempre di più da
-quella squashata su `main` — è la causa diretta del falso positivo di
-merge conflict descritto sopra, e si ripresenta a ogni PR se non lo si
-tronca. Appena una PR è mergiata, prima di iniziare il prossimo lavoro:
+Regola aggiunta dall'utente dopo aver notato che riusare sempre lo stesso
+branch per PR successive è scomodo da seguire e causava il falso positivo
+di merge conflict descritto sopra (una storia pre-squash che diverge
+sempre di più da quella squashata su `main`, PR dopo PR).
 
-```
-git fetch origin main
-git checkout -B claude/github-main-connection-r3povj origin/main
-git push --force-with-lease origin claude/github-main-connection-r3povj
-```
+Da ora, per ogni nuovo sviluppo (non per ogni singolo commit — un piano
+approvato o un giro di feedback che genera più commit correlati resta
+sullo stesso branch finché non è mergiato):
 
-Così il branch riparte pulito da `main` aggiornato invece di trascinarsi
-dietro la storia vecchia, ed evita il rituale di risoluzione conflitti ad
-ogni merge. Il force push è su un branch che è comunque a uso esclusivo di
-queste sessioni (non condiviso con altri collaboratori), quindi non serve
-chiedere conferma per questo passaggio specifico.
+1. Parti sempre da `main` aggiornato:
+   `git fetch origin main && git checkout -B claude/<slug-breve> origin/main`
+   — `<slug-breve>` descrive il lavoro (es. `claude/embergale-boss-tosto`,
+   `claude/sword-color-fix`), non serve seguire lo schema del vecchio
+   branch designato.
+2. Lavora, apri la PR da quel branch (draft o pronta secondo il criterio
+   di portata già in vigore).
+3. **Dopo che la PR è mergiata, cancella il branch di default**
+   (`delete_branch` sulla PR, o `git push origin --delete claude/<slug>`)
+   — il contenuto resta comunque su `main` grazie allo squash-merge, quindi
+   non si perde nulla. Fai eccezione solo se c'è una ragione specifica per
+   tenerlo (l'utente lo chiede, o la PR resta chiusa senza merge e potrebbe
+   servire riprenderla) — in quel caso lascialo e basta, senza chiedere
+   conferma ogni volta.
+
+Un branch nato così è già pulito: nessuna storia vecchia da cui ripartire,
+quindi il falso positivo di merge conflict da squash-merge (sezione sopra)
+dovrebbe restare raro — capita solo se `main` si muove *durante* il
+lavoro su quel branch, non più per accumulo tra una PR e la successiva.
 
 ## Se il check "syntax" non parte su un push
 
