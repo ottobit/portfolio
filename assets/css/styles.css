@@ -2322,105 +2322,51 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.85rem;
 }
 /* Below this width the arena, its instructions and the monster legend just
-   stack — the same layout as always. Above it, the same stack, just sized up:
-   three side-by-side layouts were tried (legend beside the arena, then a
-   mirrored gutter to re-centre it) and none of them read right — the legend
-   ended up feeling like a sidebar competing with the arena instead of
-   supporting information underneath it, exactly the mobile layout gets right.
-   So desktop keeps that same stacked shape, only wider. .game-panel is a
-   plain wrapper with no rules of its own outside this query — it does
-   nothing until here. */
+   stack — the same layout as always. Above it, the arena is always shown big,
+   all the time — no separate "small until you press Start" state and no mode
+   to toggle in and out of. Earlier attempts kept it inline but shaped like the
+   mobile column (competed with the nav/footer/scroll for space, so it kept
+   coming back too small), then a fullscreen takeover only while playing (an
+   extra mode with its own entry/exit to reason about, and still small before
+   that). Landing here instead: reuse the exact layout the phone already uses
+   for its own landscape-fullscreen case — the arena filling the middle of a
+   3-column grid, the stick bottom-left, the action buttons on the right —
+   but inline in the page rather than position:fixed, and applied
+   unconditionally instead of gated by a class. .game-panel is a plain wrapper
+   with no rules of its own outside this query — it does nothing until here. */
 @media (min-width: 960px) {
     .game-panel {
-        /* Horizontal, not just taller — a narrow column never reads as "big" on
-           a wide monitor no matter how far it's stretched vertically. Same
-           technique already in production for the phone's landscape fullscreen
-           mode (resize() in ember-arena-game.js already reflows any shape
-           change, not just that one). Height comes from the viewport; width
-           comes from height at a 4:3 ratio, but never past the page's own
-           margins.
-           The 350px subtracted here is the rest of the play area's own
-           chrome — nav (~87px) + stat bar (~49px) + the two gaps around the
-           canvas (~30px) + touch controls (~104px) + footer (~60px), with a
-           little slack — so the whole block (not just the canvas) fits
-           inside the window. focusArena() in news/ember-keep/index.html only
-           centres the arena vertically on start when it judges the block
-           short enough to fit between the nav and the footer; a canvas sized
-           off raw vh alone routinely didn't, so starting a run always
-           snapped it to the top instead of centring it the way it does on
-           mobile. If the actual chrome height ever changes meaningfully,
-           this number needs to move with it. */
-        --arena-h: min(calc(100vh - 480px), 620px);
-        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 80px));
+        --arena-h: min(80vh, 760px);
     }
-    /* --arena-h is now an explicit height, not derived from the canvas's own
-       aspect-ratio — the shape isn't fixed anymore, so the wrapper needs it
-       directly (same pattern as the phone's landscape fullscreen mode). */
-    .game-canvas-wrap {
-        max-width: none;
-        width: var(--arena-w);
-        height: var(--arena-h);
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .game-canvas-wrap canvas {
-        width: 100%;
-        height: 100%;
-        aspect-ratio: auto;
-    }
-    .game-statbar,
-    .game-controls {
-        max-width: none;
-        width: var(--arena-w);
-        margin-left: auto;
-        margin-right: auto;
-    }
-    /* Wider than the 480px mobile cap, same centred-block treatment — this is
-       the "just make it bigger" version of the mobile layout the user asked
-       for, not a new layout. */
-    .game-instructions,
-    .game-legend {
-        max-width: 800px;
-    }
-    /* An arena that has to share the page with the nav, the footer and scroll
-       position can never read as genuinely big — every attempt at sizing it
-       within that inline flow has come back too small. The phone already
-       solves this for its own landscape-fullscreen case (below): .game-play
-       takes over the whole viewport, the arena fills whatever shape is left
-       once the stick and action buttons claim their own columns. Reused here
-       1:1, just gated by a class instead of the phone's own media query,
-       since desktop width alone isn't a signal that a run is actually being
-       played (unlike being handed a short landscape phone) — see the JS in
-       news/ember-keep/index.html that adds/removes this class. */
-    .game-play.game-fullscreen {
-        position: fixed;
-        inset: 0;
-        z-index: 1100;
+    /* Every rule below is qualified with the .game-panel ancestor rather than
+       the bare class (.game-statbar, .game-stage, ...) on purpose: the base
+       (mobile-first) rules for those classes sit later in this file, and with
+       equal specificity the later rule wins regardless of the media query —
+       bare selectors here silently lost to them. The extra ancestor gives
+       this block the higher specificity it needs to actually win. */
+    .game-panel .game-play {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
-        padding: 1rem 1.5rem;
-        background: var(--bg);
+        gap: 0.5rem;
     }
-    .game-play.game-fullscreen .game-statbar {
+    .game-panel .game-statbar {
         flex: 0 0 auto;
         max-width: none;
         margin: 0;
         width: auto;
     }
-    .game-play.game-fullscreen .game-stage {
+    .game-panel .game-stage {
         display: grid;
         grid-template-columns: auto 1fr auto;
         grid-template-rows: minmax(0, 1fr);
         align-items: stretch;
-        flex: 1 1 auto;
-        min-height: 0;
-        gap: 1rem;
+        height: var(--arena-h);
+        gap: 1.25rem;
     }
-    .game-play.game-fullscreen .game-controls {
+    .game-panel .game-controls {
         display: contents;
     }
-    .game-play.game-fullscreen .game-canvas-wrap {
+    .game-panel .game-canvas-wrap {
         grid-column: 2;
         grid-row: 1;
         justify-self: stretch;
@@ -2430,12 +2376,12 @@ a.info-card:focus-visible .info-card-title::after {
         height: 100%;
         margin: 0;
     }
-    .game-play.game-fullscreen .game-canvas-wrap canvas {
+    .game-panel .game-canvas-wrap canvas {
         width: 100%;
         height: 100%;
         aspect-ratio: auto;
     }
-    .game-play.game-fullscreen .game-stick {
+    .game-panel .game-stick {
         grid-column: 1;
         grid-row: 1;
         align-self: end;
@@ -2443,34 +2389,34 @@ a.info-card:focus-visible .info-card-title::after {
         width: 138px;
         height: 138px;
     }
-    .game-play.game-fullscreen .game-stick-knob {
+    .game-panel .game-stick-knob {
         width: 56px;
         height: 56px;
         margin: -28px 0 0 -28px;
     }
-    .game-play.game-fullscreen .game-controls-actions {
+    .game-panel .game-controls-actions {
         grid-column: 3;
         grid-row: 1;
         align-self: center;
         flex-direction: column;
         gap: 0.7rem;
     }
-    .game-play.game-fullscreen .game-touch-btn {
+    .game-panel .game-touch-btn {
         width: 74px;
         height: 74px;
         font-size: 1.6rem;
     }
-    .game-play.game-fullscreen .game-touch-btn-ult {
+    .game-panel .game-touch-btn-ult {
         width: 86px;
         height: 86px;
         font-size: 1.9rem;
     }
-}
-/* Same lock the phone's own fullscreen mode applies via body:has(.game-play) —
-   spelled out explicitly here since this one is toggled by a JS-added class,
-   not read straight off a media query. */
-body.game-fullscreen-lock {
-    overflow: hidden;
+    /* Wider than the 480px mobile cap, same centred-block treatment — this is
+       the "just make it bigger" version of the mobile layout, not a new one. */
+    .game-panel .game-instructions,
+    .game-panel .game-legend {
+        max-width: 800px;
+    }
 }
 /* The credits sit under the section heading now, and that heading already carries
    the rule: a second border here would draw two lines a few pixels apart. */
