@@ -455,6 +455,11 @@ export function initEmberArena(canvas, opts) {
             vx: (dx / d) * cfg.speed, vy: (dy / d) * cfg.speed,
             r: 5, damage: cfg.damage, life: 5,
             ice: !!cfg.ice, paralyzeDuration: cfg.paralyzeDuration || 0,
+            // A caster's bolt leans gently toward wherever the player has moved to
+            // since it was fired, instead of committing to the spot they were
+            // standing on at launch — the ice bolt stays a straight, dodgeable
+            // read, since its paralysis is already the real threat.
+            homing: !cfg.ice, angle0: Math.atan2(dy, dx), speed: cfg.speed,
         });
     }
     // The final boss's second attack: a whole ring of fire arrows launched together,
@@ -947,6 +952,19 @@ export function initEmberArena(canvas, opts) {
 
         for (let i = bolts.length - 1; i >= 0; i--) {
             const b = bolts[i];
+            if (b.homing) {
+                const targetAngle = Math.atan2(player.y - b.y, player.x - b.x);
+                const curAngle = Math.atan2(b.vy, b.vx);
+                // Turn toward the player at a gentle, fixed rate (~46°/s)...
+                let diff = ((targetAngle - curAngle + Math.PI) % TAU + TAU) % TAU - Math.PI;
+                let newAngle = curAngle + clamp(diff, -0.8 * dt, 0.8 * dt);
+                // ...and never let it bend more than ~24° off its original aim —
+                // a nudge toward where the player is now, not a lock-on.
+                let dev = ((newAngle - b.angle0 + Math.PI) % TAU + TAU) % TAU - Math.PI;
+                newAngle = b.angle0 + clamp(dev, -0.42, 0.42);
+                b.vx = Math.cos(newAngle) * b.speed;
+                b.vy = Math.sin(newAngle) * b.speed;
+            }
             b.x += b.vx * dt;
             b.y += b.vy * dt;
             b.life -= dt;
@@ -1066,14 +1084,11 @@ export function initEmberArena(canvas, opts) {
         }
 
         // Vigore: a soft rim in heart-red just behind the hero, a touch larger than
-        // the sprite itself — grows with maxHp, absent on a build that never took it.
+        // the sprite itself — grows with maxHp, absent on a build that never took
+        // it. Drawn later, right alongside the hero sprite itself (see below), so
+        // it turns together with it during a spin instead of sitting fixed while
+        // the body underneath rotates away from it.
         const vigoreT = clamp((player.maxHp - 100) / 50, 0, 1);
-        if (vigoreT > 0) {
-            ctx.save();
-            ctx.globalAlpha = 0.3 + 0.25 * vigoreT;
-            drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell * 1.18, flip, HEART_PALETTE.H);
-            ctx.restore();
-        }
 
         // Ricarica rapida: a little comet orbiting the hero, its pace (not its size)
         // picking up as the fireball's cooldown shrinks — absent on a build that
@@ -1170,13 +1185,28 @@ export function initEmberArena(canvas, opts) {
         ctx.restore();
 
         if (spinning) {
-            // The hero sprite turns together with the blade.
+            // The hero sprite turns together with the blade — the Vigore rim drawn
+            // in this same rotated context turns with it too, instead of the fixed
+            // orientation it would have if drawn back where the rest of the world-
+            // space traits live.
             ctx.save();
             ctx.translate(player.x, player.y + bob);
             ctx.rotate(spinAngle);
+            if (vigoreT > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.3 + 0.25 * vigoreT;
+                drawSprite(HERO_FRAMES[frame], palette, 0, 0, cell * 1.18, flip, HEART_PALETTE.H);
+                ctx.restore();
+            }
             drawSprite(HERO_FRAMES[frame], palette, 0, 0, cell, flip);
             ctx.restore();
             return;
+        }
+        if (vigoreT > 0) {
+            ctx.save();
+            ctx.globalAlpha = 0.3 + 0.25 * vigoreT;
+            drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell * 1.18, flip, HEART_PALETTE.H);
+            ctx.restore();
         }
         drawSprite(HERO_FRAMES[frame], palette, player.x, player.y + bob, cell, flip);
     }
