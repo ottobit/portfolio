@@ -2349,10 +2349,15 @@ a.info-card:focus-visible .info-card-title::after {
         flex-direction: column;
         gap: 0.5rem;
     }
+    /* HP/Level only concern the arena, so the bar is only as wide as the
+       canvas below it — not the stick and action buttons flanking it, which
+       it has nothing to do with. Same left/right offsets as .game-stage's
+       stick (138px) and largest action button (86px), plus its 1.25rem gap,
+       so the bar's edges land exactly above the canvas column. */
     .game-panel .game-statbar {
         flex: 0 0 auto;
         max-width: none;
-        margin: 0;
+        margin: 0 calc(86px + 1.25rem) 0 calc(138px + 1.25rem);
         width: auto;
     }
     .game-panel .game-stage {
