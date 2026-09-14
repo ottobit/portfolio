@@ -355,6 +355,13 @@ export function initEmberArena(canvas, opts) {
     }
 
     function handleKeyDown(e) {
+        // The arrow keys double as the browser's own scroll keys — without this,
+        // steering the hero on desktop also scrolls the page out from under it.
+        // Only stolen while a run is actually being played: before that (or once
+        // it's over) the page should still scroll normally.
+        if (state === 'playing' && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+            e.preventDefault();
+        }
         if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
         if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
