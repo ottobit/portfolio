@@ -2322,12 +2322,14 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 0.85rem;
 }
 /* Below this width the arena, its instructions and the monster legend just
-   stack — the same layout as always. Above it there's real horizontal room
-   (the site's own wide-content precedents, .container/.card-grid, sit in
-   this same ~960-1000px range), so the empty space beside a narrow, centred
-   arena becomes a second column instead: the instructions and legend that
-   used to sit under it move beside it. .game-panel is a plain wrapper with
-   no rules of its own outside this query — it does nothing until here. */
+   stack — the same layout as always. Above it, the same stack, just sized up:
+   three side-by-side layouts were tried (legend beside the arena, then a
+   mirrored gutter to re-centre it) and none of them read right — the legend
+   ended up feeling like a sidebar competing with the arena instead of
+   supporting information underneath it, exactly the mobile layout gets right.
+   So desktop keeps that same stacked shape, only wider. .game-panel is a
+   plain wrapper with no rules of its own outside this query — it does
+   nothing until here. */
 @media (min-width: 960px) {
     .game-panel {
         /* Horizontal, not just taller — a narrow column never reads as "big" on
@@ -2335,43 +2337,31 @@ a.info-card:focus-visible .info-card-title::after {
            technique already in production for the phone's landscape fullscreen
            mode (resize() in ember-arena-game.js already reflows any shape
            change, not just that one). Height comes from the viewport; width
-           comes from height at a 4:3 ratio, but never past whatever horizontal
-           room is actually left once the instructions/legend column and page
-           margins are accounted for. */
-        --arena-h: min(82vh, 760px);
-        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 680px));
-        display: grid;
-        /* Centering the arena+legend pair as a block still left the arena itself
-           off-centre — the legend column's width pulls it visually right of
-           where it should sit. A matching empty gutter on the other side
-           (same fixed width as the legend column) keeps the arena's own
-           centre aligned with the viewport's, with the legend hanging in the
-           space that gutter mirrors rather than shifting the whole layout. */
-        grid-template-columns: 300px var(--arena-w) 300px;
-        justify-content: center;
-        gap: 2rem;
-        align-items: start;
-        margin: 0 auto;
-    }
-    .game-panel .game-play {
-        grid-column: 2;
-    }
-    .game-panel .game-instructions,
-    .game-panel .game-legend {
-        grid-column: 3;
-        max-width: none;
-        margin-top: 0;
-    }
-    .game-panel .game-instructions {
-        text-align: left;
+           comes from height at a 4:3 ratio, but never past the page's own
+           margins.
+           The 350px subtracted here is the rest of the play area's own
+           chrome — nav (~87px) + stat bar (~49px) + the two gaps around the
+           canvas (~30px) + touch controls (~104px) + footer (~60px), with a
+           little slack — so the whole block (not just the canvas) fits
+           inside the window. focusArena() in news/ember-keep/index.html only
+           centres the arena vertically on start when it judges the block
+           short enough to fit between the nav and the footer; a canvas sized
+           off raw vh alone routinely didn't, so starting a run always
+           snapped it to the top instead of centring it the way it does on
+           mobile. If the actual chrome height ever changes meaningfully,
+           this number needs to move with it. */
+        --arena-h: min(calc(100vh - 480px), 620px);
+        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 80px));
     }
     /* --arena-h is now an explicit height, not derived from the canvas's own
        aspect-ratio — the shape isn't fixed anymore, so the wrapper needs it
        directly (same pattern as the phone's landscape fullscreen mode). */
     .game-canvas-wrap {
         max-width: none;
-        width: 100%;
+        width: var(--arena-w);
         height: var(--arena-h);
+        margin-left: auto;
+        margin-right: auto;
     }
     .game-canvas-wrap canvas {
         width: 100%;
@@ -2381,7 +2371,16 @@ a.info-card:focus-visible .info-card-title::after {
     .game-statbar,
     .game-controls {
         max-width: none;
-        width: 100%;
+        width: var(--arena-w);
+        margin-left: auto;
+        margin-right: auto;
+    }
+    /* Wider than the 480px mobile cap, same centred-block treatment — this is
+       the "just make it bigger" version of the mobile layout the user asked
+       for, not a new layout. */
+    .game-instructions,
+    .game-legend {
+        max-width: 800px;
     }
 }
 /* The credits sit under the section heading now, and that heading already carries
