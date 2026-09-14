@@ -882,7 +882,15 @@ export function initEmberArena(canvas, opts) {
         updateFamiliarVisit(dt);
 
         const finalFight = monsters.some((m) => m.type === 'finalBoss');
-        const spawnInterval = Math.max(0.5, 1.6 - level * 0.08) * (finalFight ? 3.5 : bossAlive() ? 2 : 1);
+        // A bigger arena has more room to roam in — without this, the same spawn
+        // rate that feels right on a phone reads as sparse on a big desktop
+        // screen. Scaled by area (not just width or height) since that's what
+        // actually governs how crowded the arena feels; capped at 1.8x so a very
+        // large desktop window speeds things up without spiraling into chaos,
+        // and the interval's own 0.4s floor still caps how fast spawns can get
+        // even at high level on a big screen.
+        const areaScale = clamp((W * H) / (480 * 640), 1, 1.8);
+        const spawnInterval = Math.max(0.4, Math.max(0.5, 1.6 - level * 0.08) / areaScale) * (finalFight ? 3.5 : bossAlive() ? 2 : 1);
         spawnTimer += dt;
         if (spawnTimer >= spawnInterval) {
             spawnTimer = 0;
