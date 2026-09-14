@@ -233,7 +233,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=35';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=36';
 
     initDiagramPage();
 
@@ -411,7 +411,10 @@
             [null, it ? 'Tempo' : 'Time', `${lastStats.time}s`],
             [null, it ? 'Record' : 'Best', lastStats.best],
             [null, it ? 'Colpi dati' : 'Hits landed', lastStats.hitsGiven],
-            [null, it ? 'Colpi subiti' : 'Hits taken', lastStats.hitsReceived],
+            [null, it ? 'Colpi ricevuti' : 'Hits received', lastStats.hitsReceived],
+            [null, it ? 'Rapporto dati/ricevuti' : 'Landed/received ratio',
+                lastStats.hitsReceived > 0 ? (lastStats.hitsGiven / lastStats.hitsReceived).toFixed(1)
+                    : lastStats.hitsGiven > 0 ? '∞' : '—'],
         ];
         const upgradeRows = [
             ['💪', it ? 'Spada' : 'Sword', fs.meleeDamage],
