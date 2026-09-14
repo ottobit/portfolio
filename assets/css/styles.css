@@ -2330,17 +2330,21 @@ a.info-card:focus-visible .info-card-title::after {
    no rules of its own outside this query — it does nothing until here. */
 @media (min-width: 960px) {
     .game-panel {
-        /* Sized by how much vertical room the viewport actually has, not a flat
-           pixel guess — a short laptop screen and a tall desktop monitor land on
-           genuinely different arena sizes instead of both getting the same
-           timid bump. Capped so it doesn't become absurd on a very tall window. */
-        --arena-h: min(90vh, 900px);
-        --arena-w: calc(var(--arena-h) * 0.75);
+        /* Horizontal, not just taller — a narrow column never reads as "big" on
+           a wide monitor no matter how far it's stretched vertically. Same
+           technique already in production for the phone's landscape fullscreen
+           mode (resize() in ember-arena-game.js already reflows any shape
+           change, not just that one). Height comes from the viewport; width
+           comes from height at a 4:3 ratio, but never past whatever horizontal
+           room is actually left once the instructions/legend column and page
+           margins are accounted for. */
+        --arena-h: min(82vh, 760px);
+        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 420px));
         display: grid;
         grid-template-columns: var(--arena-w) 1fr;
         gap: 2rem;
         align-items: start;
-        max-width: 1200px;
+        max-width: 1600px;
         margin: 0 auto;
     }
     .game-panel .game-instructions,
@@ -2352,11 +2356,19 @@ a.info-card:focus-visible .info-card-title::after {
     .game-panel .game-instructions {
         text-align: left;
     }
-    /* Same aspect ratio, just a bigger canvas — the scale-up resize() already
-       handles today (see its shapeChanged branch in ember-arena-game.js).
-       width:100% instead of a fixed value: the grid column above is already
-       exactly --arena-w, so these fill it instead of centering smaller inside it. */
-    .game-canvas-wrap,
+    /* --arena-h is now an explicit height, not derived from the canvas's own
+       aspect-ratio — the shape isn't fixed anymore, so the wrapper needs it
+       directly (same pattern as the phone's landscape fullscreen mode). */
+    .game-canvas-wrap {
+        max-width: none;
+        width: 100%;
+        height: var(--arena-h);
+    }
+    .game-canvas-wrap canvas {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: auto;
+    }
     .game-statbar,
     .game-controls {
         max-width: none;
