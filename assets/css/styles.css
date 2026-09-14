@@ -2382,6 +2382,95 @@ a.info-card:focus-visible .info-card-title::after {
     .game-legend {
         max-width: 800px;
     }
+    /* An arena that has to share the page with the nav, the footer and scroll
+       position can never read as genuinely big — every attempt at sizing it
+       within that inline flow has come back too small. The phone already
+       solves this for its own landscape-fullscreen case (below): .game-play
+       takes over the whole viewport, the arena fills whatever shape is left
+       once the stick and action buttons claim their own columns. Reused here
+       1:1, just gated by a class instead of the phone's own media query,
+       since desktop width alone isn't a signal that a run is actually being
+       played (unlike being handed a short landscape phone) — see the JS in
+       news/ember-keep/index.html that adds/removes this class. */
+    .game-play.game-fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 1rem 1.5rem;
+        background: var(--bg);
+    }
+    .game-play.game-fullscreen .game-statbar {
+        flex: 0 0 auto;
+        max-width: none;
+        margin: 0;
+        width: auto;
+    }
+    .game-play.game-fullscreen .game-stage {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+        flex: 1 1 auto;
+        min-height: 0;
+        gap: 1rem;
+    }
+    .game-play.game-fullscreen .game-controls {
+        display: contents;
+    }
+    .game-play.game-fullscreen .game-canvas-wrap {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: stretch;
+        align-self: stretch;
+        max-width: none;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+    .game-play.game-fullscreen .game-canvas-wrap canvas {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: auto;
+    }
+    .game-play.game-fullscreen .game-stick {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: end;
+        margin-bottom: 1.4rem;
+        width: 138px;
+        height: 138px;
+    }
+    .game-play.game-fullscreen .game-stick-knob {
+        width: 56px;
+        height: 56px;
+        margin: -28px 0 0 -28px;
+    }
+    .game-play.game-fullscreen .game-controls-actions {
+        grid-column: 3;
+        grid-row: 1;
+        align-self: center;
+        flex-direction: column;
+        gap: 0.7rem;
+    }
+    .game-play.game-fullscreen .game-touch-btn {
+        width: 74px;
+        height: 74px;
+        font-size: 1.6rem;
+    }
+    .game-play.game-fullscreen .game-touch-btn-ult {
+        width: 86px;
+        height: 86px;
+        font-size: 1.9rem;
+    }
+}
+/* Same lock the phone's own fullscreen mode applies via body:has(.game-play) —
+   spelled out explicitly here since this one is toggled by a JS-added class,
+   not read straight off a media query. */
+body.game-fullscreen-lock {
+    overflow: hidden;
 }
 /* The credits sit under the section heading now, and that heading already carries
    the rule: a second border here would draw two lines a few pixels apart. */
