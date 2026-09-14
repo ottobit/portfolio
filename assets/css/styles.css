@@ -2338,8 +2338,19 @@ a.info-card:focus-visible .info-card-title::after {
            mode (resize() in ember-arena-game.js already reflows any shape
            change, not just that one). Height comes from the viewport; width
            comes from height at a 4:3 ratio, but never past the page's own
-           margins. */
-        --arena-h: min(82vh, 760px);
+           margins.
+           The 350px subtracted here is the rest of the play area's own
+           chrome — nav (~87px) + stat bar (~49px) + the two gaps around the
+           canvas (~30px) + touch controls (~104px) + footer (~60px), with a
+           little slack — so the whole block (not just the canvas) fits
+           inside the window. focusArena() in news/ember-keep/index.html only
+           centres the arena vertically on start when it judges the block
+           short enough to fit between the nav and the footer; a canvas sized
+           off raw vh alone routinely didn't, so starting a run always
+           snapped it to the top instead of centring it the way it does on
+           mobile. If the actual chrome height ever changes meaningfully,
+           this number needs to move with it. */
+        --arena-h: min(calc(100vh - 480px), 620px);
         --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 80px));
     }
     /* --arena-h is now an explicit height, not derived from the canvas's own
