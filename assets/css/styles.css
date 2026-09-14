@@ -2339,17 +2339,26 @@ a.info-card:focus-visible .info-card-title::after {
            room is actually left once the instructions/legend column and page
            margins are accounted for. */
         --arena-h: min(82vh, 760px);
-        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 420px));
+        --arena-w: min(calc(var(--arena-h) * 4 / 3), calc(100vw - 680px));
         display: grid;
-        grid-template-columns: var(--arena-w) 1fr;
+        /* Centering the arena+legend pair as a block still left the arena itself
+           off-centre — the legend column's width pulls it visually right of
+           where it should sit. A matching empty gutter on the other side
+           (same fixed width as the legend column) keeps the arena's own
+           centre aligned with the viewport's, with the legend hanging in the
+           space that gutter mirrors rather than shifting the whole layout. */
+        grid-template-columns: 300px var(--arena-w) 300px;
+        justify-content: center;
         gap: 2rem;
         align-items: start;
-        max-width: 1600px;
         margin: 0 auto;
+    }
+    .game-panel .game-play {
+        grid-column: 2;
     }
     .game-panel .game-instructions,
     .game-panel .game-legend {
-        grid-column: 2;
+        grid-column: 3;
         max-width: none;
         margin-top: 0;
     }
