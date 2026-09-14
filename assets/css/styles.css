@@ -2330,11 +2330,17 @@ a.info-card:focus-visible .info-card-title::after {
    no rules of its own outside this query — it does nothing until here. */
 @media (min-width: 960px) {
     .game-panel {
+        /* Sized by how much vertical room the viewport actually has, not a flat
+           pixel guess — a short laptop screen and a tall desktop monitor land on
+           genuinely different arena sizes instead of both getting the same
+           timid bump. Capped so it doesn't become absurd on a very tall window. */
+        --arena-h: min(90vh, 900px);
+        --arena-w: calc(var(--arena-h) * 0.75);
         display: grid;
-        grid-template-columns: minmax(0, 560px) 1fr;
+        grid-template-columns: var(--arena-w) 1fr;
         gap: 2rem;
         align-items: start;
-        max-width: 1000px;
+        max-width: 1200px;
         margin: 0 auto;
     }
     .game-panel .game-instructions,
@@ -2347,11 +2353,14 @@ a.info-card:focus-visible .info-card-title::after {
         text-align: left;
     }
     /* Same aspect ratio, just a bigger canvas — the scale-up resize() already
-       handles today (see its shapeChanged branch in ember-arena-game.js). */
+       handles today (see its shapeChanged branch in ember-arena-game.js).
+       width:100% instead of a fixed value: the grid column above is already
+       exactly --arena-w, so these fill it instead of centering smaller inside it. */
     .game-canvas-wrap,
     .game-statbar,
     .game-controls {
-        max-width: 560px;
+        max-width: none;
+        width: 100%;
     }
 }
 /* The credits sit under the section heading now, and that heading already carries

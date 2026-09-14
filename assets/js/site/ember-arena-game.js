@@ -357,9 +357,11 @@ export function initEmberArena(canvas, opts) {
     function handleKeyDown(e) {
         // The arrow keys double as the browser's own scroll keys — without this,
         // steering the hero on desktop also scrolls the page out from under it.
-        // Only stolen while a run is actually being played: before that (or once
-        // it's over) the page should still scroll normally.
-        if (state === 'playing' && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        // Stolen during an active run AND while choosing an upgrade card (up/down
+        // are how the deck could be browsed, and even when they aren't, a stray
+        // arrow shouldn't yank the page out from under the overlay). Before a run
+        // starts, or once it's over, the page should still scroll normally.
+        if ((state === 'playing' || state === 'choosing') && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
             e.preventDefault();
         }
         if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
