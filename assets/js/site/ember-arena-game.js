@@ -1504,9 +1504,28 @@ export function initEmberArena(canvas, opts) {
         ctx.fillText(isFinal ? strings.finalBossBar : strings.bossBar, W / 2, by + 22);
     }
 
+    // A flat single-colour floor reads as generic — a faint warm glow rising from
+    // the centre, the same ember orange the fireball and bolts already use, ties
+    // the arena itself to the game's own theme without competing with anything
+    // drawn on top of it. Cached per (W, H, theme) since canvas gradients aren't
+    // free and this would otherwise get rebuilt 60 times a second for something
+    // that never actually changes between resizes.
+    let bgGradientCache = null;
+    function arenaBackground(colors) {
+        if (bgGradientCache && bgGradientCache.w === W && bgGradientCache.h === H && bgGradientCache.light === colors.light) {
+            return bgGradientCache.gradient;
+        }
+        const grad = ctx.createRadialGradient(W / 2, H * 0.44, 0, W / 2, H * 0.44, Math.max(W, H) * 0.75);
+        const warm = blendHex(colors.bg, FIRE_COLOR, colors.light ? 0.1 : 0.16);
+        grad.addColorStop(0, warm);
+        grad.addColorStop(1, colors.bg);
+        bgGradientCache = { w: W, h: H, light: colors.light, gradient: grad };
+        return grad;
+    }
+
     function draw() {
         const colors = themeColors();
-        ctx.fillStyle = colors.bg;
+        ctx.fillStyle = arenaBackground(colors);
         ctx.fillRect(0, 0, W, H);
         // Everything inside the arena shakes together; the HUD drawn after does not.
         const shaking = shake > 0 && state === 'playing';

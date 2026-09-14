@@ -2,12 +2,20 @@
 // functions with no game state, split out of ember-arena-game.js so that
 // file is left with only the actual run loop.
 
+// #abc -> #aabbcc — every caller of blendHex/isLight works in 6-digit hex, but a
+// CSS custom property is free to be written as shorthand (the light theme's own
+// --bg is exactly that: #fff), so both entry points expand through this first.
+function expandHex3(hex) {
+    const short = /^#([0-9a-f]{3})$/i.exec((hex || '').trim());
+    return short ? `#${[...short[1]].map((c) => c + c).join('')}` : hex;
+}
+
 // Mixes a hex colour toward another by `amount` (0..1). Pure white and the shared
 // near-black outline colour are the ones every sprite uses for eyes/pupils, so a
 // caller skips those — a monster's gaze has to read the same at every tier.
 export function blendHex(hex, target, amount) {
-    const a = /^#([0-9a-f]{6})$/i.exec(hex);
-    const b = /^#([0-9a-f]{6})$/i.exec(target);
+    const a = /^#([0-9a-f]{6})$/i.exec(expandHex3(hex));
+    const b = /^#([0-9a-f]{6})$/i.exec(expandHex3(target));
     if (!a || !b) return hex;
     const mix = (x, y) => Math.round(x + (y - x) * amount);
     const toHex = (n) => n.toString(16).padStart(2, '0');
