@@ -5,7 +5,7 @@
 import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=3';
+} from './ember-arena-sprites.js?v=4';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -38,6 +38,7 @@ const MONSTER_DMG_LEVEL_CAP = 1.6;   // never past 1.6x the base damage
 // the hit itself read as a lunge, not just the telegraph glow beforehand.
 const BITE_LUNGE_DUR = 0.18; // seconds, out and back
 const BITE_LUNGE_DIST = 8;   // px, peak offset at the midpoint of the lunge
+const BITE_LEAP_LIFT = 6;    // px, extra vertical rise for 'leap'-style bites (slime)
 // The telegraph can start this many px before actual contact — starting it only
 // once fully touching left the glow buried under/behind the monster by the time
 // it appeared, since the monster keeps closing that last stretch during the
@@ -1038,6 +1039,12 @@ export function initEmberArena(canvas, opts) {
                 if (dist < def.shoot.standoff) speedMul = -0.5;
                 else if (dist < def.shoot.range) speedMul = def.shoot.approach;
             }
+            // 'rush'-style biters (imp, bat) quicken their own steps for the telegraph
+            // window instead of teleport-snapping at the last instant — the speed-up
+            // itself is the tell that a bite is coming.
+            if (def.bite && def.bite.style === 'rush' && m.biteWindup > 0) {
+                speedMul = def.bite.rushMul;
+            }
             if (m.type === 'boss' || m.type === 'finalBoss') {
                 m.chargeTimer -= dt;
                 if (m.chargeTimer <= 0) {
@@ -1105,11 +1112,16 @@ export function initEmberArena(canvas, opts) {
                         // stepping away during the windup makes it whiff (cooldown still
                         // applies, but no damage), same as a real dodge should.
                         if (touching && !spinning) {
-                            // The lunge itself, not just the glow before it: a quick snap
-                            // towards wherever the player is right now, drawn in drawMonsters.
-                            m.biteLungeT = BITE_LUNGE_DUR;
-                            m.biteLungeDx = dx / dist;
-                            m.biteLungeDy = dy / dist;
+                            // Only the 'leap' style (slime) gets the snap-towards-player
+                            // draw offset — it's the hop itself, drawn in drawMonsters
+                            // with an added vertical arc. 'rush' bites (imp, bat) already
+                            // sold the approach via the speed-up above; snapping them too
+                            // would double up on the same motion.
+                            if (def.bite.style === 'leap') {
+                                m.biteLungeT = BITE_LUNGE_DUR;
+                                m.biteLungeDx = dx / dist;
+                                m.biteLungeDy = dy / dist;
+                            }
                             if (hurtPlayer(def.bite.damage * monsterDamageMul())) return;
                         }
                     }
@@ -1422,14 +1434,18 @@ export function initEmberArena(canvas, opts) {
                 sy = 1.15 + Math.sin(t * 0.9 + 1) * 0.1;
             }
             // The lunge itself: a quick snap towards the player at the instant a bite
-            // lands (set in update()), eased out-and-back so it reads as a snap rather
-            // than a slide — 0 at both ends of biteLungeT, peaking at the midpoint.
+            // lands (set in update(), 'leap' style only), eased out-and-back so it
+            // reads as a hop rather than a slide — 0 at both ends of biteLungeT,
+            // peaking at the midpoint. The shadow stays on the ground (no lift) while
+            // the sprite itself rises — same "airborne" cue as any platformer jump.
             let lungeX = 0;
             let lungeY = 0;
+            let leapLift = 0;
             if (m.biteLungeT > 0) {
-                const mag = Math.sin((1 - m.biteLungeT / BITE_LUNGE_DUR) * Math.PI) * BITE_LUNGE_DIST;
-                lungeX = m.biteLungeDx * mag;
-                lungeY = m.biteLungeDy * mag;
+                const arc = Math.sin((1 - m.biteLungeT / BITE_LUNGE_DUR) * Math.PI);
+                lungeX = m.biteLungeDx * arc * BITE_LUNGE_DIST;
+                lungeY = m.biteLungeDy * arc * BITE_LUNGE_DIST;
+                leapLift = arc * BITE_LEAP_LIFT;
             }
             if (m.type !== 'bat') drawShadow(m.x + lungeX, m.y + lungeY + m.r * 0.8, m.r * 0.9);
             // The telegraph before a bite lands: same idea as the star volley's warning
@@ -1460,7 +1476,7 @@ export function initEmberArena(canvas, opts) {
             // the four regular monster types, so it can't be mistaken for a boss cue.
             const palette = m.tier && !def.starAttack && m.type !== 'boss' ? tintPalette(def.palette, m.type, m.tier) : def.palette;
             ctx.save();
-            ctx.translate(m.x + lungeX, m.y + dy + lungeY);
+            ctx.translate(m.x + lungeX, m.y + dy + lungeY - leapLift);
             ctx.scale(sx, sy);
             drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
