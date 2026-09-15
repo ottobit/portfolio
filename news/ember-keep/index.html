@@ -63,7 +63,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.48">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.49">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -174,16 +174,17 @@
             </div>
             <div class="game-controls-actions">
                 <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
+                <button class="game-touch-btn game-touch-btn-bow" id="ember-bow-btn" type="button" aria-label="Bow (auto-aims the nearest monster)" data-aria-label-it="Arco (mira da solo al mostro più vicino)">🏹</button>
                 <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
             </div>
         </div>
         </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), X or C for the full-arena fireball (has a cooldown).</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), B per l'arco (tienilo premuto: mira da solo al mostro più vicino), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), B for the bow (hold it: auto-aims the nearest monster), X or C for the full-arena fireball (has a cooldown).</p>
         <ul class="game-legend">
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="hero" width="44" height="44" role="img" aria-label="Hero" data-aria-label-it="Eroe"></canvas>
-                <div class="game-legend-text"><b data-it="Tu">You</b><span data-it="La spada respinge, la palla di fuoco pulisce l'arena.">The sword knocks back, the fireball clears the arena.</span></div>
+                <div class="game-legend-text"><b data-it="Tu">You</b><span data-it="La spada respinge, l'arco spara da solo al più vicino, la palla di fuoco pulisce l'arena.">The sword knocks back, the bow auto-fires at the nearest one, the fireball clears the arena.</span></div>
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="slime" width="44" height="44" role="img" aria-label="Slime"></canvas>
@@ -239,7 +240,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=48';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=49';
 
     initDiagramPage();
 
@@ -277,6 +278,7 @@
         levelText.textContent = `${lastLevel} / ${FINAL_LEVEL}${hasWon ? ' ★' : ''}`;
     }
     const meleeBtn = document.getElementById('ember-melee-btn');
+    const bowBtn = document.getElementById('ember-bow-btn');
     const ultBtn = document.getElementById('ember-ult-btn');
 
     function setCooldown(btn, fraction) {
@@ -441,6 +443,7 @@
         const upgradeRows = [
             ['💪', it ? 'Spada' : 'Sword', fs.meleeDamage],
             ['🔥', it ? 'Palla di fuoco' : 'Fireball', fs.fireDamage],
+            ['🏹', it ? 'Arco' : 'Bow', fs.arrowDamage],
             ['❤️', it ? 'Vita massima' : 'Max health', fs.maxHp],
             ['👢', it ? 'Velocità' : 'Speed', fs.speed],
             ['⚔️', it ? 'Portata spada' : 'Sword reach', fs.meleeRange],
@@ -538,7 +541,7 @@
         rotatePrompt.hidden = !show;
         game.setPaused(show);
     }
-    const START_KEYS = [' ', 'Enter', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V'];
+    const START_KEYS = [' ', 'Enter', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V', 'b', 'B'];
     // Capture-phase on window: this runs before any listener the game module
     // attaches to the canvas or document, regardless of which script registered
     // its listener first — a bubble-phase listener on the same node the module
@@ -696,6 +699,7 @@
         window.addEventListener('blur', () => stop(null));
     };
     bindHold(meleeBtn, () => game.meleeAttack(), () => game.meleeRelease());
+    bindHold(bowBtn, () => game.bowAttack(), () => game.bowRelease());
     bindAction(ultBtn, () => game.ultimateAttack());
 
     // Legend sprites come from the game module itself, so they can never drift from

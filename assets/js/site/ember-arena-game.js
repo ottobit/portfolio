@@ -26,6 +26,14 @@ const BOLT_COLOR = '#9b59b6';
 const BOLT_GLOW = '#e056fd';
 const ICE_COLOR = '#74c0fc';
 const ICE_GLOW = '#d0f0ff';
+// The hero's own arrows: wood/bronze, already used elsewhere in the palette (the
+// caster's staff) — never the enemy bolt's magenta or the fireball's orange, so
+// what the player shoots never gets mistaken for what's shooting at them.
+const ARROW_COLOR = '#8d6e63';
+const ARROW_GLOW = '#d7ccc8';
+const ARROW_SPEED = 420;
+const ARROW_LIFE = 1.1;
+const BOW_INTERVAL = 0.35; // seconds between arrows while the button is held
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -86,6 +94,7 @@ export function initEmberArena(canvas, opts) {
         paralyzedUntil: 0,
         meleeDamage: 18,
         fireDamage: 14,
+        arrowDamage: 10,
         moving: false,
         walkT: 0,
     };
@@ -121,6 +130,7 @@ export function initEmberArena(canvas, opts) {
     let monsters = [];
     let explosions = [];
     let bolts = [];
+    let arrows = []; // the hero's own bow shots — the mirror of bolts, but aimed at monsters
     let hearts = [];
     let floaters = [];   // damage numbers drifting up
     let particles = [];  // what is left of a monster that just died
@@ -145,6 +155,8 @@ export function initEmberArena(canvas, opts) {
     let spinHeld = false;   // the action is held down
     let spinAngle = 0;      // radians turned since this spin started
     let spinHitTimer = 0;   // time left before the next damage tick
+    let bowHeld = false;    // the bow action is held down
+    let bowTimer = 0;       // time left before the next arrow while held (or mid-cooldown after one)
     let ultCooldown = 0;
     let levelFlash = 0;
     let flashKind = '';   // 'level' | 'boss' | 'final'
@@ -215,6 +227,9 @@ export function initEmberArena(canvas, opts) {
         else if (name === 'starburst') { chirp({ from: 700, to: 1500, duration: 0.12, type: 'sawtooth', gain: 0.045 }); chirp({ from: 1500, to: 2200, duration: 0.1, type: 'sawtooth', gain: 0.03, delay: 0.08 }); }
         else if (name === 'slam') { noiseBurst(0.12, 0.06, 500); chirp({ from: 140, to: 50, duration: 0.22, type: 'sawtooth', gain: 0.05 }); }
         else if (name === 'bark') { chirp({ from: 380, to: 220, duration: 0.09, type: 'square', gain: 0.045 }); chirp({ from: 340, to: 180, duration: 0.08, type: 'square', gain: 0.035, delay: 0.12 }); }
+        // A quick, cheap twang — the bow can fire several times a second while
+        // held, so unlike every other sfx here this one stays a single short chirp.
+        else if (name === 'arrow') chirp({ from: 900, to: 500, duration: 0.08, type: 'triangle', gain: 0.035 });
     }
 
     // --- Background music --------------------------------------------------
@@ -312,9 +327,11 @@ export function initEmberArena(canvas, opts) {
         player.paralyzedUntil = 0;
         player.meleeDamage = 18;
         player.fireDamage = 14;
+        player.arrowDamage = 10;
         monsters = [];
         explosions = [];
         bolts = [];
+        arrows = [];
         hearts = [];
         floaters = [];
         particles = [];
@@ -340,6 +357,8 @@ export function initEmberArena(canvas, opts) {
         spinHeld = false;
         spinAngle = 0;
         spinHitTimer = 0;
+        bowHeld = false;
+        bowTimer = 0;
         ultCooldown = 0;
         levelFlash = 0;
         flashKind = '';
@@ -429,6 +448,11 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') ultimateAttack();
             else if (state !== 'choosing') start();
         }
+        if (e.key === 'b' || e.key === 'B') {
+            e.preventDefault();
+            if (state === 'playing') bowAttack();
+            else if (state !== 'choosing') start();
+        }
         if (e.key === 'Enter' && state !== 'playing') start();
     }
     function handleKeyUp(e) {
@@ -437,10 +461,13 @@ export function initEmberArena(canvas, opts) {
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
         if (e.key === ' ' || e.key === 'z' || e.key === 'Z') meleeRelease();
+        if (e.key === 'b' || e.key === 'B') bowRelease();
     }
-    // Losing the window while the action is held would leave the hero spinning forever.
+    // Losing the window while an action is held would leave it stuck on (spinning
+    // forever, or firing arrows nobody is holding the button down for).
     function handleBlur() {
         meleeRelease();
+        bowRelease();
         keys.up = keys.down = keys.left = keys.right = false;
     }
 
@@ -485,6 +512,49 @@ export function initEmberArena(canvas, opts) {
     }
     function meleeRelease() {
         spinHeld = false;
+    }
+    // The bow's targeting: whichever monster is currently closest, re-evaluated on
+    // every shot — no lock-on, so it always tracks whatever just wandered closest
+    // instead of chasing the first thing it happened to pick.
+    function nearestMonster() {
+        let best = null;
+        let bestD = Infinity;
+        for (const m of monsters) {
+            const d = Math.hypot(m.x - player.x, m.y - player.y);
+            if (d < bestD) {
+                bestD = d;
+                best = m;
+            }
+        }
+        return best;
+    }
+    // Returns whether an arrow actually went out — nothing to aim at is not an
+    // error, just nothing to do, and callers use this to know whether to start
+    // the between-shots cooldown or try again next frame.
+    function fireArrow() {
+        const target = nearestMonster();
+        if (!target) return false;
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+        const d = Math.hypot(dx, dy) || 1;
+        arrows.push({
+            x: player.x, y: player.y,
+            vx: (dx / d) * ARROW_SPEED, vy: (dy / d) * ARROW_SPEED,
+            r: 4, life: ARROW_LIFE,
+        });
+        sfx('arrow');
+        return true;
+    }
+    // Press: fire once immediately, same as the sword's press-to-swing. Hold: keep
+    // firing at BOW_INTERVAL while a target exists — see the bowTimer tick in update().
+    function bowAttack() {
+        if (elapsed < player.paralyzedUntil) return;
+        bowHeld = true;
+        if (bowTimer > 0) return;
+        if (fireArrow()) bowTimer = BOW_INTERVAL;
+    }
+    function bowRelease() {
+        bowHeld = false;
     }
     function meleeHit() {
         const range = tuning.meleeRange;
@@ -971,6 +1041,14 @@ export function initEmberArena(canvas, opts) {
             burst(player.x + Math.cos(a) * player.r, player.y + Math.sin(a) * player.r, { a: '#2ecc71', b: '#f1c40f', c: '#ffffff' }, reducedMotion ? 1 : 3);
         }
         ultCooldown = Math.max(0, ultCooldown - dt);
+        if (bowTimer > 0) bowTimer -= dt;
+        // No target this frame just leaves bowTimer at 0, so the very next frame
+        // tries again — cheap (one more pass over what's usually a handful of
+        // monsters) and means the bow starts firing the instant something spawns
+        // into range instead of waiting out a cooldown that never really started.
+        if (bowHeld && bowTimer <= 0) {
+            if (fireArrow()) bowTimer = BOW_INTERVAL;
+        }
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
@@ -1158,6 +1236,28 @@ export function initEmberArena(canvas, opts) {
             }
         }
 
+        // The mirror of the bolts loop above — the hero's own arrows, checked
+        // against monsters instead of the player.
+        for (let i = arrows.length - 1; i >= 0; i--) {
+            const a = arrows[i];
+            a.x += a.vx * dt;
+            a.y += a.vy * dt;
+            a.life -= dt;
+            if (a.life <= 0 || a.x < -20 || a.x > W + 20 || a.y < -20 || a.y > H + 20) {
+                arrows.splice(i, 1);
+                continue;
+            }
+            for (let j = monsters.length - 1; j >= 0; j--) {
+                const m = monsters[j];
+                if (circlesOverlap(a.x, a.y, a.r, m.x, m.y, m.r)) {
+                    damageMonster(j, player.arrowDamage);
+                    hitsGiven++;
+                    arrows.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
         if (updateExplosions(dt)) return;
 
         pushStats();
@@ -1200,7 +1300,7 @@ export function initEmberArena(canvas, opts) {
     // beat the record.
     function finalStats() {
         return {
-            meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, maxHp: player.maxHp,
+            meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, arrowDamage: player.arrowDamage, maxHp: player.maxHp,
             speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
             knockback: tuning.knockback, ultCd: tuning.ultCd, heartChance: tuning.heartChance,
         };
@@ -1552,6 +1652,31 @@ export function initEmberArena(canvas, opts) {
             ctx.restore();
         });
     }
+    // A shaft + arrowhead oriented along the flight path, not a circle like the
+    // enemy bolts above — it needs to read as "an arrow" at a glance, not just as
+    // another dot flying across the arena.
+    function drawArrows() {
+        arrows.forEach((a) => {
+            const angle = Math.atan2(a.vy, a.vx);
+            ctx.save();
+            ctx.translate(a.x, a.y);
+            ctx.rotate(angle);
+            ctx.strokeStyle = ARROW_COLOR;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-8, 0);
+            ctx.lineTo(3, 0);
+            ctx.stroke();
+            ctx.fillStyle = ARROW_GLOW;
+            ctx.beginPath();
+            ctx.moveTo(4, 0);
+            ctx.lineTo(-1, -2.5);
+            ctx.lineTo(-1, 2.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+    }
 
     // One glowing ring of fire, `progress` (0..1) of the way from the origin to the
     // arena's edge. Used twice per fireball, a beat apart, so the blast reads as two
@@ -1833,6 +1958,7 @@ export function initEmberArena(canvas, opts) {
         drawMonsters(colors);
         drawFamiliar(colors);
         drawBolts();
+        drawArrows();
         drawExplosions(colors);
         drawParticles();
         if (state !== 'over' && state !== 'won') drawPlayer(colors);
@@ -1886,6 +2012,11 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') ultimateAttack();
             else if (state !== 'choosing') start();
         },
+        bowAttack() {
+            if (state === 'playing') bowAttack();
+            else if (state !== 'choosing') start();
+        },
+        bowRelease,
         chooseUpgrade,
         resize,
         // The page's stick hands the direction over here: -1..1 per axis, or null on
