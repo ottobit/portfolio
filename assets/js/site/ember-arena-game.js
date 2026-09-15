@@ -1544,19 +1544,89 @@ export function initEmberArena(canvas, opts) {
 
         // Stone floor: a grid of tiles, each a touch lighter or darker than its
         // neighbours, with a thin gap between them standing in for mortar lines.
-        // Seeded (not Math.random()) so the pattern doesn't visibly reshuffle if
-        // ever rebuilt at the same size — a plain LCG is plenty for a shading dice
-        // roll, no need to pull in a real RNG for this.
+        // Each tile's corners are nudged by a small random jitter — a perfect grid
+        // reads as mechanical/generated; the jitter reads as flagstones actually
+        // laid by hand. Seeded (not Math.random()) so the pattern doesn't visibly
+        // reshuffle if ever rebuilt at the same size — a plain LCG is plenty for a
+        // shading dice roll, no need to pull in a real RNG for this.
         const TILE = 56;
+        const JITTER = 3;
         let seed = 1337;
         const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+        const jit = () => (rand() - 0.5) * JITTER * 2;
+        const darkStone = blendHex(colors.bg, '#000000', 0.3);
         octx.save();
         octx.globalAlpha = colors.light ? 0.05 : 0.09;
         for (let y = 0; y < H; y += TILE) {
             for (let x = 0; x < W; x += TILE) {
-                octx.fillStyle = rand() > 0.5 ? colors.ink : colors.bg;
-                octx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+                const roll = rand();
+                octx.fillStyle = roll > 0.66 ? colors.ink : roll > 0.33 ? colors.bg : darkStone;
+                octx.beginPath();
+                octx.moveTo(x + 1 + jit(), y + 1 + jit());
+                octx.lineTo(x + TILE - 1 + jit(), y + 1 + jit());
+                octx.lineTo(x + TILE - 1 + jit(), y + TILE - 1 + jit());
+                octx.lineTo(x + 1 + jit(), y + TILE - 1 + jit());
+                octx.closePath();
+                octx.fill();
             }
+        }
+        octx.restore();
+
+        // Cracks: a handful of jagged lines wandering across a few tiles each —
+        // the single detail that reads unmistakably as "old stone floor" rather
+        // than just a tiled texture. Kept out of the middle of the arena (where
+        // the player actually stands) so they stay set dressing, not something
+        // fought on top of.
+        const CRACK_COUNT = 5;
+        octx.save();
+        octx.strokeStyle = darkStone;
+        octx.lineWidth = 1.5;
+        octx.globalAlpha = colors.light ? 0.18 : 0.28;
+        const midX0 = W * 0.3, midX1 = W * 0.7, midY0 = H * 0.3, midY1 = H * 0.7;
+        for (let i = 0; i < CRACK_COUNT; i++) {
+            let cx, cy;
+            do {
+                cx = rand() * W;
+                cy = rand() * H;
+            } while (cx > midX0 && cx < midX1 && cy > midY0 && cy < midY1);
+            octx.beginPath();
+            octx.moveTo(cx, cy);
+            const segments = 3 + Math.floor(rand() * 3);
+            let angle = rand() * Math.PI * 2;
+            for (let s = 0; s < segments; s++) {
+                angle += (rand() - 0.5) * 1.2;
+                cx += Math.cos(angle) * TILE * 0.7;
+                cy += Math.sin(angle) * TILE * 0.7;
+                octx.lineTo(cx, cy);
+            }
+            octx.stroke();
+        }
+        octx.restore();
+
+        // Cave rock creeping in from each corner — the detail that says "you're
+        // in a monster's lair", not just "warm floor". Kept small (a fraction of
+        // the shorter side) and low-opacity so the playable centre never loses
+        // any contrast against monsters/bolts/HUD.
+        const rockSpan = Math.min(W, H) * 0.14;
+        octx.save();
+        octx.fillStyle = colors.ink;
+        octx.globalAlpha = colors.light ? 0.08 : 0.12;
+        const corners = [
+            { x: 0, y: 0, sx: 1, sy: 1 },
+            { x: W, y: 0, sx: -1, sy: 1 },
+            { x: W, y: H, sx: -1, sy: -1 },
+            { x: 0, y: H, sx: 1, sy: -1 },
+        ];
+        for (const c of corners) {
+            octx.beginPath();
+            octx.moveTo(c.x, c.y);
+            octx.lineTo(c.x + c.sx * rockSpan * 1.4, c.y);
+            octx.lineTo(c.x + c.sx * rockSpan * 0.9, c.y + c.sy * rockSpan * 0.4);
+            octx.lineTo(c.x + c.sx * rockSpan * 1.1, c.y + c.sy * rockSpan * 0.7);
+            octx.lineTo(c.x + c.sx * rockSpan * 0.5, c.y + c.sy * rockSpan * 0.9);
+            octx.lineTo(c.x, c.y + c.sy * rockSpan * 1.4);
+            octx.closePath();
+            octx.fill();
         }
         octx.restore();
 
