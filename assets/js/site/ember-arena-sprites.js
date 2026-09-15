@@ -155,6 +155,9 @@ export const MONSTER_TYPES = {
             ],
         ],
         cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2, knockMul: 1.35,
+        // Fast and erratic — the shortest cooldown of the three biters, but the
+        // weakest bite (it's the fast/fragile swarm type, not a bruiser).
+        bite: { cooldown: 1.0, telegraph: 0.25, damage: 10 },
     },
     // Keeps its distance and throws bolts, so standing still stops being an option.
     caster: {

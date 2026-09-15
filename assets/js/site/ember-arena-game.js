@@ -5,7 +5,7 @@
 import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=2';
+} from './ember-arena-sprites.js?v=3';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -34,6 +34,10 @@ const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // player's own growth (maxHp, Forza, Furia) instead of falling behind it.
 const MONSTER_DMG_LEVEL_STEP = 0.05; // +5% per level
 const MONSTER_DMG_LEVEL_CAP = 1.6;   // never past 1.6x the base damage
+// A landed bite snaps the monster a few px towards the player and back — makes
+// the hit itself read as a lunge, not just the telegraph glow beforehand.
+const BITE_LUNGE_DUR = 0.18; // seconds, out and back
+const BITE_LUNGE_DIST = 8;   // px, peak offset at the midpoint of the lunge
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -831,6 +835,7 @@ export function initEmberArena(canvas, opts) {
             // Staggered like shootTimer, so a pack spawned together doesn't bite in lockstep.
             biteTimer: def.bite ? Math.random() * def.bite.cooldown : 0,
             biteWindup: 0,
+            biteLungeT: 0, biteLungeDx: 0, biteLungeDy: 0,
         });
     }
 
@@ -1062,6 +1067,7 @@ export function initEmberArena(canvas, opts) {
                 m.y = clamp(m.y, -m.r * 2, H + m.r * 2);
             }
             m.flash = Math.max(0, m.flash - dt);
+            m.biteLungeT = Math.max(0, m.biteLungeT - dt);
             const touching = dist < player.r + m.r;
             if (touching) {
                 if (player.giantScale >= 4 && m.type !== 'boss' && m.type !== 'finalBoss') {
@@ -1084,7 +1090,14 @@ export function initEmberArena(canvas, opts) {
                         // Lands only if still touching once the telegraph runs out —
                         // stepping away during the windup makes it whiff (cooldown still
                         // applies, but no damage), same as a real dodge should.
-                        if (touching && !spinning && hurtPlayer(def.bite.damage * monsterDamageMul())) return;
+                        if (touching && !spinning) {
+                            // The lunge itself, not just the glow before it: a quick snap
+                            // towards wherever the player is right now, drawn in drawMonsters.
+                            m.biteLungeT = BITE_LUNGE_DUR;
+                            m.biteLungeDx = dx / dist;
+                            m.biteLungeDy = dy / dist;
+                            if (hurtPlayer(def.bite.damage * monsterDamageMul())) return;
+                        }
                     }
                 } else {
                     m.biteTimer -= dt;
@@ -1392,7 +1405,17 @@ export function initEmberArena(canvas, opts) {
                 sx = 0.75 + Math.sin(t * 0.7) * 0.1;
                 sy = 1.15 + Math.sin(t * 0.9 + 1) * 0.1;
             }
-            if (m.type !== 'bat') drawShadow(m.x, m.y + m.r * 0.8, m.r * 0.9);
+            // The lunge itself: a quick snap towards the player at the instant a bite
+            // lands (set in update()), eased out-and-back so it reads as a snap rather
+            // than a slide — 0 at both ends of biteLungeT, peaking at the midpoint.
+            let lungeX = 0;
+            let lungeY = 0;
+            if (m.biteLungeT > 0) {
+                const mag = Math.sin((1 - m.biteLungeT / BITE_LUNGE_DUR) * Math.PI) * BITE_LUNGE_DIST;
+                lungeX = m.biteLungeDx * mag;
+                lungeY = m.biteLungeDy * mag;
+            }
+            if (m.type !== 'bat') drawShadow(m.x + lungeX, m.y + lungeY + m.r * 0.8, m.r * 0.9);
             // The telegraph before a bite lands: same idea as the star volley's warning
             // glow below, in the same red already used for the player's own damage
             // numbers — reads as a threat about to land, distinct from the white flash
@@ -1421,7 +1444,7 @@ export function initEmberArena(canvas, opts) {
             // the four regular monster types, so it can't be mistaken for a boss cue.
             const palette = m.tier && !def.starAttack && m.type !== 'boss' ? tintPalette(def.palette, m.type, m.tier) : def.palette;
             ctx.save();
-            ctx.translate(m.x, m.y + dy);
+            ctx.translate(m.x + lungeX, m.y + dy + lungeY);
             ctx.scale(sx, sy);
             drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
