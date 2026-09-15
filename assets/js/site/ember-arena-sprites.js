@@ -17,6 +17,23 @@ export const HEART_FRAME = [
     '....h....',
 ];
 
+// A small chest instead of a gem — reads at a glance as "loot", and sits on
+// the ground rather than spinning in place (see the pop-in + bob in
+// drawTreasures() instead of a spin). Warm wood + gold trim, not used
+// anywhere else in the palette (red heals, green is the slime family, the
+// arrow's own wood/bronze — ARROW_COLOR — is close but never appears
+// alongside this).
+export const TREASURE_PALETTE = { c: '#6d4c2c', C: '#a9702f', g: '#f1c40f' };
+export const TREASURE_FRAME = [
+    '.ccccccc.',
+    'cCCCCCCCc',
+    'cCgggggCc',
+    'ccccccccc',
+    'cCCCCCCCc',
+    'cCC.g.CCc',
+    '.ccccccc.',
+];
+
 // Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
@@ -135,6 +152,14 @@ export const MONSTER_TYPES = {
         // Style 'rush': quickens its own steps to close the last stretch instead
         // of hopping, so the acceleration itself reads as "about to bite".
         bite: { cooldown: 1.1, telegraph: 0.3, damage: 14, style: 'rush', rushMul: 2.2 },
+        // A ranged jab on top of the bite, not instead of it — it keeps hopping in
+        // and biting up close as before, but now also breathes a short jet of fire
+        // while it closes the distance. A real gout of flame (fireBreath, not a
+        // single homing bolt): 4 embers in a straight line, short-lived so it reads
+        // as a burst that dissipates rather than a projectile with real range.
+        // Damage stays per-ember (weaker than the bite, the secondary threat), so
+        // only standing right in the line risks more than one landing.
+        spit: { interval: 2.2, speed: 240, damage: 7, range: 260, count: 4, gap: 10 },
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },
@@ -312,14 +337,15 @@ export function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
 export function drawArenaIcon(canvas, key, size = 44) {
     const hero = key === 'hero';
     const heart = key === 'heart';
+    const treasure = key === 'treasure';
     const cookie = key === 'cookie';
     const may = key === 'may';
-    const def = hero || heart || cookie || may ? null : MONSTER_TYPES[key];
-    if (!hero && !heart && !cookie && !may && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
+    const def = hero || heart || treasure || cookie || may ? null : MONSTER_TYPES[key];
+    if (!hero && !heart && !treasure && !cookie && !may && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : treasure ? TREASURE_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
     const palette = hero
         ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : heart ? HEART_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
+        : heart ? HEART_PALETTE : treasure ? TREASURE_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);

@@ -4,8 +4,9 @@
 // mutable run state — player, monsters, bolts, tuning — across ~50 functions).
 import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
+    TREASURE_FRAME, TREASURE_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=4';
+} from './ember-arena-sprites.js?v=8';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -51,6 +52,17 @@ const BITE_LEAP_LIFT = 6;    // px, extra vertical rise for 'leap'-style bites (
 // it appeared, since the monster keeps closing that last stretch during the
 // windup. A small head start makes it a warning you can actually react to.
 const BITE_ENGAGE_MARGIN = 14;
+// The imp hops instead of gliding: horizontal speed and vertical lift both follow
+// the same sine cycle, so it visibly leaps forward and lands instead of sliding at
+// a constant pace. Longer period + higher arc + a near-zero floor than the first
+// pass — a proper frog-length leap-and-pause instead of a quick shuffle.
+const IMP_HOP_PERIOD = 0.85; // seconds per hop
+const IMP_HOP_HEIGHT = 11;   // px, peak lift mid-hop
+const IMP_HOP_SPEED_FLOOR = 0.06;
+// Rarer than a heart (tuning.heartChance, ~0.13 base) — a treasure hands out a
+// full random upgrade on pickup, same effect as a level-up card, so it needs to
+// stay a genuine rare find rather than something every third kill drops.
+const TREASURE_CHANCE = 0.05;
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -140,6 +152,7 @@ export function initEmberArena(canvas, opts) {
     let bolts = [];
     let arrows = []; // the hero's own bow shots — the mirror of bolts, but aimed at monsters
     let hearts = [];
+    let treasures = [];
     let floaters = [];   // damage numbers drifting up
     let particles = [];  // what is left of a monster that just died
     let playerTrail = []; // recent hero positions, drawn as fading ghosts with Passo svelto
@@ -340,6 +353,7 @@ export function initEmberArena(canvas, opts) {
         bolts = [];
         arrows = [];
         hearts = [];
+        treasures = [];
         floaters = [];
         particles = [];
         playerTrail = [];
@@ -608,6 +622,30 @@ export function initEmberArena(canvas, opts) {
         sfx('starburst');
         if (!reducedMotion) shake = Math.max(shake, 3);
     }
+    // The imp's spit, upgraded from one homing bolt into an actual gout of fire: a
+    // narrow fan of short-lived embers aimed at the player, not a ring like the
+    // final boss's volley above — a breath, not an explosion. Short life (well under
+    // a normal bolt's) so it reads as a burst that dissipates, not a projectile with
+    // real range.
+    function fireBreath(m, cfg) {
+        // A straight jet, not a fan: every ember shares the same angle and velocity,
+        // spawned staggered along that line instead of spread across a cone — the
+        // whole line pops into view at once and travels forward together, reading
+        // as one solid streak of flame.
+        const baseAngle = Math.atan2(player.y - m.y, player.x - m.x);
+        const vx = Math.cos(baseAngle) * cfg.speed;
+        const vy = Math.sin(baseAngle) * cfg.speed;
+        const gap = cfg.gap || 10;
+        for (let i = 0; i < cfg.count; i++) {
+            const offset = i * gap;
+            bolts.push({
+                x: m.x + Math.cos(baseAngle) * offset, y: m.y + Math.sin(baseAngle) * offset,
+                vx, vy,
+                r: 5, damage: cfg.damage * monsterDamageMul(), life: 0.55, fireArrow: true,
+            });
+        }
+        sfx('starburst');
+    }
     // The regular boss's shockwave, right where its charge ends. Its own entry in
     // `explosions` (flagged `boss`, not `ult`) so it is handled and drawn as its own
     // thing — never the player's own fireball, which it must never be confused with.
@@ -640,6 +678,11 @@ export function initEmberArena(canvas, opts) {
             }
             if (Math.random() < tuning.heartChance) {
                 hearts.push({ x: m.x, y: m.y, life: 9 });
+            }
+            // Independent roll from the heart above — a kill can drop neither, either,
+            // or (rarely) both.
+            if (Math.random() < TREASURE_CHANCE) {
+                treasures.push({ x: m.x, y: m.y, life: 9 });
             }
             gainXp(m.xpValue);
         }
@@ -919,6 +962,7 @@ export function initEmberArena(canvas, opts) {
             biteTimer: def.bite ? Math.random() * def.bite.cooldown : 0,
             biteWindup: 0,
             biteLungeT: 0, biteLungeDx: 0, biteLungeDy: 0,
+            spitTimer: def.spit ? 0.8 + Math.random() * def.spit.interval : 0,
         });
     }
 
@@ -1073,6 +1117,28 @@ export function initEmberArena(canvas, opts) {
             }
         }
 
+        for (let i = treasures.length - 1; i >= 0; i--) {
+            const tr = treasures[i];
+            tr.life -= dt;
+            if (tr.life <= 0) {
+                treasures.splice(i, 1);
+                continue;
+            }
+            if (circlesOverlap(tr.x, tr.y, 12, player.x, player.y, player.r)) {
+                treasures.splice(i, 1);
+                // Same pool a level-up card draws from — a treasure is just that
+                // reward handed out early, not a separate currency to track.
+                const pool = availableUpgrades();
+                if (pool.length) {
+                    const up = pool[Math.floor(Math.random() * pool.length)];
+                    grantUpgrade(up.id);
+                    floaters.push({ x: player.x, y: player.y - player.r - 6, text: up.icon, life: 0.9, color: '#1abc9c' });
+                    pushStats();
+                    sfx('card');
+                }
+            }
+        }
+
         updateFamiliarVisit(dt);
 
         const finalFight = monsters.some((m) => m.type === 'finalBoss');
@@ -1107,6 +1173,20 @@ export function initEmberArena(canvas, opts) {
                 // Inside its comfort zone it backs off instead of closing in.
                 if (dist < def.shoot.standoff) speedMul = -0.5;
                 else if (dist < def.shoot.range) speedMul = def.shoot.approach;
+            }
+            // Unlike def.shoot, this never touches speedMul — the imp keeps hopping
+            // in and biting exactly as before, the spit is just a bonus jab it lobs
+            // along the way.
+            if (def.spit) {
+                m.spitTimer -= dt;
+                if (dist < def.spit.range && m.spitTimer <= 0) {
+                    fireBreath(m, def.spit);
+                    m.spitTimer = def.spit.interval;
+                }
+            }
+            if (m.type === 'imp') {
+                const hopPhase = ((elapsed + m.phase) % IMP_HOP_PERIOD) / IMP_HOP_PERIOD;
+                speedMul *= Math.max(IMP_HOP_SPEED_FLOOR, Math.sin(hopPhase * Math.PI));
             }
             // 'rush'-style biters (imp, bat) quicken their own steps for the telegraph
             // window instead of teleport-snapping at the last instant — the speed-up
@@ -1511,7 +1591,10 @@ export function initEmberArena(canvas, opts) {
                 sy = 1 + Math.sin(t) * 0.12;
                 sx = 1 - Math.sin(t) * 0.08;
             } else if (m.type === 'imp') {
-                dy = Math.sin(t * 1.3) * 2;
+                // Same hopPhase formula as the speedMul in update() — the leap up and
+                // the burst of horizontal speed stay in sync.
+                const hopPhase = ((elapsed + m.phase) % IMP_HOP_PERIOD) / IMP_HOP_PERIOD;
+                dy = -Math.abs(Math.sin(hopPhase * Math.PI)) * IMP_HOP_HEIGHT;
             } else if (m.type === 'bat') {
                 frame = Math.floor(elapsed * 10 + m.phase) % 2;
                 dy = Math.sin(t) * 3 - 4;
@@ -1790,6 +1873,23 @@ export function initEmberArena(canvas, opts) {
             paintSprite(ctx, HEART_FRAME, HEART_PALETTE, h.x, h.y, 2.4);
         });
     }
+    function drawTreasures() {
+        treasures.forEach((tr) => {
+            if (tr.life < 2 && Math.floor(tr.life * 8) % 2 === 0) return;
+            // Pops in over its first quarter-second instead of just appearing — reads
+            // as the chest dropping onto the ground rather than fading into being. A
+            // chest doesn't spin like the old gem did; a small idle bob is enough to
+            // mark it as interactive.
+            const age = 9 - tr.life;
+            const pop = Math.min(1, age / 0.25);
+            const bob = Math.sin(elapsed * 3 + tr.x) * 1.5;
+            ctx.save();
+            ctx.translate(tr.x, tr.y + bob);
+            ctx.scale(pop, pop);
+            paintSprite(ctx, TREASURE_FRAME, TREASURE_PALETTE, 0, 0, 2.4);
+            ctx.restore();
+        });
+    }
     function drawFloaters() {
         ctx.textAlign = 'center';
         ctx.font = '700 13px system-ui, sans-serif';
@@ -1962,6 +2062,7 @@ export function initEmberArena(canvas, opts) {
         ctx.save();
         ctx.translate(sx, sy);
         drawHearts();
+        drawTreasures();
         drawMonsters(colors);
         drawFamiliar(colors);
         drawBolts();
