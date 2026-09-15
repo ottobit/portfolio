@@ -111,8 +111,10 @@ export const MONSTER_TYPES = {
         cell: 2.6, r: 13, speedMul: 1, hpMul: 1, weight: 5, minLevel: 1, knockMul: 1,
         // A real move instead of continuous passive contact damage: it winds up
         // (telegraph) before actually biting, on a cooldown — dodgeable by
-        // stepping away, not a tick you just eat by touching it.
-        bite: { cooldown: 1.5, telegraph: 0.35, damage: 12 },
+        // stepping away, not a tick you just eat by touching it. Style 'leap':
+        // it hops the short distance to you instead of closing in on foot —
+        // fits the squish-bounce it already does at rest.
+        bite: { cooldown: 1.5, telegraph: 0.35, damage: 12, style: 'leap' },
     },
     imp: {
         palette: { A: '#c0392b', a: '#7b241c', E: '#ffffff', p: '#1a1a1a', M: '#f1c40f' },
@@ -130,7 +132,9 @@ export const MONSTER_TYPES = {
         ]],
         cell: 2.6, r: 12, speedMul: 1.15, hpMul: 0.85, weight: 3, minLevel: 1, knockMul: 1.1,
         // More aggressive than the slime (faster, lower hp) — bites more often too.
-        bite: { cooldown: 1.1, telegraph: 0.3, damage: 14 },
+        // Style 'rush': quickens its own steps to close the last stretch instead
+        // of hopping, so the acceleration itself reads as "about to bite".
+        bite: { cooldown: 1.1, telegraph: 0.3, damage: 14, style: 'rush', rushMul: 2.2 },
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },
@@ -156,8 +160,10 @@ export const MONSTER_TYPES = {
         ],
         cell: 2.4, r: 11, speedMul: 1.5, hpMul: 0.6, weight: 2, minLevel: 2, knockMul: 1.35,
         // Fast and erratic — the shortest cooldown of the three biters, but the
-        // weakest bite (it's the fast/fragile swarm type, not a bruiser).
-        bite: { cooldown: 1.0, telegraph: 0.25, damage: 10 },
+        // weakest bite (it's the fast/fragile swarm type, not a bruiser). Same
+        // 'rush' style as the imp — it's already the fastest thing on screen, so
+        // a burst of extra speed reads naturally as a dive-bomb before the bite.
+        bite: { cooldown: 1.0, telegraph: 0.25, damage: 10, style: 'rush', rushMul: 2.0 },
     },
     // Keeps its distance and throws bolts, so standing still stops being an option.
     caster: {
