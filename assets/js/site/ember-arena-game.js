@@ -6,7 +6,7 @@ import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     TREASURE_FRAME, TREASURE_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=7';
+} from './ember-arena-sprites.js?v=8';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -628,14 +628,19 @@ export function initEmberArena(canvas, opts) {
     // a normal bolt's) so it reads as a burst that dissipates, not a projectile with
     // real range.
     function fireBreath(m, cfg) {
+        // A straight jet, not a fan: every ember shares the same angle and velocity,
+        // spawned staggered along that line instead of spread across a cone — the
+        // whole line pops into view at once and travels forward together, reading
+        // as one solid streak of flame.
         const baseAngle = Math.atan2(player.y - m.y, player.x - m.x);
-        const spread = cfg.spread || 0.5;
+        const vx = Math.cos(baseAngle) * cfg.speed;
+        const vy = Math.sin(baseAngle) * cfg.speed;
+        const gap = cfg.gap || 10;
         for (let i = 0; i < cfg.count; i++) {
-            const t = cfg.count === 1 ? 0 : i / (cfg.count - 1) - 0.5;
-            const a = baseAngle + t * spread;
+            const offset = i * gap;
             bolts.push({
-                x: m.x, y: m.y,
-                vx: Math.cos(a) * cfg.speed, vy: Math.sin(a) * cfg.speed,
+                x: m.x + Math.cos(baseAngle) * offset, y: m.y + Math.sin(baseAngle) * offset,
+                vx, vy,
                 r: 5, damage: cfg.damage * monsterDamageMul(), life: 0.55, fireArrow: true,
             });
         }
