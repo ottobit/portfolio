@@ -6,7 +6,7 @@ import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     TREASURE_FRAME, TREASURE_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=6';
+} from './ember-arena-sprites.js?v=7';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -604,9 +604,6 @@ export function initEmberArena(canvas, opts) {
             // standing on at launch — the ice bolt stays a straight, dodgeable
             // read, since its paralysis is already the real threat.
             homing: !cfg.ice, angle0: Math.atan2(dy, dx), speed: cfg.speed,
-            // fireArrow just picks the warm drawBolts colour (see the final boss's
-            // star volley below) — it doesn't change how the bolt behaves.
-            fireArrow: !!cfg.fireArrow,
         });
     }
     // The final boss's second attack: a whole ring of fire arrows launched together,
@@ -624,6 +621,25 @@ export function initEmberArena(canvas, opts) {
         }
         sfx('starburst');
         if (!reducedMotion) shake = Math.max(shake, 3);
+    }
+    // The imp's spit, upgraded from one homing bolt into an actual gout of fire: a
+    // narrow fan of short-lived embers aimed at the player, not a ring like the
+    // final boss's volley above — a breath, not an explosion. Short life (well under
+    // a normal bolt's) so it reads as a burst that dissipates, not a projectile with
+    // real range.
+    function fireBreath(m, cfg) {
+        const baseAngle = Math.atan2(player.y - m.y, player.x - m.x);
+        const spread = cfg.spread || 0.5;
+        for (let i = 0; i < cfg.count; i++) {
+            const t = cfg.count === 1 ? 0 : i / (cfg.count - 1) - 0.5;
+            const a = baseAngle + t * spread;
+            bolts.push({
+                x: m.x, y: m.y,
+                vx: Math.cos(a) * cfg.speed, vy: Math.sin(a) * cfg.speed,
+                r: 5, damage: cfg.damage * monsterDamageMul(), life: 0.55, fireArrow: true,
+            });
+        }
+        sfx('starburst');
     }
     // The regular boss's shockwave, right where its charge ends. Its own entry in
     // `explosions` (flagged `boss`, not `ult`) so it is handled and drawn as its own
@@ -1159,7 +1175,7 @@ export function initEmberArena(canvas, opts) {
             if (def.spit) {
                 m.spitTimer -= dt;
                 if (dist < def.spit.range && m.spitTimer <= 0) {
-                    fireBolt(m, Object.assign({ fireArrow: true }, def.spit));
+                    fireBreath(m, def.spit);
                     m.spitTimer = def.spit.interval;
                 }
             }
