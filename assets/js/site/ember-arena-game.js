@@ -5,7 +5,7 @@
 import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=1';
+} from './ember-arena-sprites.js?v=2';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -28,6 +28,12 @@ const ICE_COLOR = '#74c0fc';
 const ICE_GLOW = '#d0f0ff';
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
+// The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
+// baseline; monsterDamageMul() (below, inside initEmberArena — it needs `level`)
+// scales every monster-dealt hit up from there so the threat keeps pace with the
+// player's own growth (maxHp, Forza, Furia) instead of falling behind it.
+const MONSTER_DMG_LEVEL_STEP = 0.05; // +5% per level
+const MONSTER_DMG_LEVEL_CAP = 1.6;   // never past 1.6x the base damage
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -84,7 +90,7 @@ export function initEmberArena(canvas, opts) {
     // The sword has no cooldown: holding the action keeps the hero spinning like a
     // top, and a tap is just a spin that stops after its first full turn.
     const TAU = Math.PI * 2;
-    const BASE_SPIN_DUR = 0.22; // seconds per full turn, before any Fury card
+    const BASE_SPIN_DUR = 0.32; // seconds per full turn, before any Fury card
     const BASE_ULT_CD = 8;
     // Everything a level-up card can move lives here, so a card is one line and the
     // run's numbers are never scattered as literals through the loop.
@@ -490,7 +496,7 @@ export function initEmberArena(canvas, opts) {
         bolts.push({
             x: m.x, y: m.y,
             vx: (dx / d) * cfg.speed, vy: (dy / d) * cfg.speed,
-            r: 5, damage: cfg.damage, life: 5,
+            r: 5, damage: cfg.damage * monsterDamageMul(), life: 5,
             ice: !!cfg.ice, paralyzeDuration: cfg.paralyzeDuration || 0,
             // A caster's bolt leans gently toward wherever the player has moved to
             // since it was fired, instead of committing to the spot they were
@@ -509,7 +515,7 @@ export function initEmberArena(canvas, opts) {
             bolts.push({
                 x: m.x, y: m.y,
                 vx: Math.cos(a) * cfg.speed, vy: Math.sin(a) * cfg.speed,
-                r: 5, damage: cfg.damage, life: 5, fireArrow: true,
+                r: 5, damage: cfg.damage * monsterDamageMul(), life: 5, fireArrow: true,
             });
         }
         sfx('starburst');
@@ -522,7 +528,7 @@ export function initEmberArena(canvas, opts) {
         // The final boss hits harder and wider than the regular one — the charge
         // that closes distance is the same move, but landing it should sting more.
         const final = m.type === 'finalBoss';
-        explosions.push({ x: m.x, y: m.y, r: 0, maxR: final ? 140 : 110, life: 0.35, dur: 0.35, boss: true, damage: final ? 26 : 18, hit: false, seed: Math.random() * TAU });
+        explosions.push({ x: m.x, y: m.y, r: 0, maxR: final ? 140 : 110, life: 0.35, dur: 0.35, boss: true, damage: (final ? 26 : 18) * monsterDamageMul(), hit: false, seed: Math.random() * TAU });
         if (!reducedMotion) shake = Math.max(shake, final ? 10 : 8);
         sfx('slam');
     }
@@ -684,6 +690,11 @@ export function initEmberArena(canvas, opts) {
             }
         }
     }
+    // How much a monster-dealt hit is scaled up at the run's current level —
+    // see MONSTER_DMG_LEVEL_STEP/CAP above.
+    function monsterDamageMul() {
+        return Math.min(MONSTER_DMG_LEVEL_CAP, 1 + (level - 1) * MONSTER_DMG_LEVEL_STEP);
+    }
     function hurtPlayer(amount) {
         if (state !== 'playing') return false;
         if (elapsed < player.invulnUntil) return false;
@@ -803,7 +814,7 @@ export function initEmberArena(canvas, opts) {
         else if (edge === 2) { x = Math.random() * W; y = H + r; }
         else { x = -r; y = Math.random() * H; }
         const speed = (40 + Math.random() * 20 + level * 3) * def.speedMul;
-        const maxHp = Math.round((20 + level * 6) * def.hpMul);
+        const maxHp = Math.round((20 + level * 9) * def.hpMul);
         const xpValue = type === 'boss' ? Math.round(xpToNext * 1.8) : 3 + level;
         // How far the run has climbed at the moment this one steps in, not its type:
         // the same slime looks tougher met at level 12 than at level 1. Boss sprites
@@ -817,6 +828,9 @@ export function initEmberArena(canvas, opts) {
             // Stagger the first shot so a pair spawned together doesn't fire in lockstep.
             shootTimer: def.shoot ? 0.8 + Math.random() * def.shoot.interval : 0,
             starTimer: def.starAttack ? def.starAttack.interval : 0,
+            // Staggered like shootTimer, so a pack spawned together doesn't bite in lockstep.
+            biteTimer: def.bite ? Math.random() * def.bite.cooldown : 0,
+            biteWindup: 0,
         });
     }
 
@@ -1048,7 +1062,8 @@ export function initEmberArena(canvas, opts) {
                 m.y = clamp(m.y, -m.r * 2, H + m.r * 2);
             }
             m.flash = Math.max(0, m.flash - dt);
-            if (dist < player.r + m.r) {
+            const touching = dist < player.r + m.r;
+            if (touching) {
                 if (player.giantScale >= 4 && m.type !== 'boss' && m.type !== 'finalBoss') {
                     damageMonster(i, Math.max(m.hp, player.meleeDamage * 2));
                     if (!reducedMotion) shake = Math.max(shake, 3);
@@ -1057,8 +1072,27 @@ export function initEmberArena(canvas, opts) {
                 // While spinning the hero plows through contact like a whirlwind —
                 // same idea as Diablo's Barbarian — but stays vulnerable to bolts
                 // and other ranged attacks below, so the spin can't trivialize a
-                // boss fight fought at range.
-                if (!spinning && hurtPlayer(def.contactDamage || 10)) return;
+                // boss fight fought at range. A monster with its own bite (below)
+                // no longer hurts on touch alone — only a landed bite does.
+                if (!def.bite && !spinning && hurtPlayer((def.contactDamage || 10) * monsterDamageMul())) return;
+            }
+            if (def.bite) {
+                if (m.biteWindup > 0) {
+                    m.biteWindup -= dt;
+                    if (m.biteWindup <= 0) {
+                        m.biteTimer = def.bite.cooldown;
+                        // Lands only if still touching once the telegraph runs out —
+                        // stepping away during the windup makes it whiff (cooldown still
+                        // applies, but no damage), same as a real dodge should.
+                        if (touching && !spinning && hurtPlayer(def.bite.damage * monsterDamageMul())) return;
+                    }
+                } else {
+                    m.biteTimer -= dt;
+                    if (touching && m.biteTimer <= 0) {
+                        m.biteWindup = def.bite.telegraph;
+                        if (!reducedMotion) shake = Math.max(shake, 2);
+                    }
+                }
             }
         }
 
@@ -1359,6 +1393,19 @@ export function initEmberArena(canvas, opts) {
                 sy = 1.15 + Math.sin(t * 0.9 + 1) * 0.1;
             }
             if (m.type !== 'bat') drawShadow(m.x, m.y + m.r * 0.8, m.r * 0.9);
+            // The telegraph before a bite lands: same idea as the star volley's warning
+            // glow below, in the same red already used for the player's own damage
+            // numbers — reads as a threat about to land, distinct from the white flash
+            // that means "just got hit".
+            if (def.bite && m.biteWindup > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.3 + 0.3 * Math.sin(elapsed * 24);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.r * 1.35, 0, TAU);
+                ctx.fill();
+                ctx.restore();
+            }
             // The telegraph before the final boss's star volley: a pulsing glow so the
             // ring of arrows about to come out reads as a warning, not a surprise.
             if (def.starAttack && m.starTimer > 0 && m.starTimer <= def.starAttack.telegraph) {
