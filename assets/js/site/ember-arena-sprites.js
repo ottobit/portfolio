@@ -109,6 +109,10 @@ export const MONSTER_TYPES = {
             '.aaaaaaaa.',
         ]],
         cell: 2.6, r: 13, speedMul: 1, hpMul: 1, weight: 5, minLevel: 1, knockMul: 1,
+        // A real move instead of continuous passive contact damage: it winds up
+        // (telegraph) before actually biting, on a cooldown — dodgeable by
+        // stepping away, not a tick you just eat by touching it.
+        bite: { cooldown: 1.5, telegraph: 0.35, damage: 12 },
     },
     imp: {
         palette: { A: '#c0392b', a: '#7b241c', E: '#ffffff', p: '#1a1a1a', M: '#f1c40f' },
@@ -125,6 +129,8 @@ export const MONSTER_TYPES = {
             '.a......a.',
         ]],
         cell: 2.6, r: 12, speedMul: 1.15, hpMul: 0.85, weight: 3, minLevel: 1, knockMul: 1.1,
+        // More aggressive than the slime (faster, lower hp) — bites more often too.
+        bite: { cooldown: 1.1, telegraph: 0.3, damage: 14 },
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },
