@@ -17,6 +17,20 @@ export const HEART_FRAME = [
     '....h....',
 ];
 
+// A faceted gem instead of a coin — reads at a glance as "worth more than a
+// heart" without needing a bigger sprite. Turquoise, not used anywhere else in
+// the palette (red heals, orange/gold is fire, green is the slime family).
+export const TREASURE_PALETTE = { t: '#1abc9c', T: '#a3e4d7' };
+export const TREASURE_FRAME = [
+    '....t....',
+    '...ttt...',
+    '..tTTtt..',
+    '.ttttttt.',
+    '..ttttt..',
+    '...ttt...',
+    '....t....',
+];
+
 // Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
@@ -312,14 +326,15 @@ export function paintSprite(ctx, rows, palette, cx, cy, cell, flipX, override) {
 export function drawArenaIcon(canvas, key, size = 44) {
     const hero = key === 'hero';
     const heart = key === 'heart';
+    const treasure = key === 'treasure';
     const cookie = key === 'cookie';
     const may = key === 'may';
-    const def = hero || heart || cookie || may ? null : MONSTER_TYPES[key];
-    if (!hero && !heart && !cookie && !may && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
+    const def = hero || heart || treasure || cookie || may ? null : MONSTER_TYPES[key];
+    if (!hero && !heart && !treasure && !cookie && !may && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : treasure ? TREASURE_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
     const palette = hero
         ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : heart ? HEART_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
+        : heart ? HEART_PALETTE : treasure ? TREASURE_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
