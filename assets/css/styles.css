@@ -2557,6 +2557,12 @@ a.info-card:focus-visible .info-card-title::after {
     font-size: 2rem;
     border-color: rgba(249, 202, 36, 0.7);
 }
+/* Same wood/bronze already used for the arrow itself (see ARROW_COLOR in
+   ember-arena-game.js) — size stays the base .game-touch-btn default, it's a
+   steady third attack, not a big one-shot like the fireball. */
+.game-touch-btn-bow {
+    border-color: rgba(141, 110, 99, 0.7);
+}
 .game-touch-btn:active {
     background: rgba(0, 0, 0, 0.7);
     transform: scale(0.94);
