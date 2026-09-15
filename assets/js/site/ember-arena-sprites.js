@@ -17,18 +17,21 @@ export const HEART_FRAME = [
     '....h....',
 ];
 
-// A faceted gem instead of a coin — reads at a glance as "worth more than a
-// heart" without needing a bigger sprite. Turquoise, not used anywhere else in
-// the palette (red heals, orange/gold is fire, green is the slime family).
-export const TREASURE_PALETTE = { t: '#1abc9c', T: '#a3e4d7' };
+// A small chest instead of a gem — reads at a glance as "loot", and sits on
+// the ground rather than spinning in place (see the pop-in + bob in
+// drawTreasures() instead of a spin). Warm wood + gold trim, not used
+// anywhere else in the palette (red heals, green is the slime family, the
+// arrow's own wood/bronze — ARROW_COLOR — is close but never appears
+// alongside this).
+export const TREASURE_PALETTE = { c: '#6d4c2c', C: '#a9702f', g: '#f1c40f' };
 export const TREASURE_FRAME = [
-    '....t....',
-    '...ttt...',
-    '..tTTtt..',
-    '.ttttttt.',
-    '..ttttt..',
-    '...ttt...',
-    '....t....',
+    '.ccccccc.',
+    'cCCCCCCCc',
+    'cCgggggCc',
+    'ccccccccc',
+    'cCCCCCCCc',
+    'cCC.g.CCc',
+    '.ccccccc.',
 ];
 
 // Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
@@ -149,6 +152,12 @@ export const MONSTER_TYPES = {
         // Style 'rush': quickens its own steps to close the last stretch instead
         // of hopping, so the acceleration itself reads as "about to bite".
         bite: { cooldown: 1.1, telegraph: 0.3, damage: 14, style: 'rush', rushMul: 2.2 },
+        // A ranged jab on top of the bite, not instead of it — it keeps hopping in
+        // and biting up close as before, but now also lobs the odd fireball while
+        // it closes the distance. Weaker than the bite (it's the secondary threat)
+        // and a long enough range that it can actually fire mid-approach, not just
+        // once it's already adjacent.
+        spit: { interval: 2.2, speed: 200, damage: 8, range: 300 },
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },

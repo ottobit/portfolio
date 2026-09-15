@@ -6,7 +6,7 @@ import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     TREASURE_FRAME, TREASURE_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=5';
+} from './ember-arena-sprites.js?v=6';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -54,10 +54,11 @@ const BITE_LEAP_LIFT = 6;    // px, extra vertical rise for 'leap'-style bites (
 const BITE_ENGAGE_MARGIN = 14;
 // The imp hops instead of gliding: horizontal speed and vertical lift both follow
 // the same sine cycle, so it visibly leaps forward and lands instead of sliding at
-// a constant pace — the speed floor keeps it from fully stopping mid-cycle.
-const IMP_HOP_PERIOD = 0.5; // seconds per hop
-const IMP_HOP_HEIGHT = 6;   // px, peak lift mid-hop
-const IMP_HOP_SPEED_FLOOR = 0.15;
+// a constant pace. Longer period + higher arc + a near-zero floor than the first
+// pass — a proper frog-length leap-and-pause instead of a quick shuffle.
+const IMP_HOP_PERIOD = 0.85; // seconds per hop
+const IMP_HOP_HEIGHT = 11;   // px, peak lift mid-hop
+const IMP_HOP_SPEED_FLOOR = 0.06;
 // Rarer than a heart (tuning.heartChance, ~0.13 base) — a treasure hands out a
 // full random upgrade on pickup, same effect as a level-up card, so it needs to
 // stay a genuine rare find rather than something every third kill drops.
@@ -603,6 +604,9 @@ export function initEmberArena(canvas, opts) {
             // standing on at launch — the ice bolt stays a straight, dodgeable
             // read, since its paralysis is already the real threat.
             homing: !cfg.ice, angle0: Math.atan2(dy, dx), speed: cfg.speed,
+            // fireArrow just picks the warm drawBolts colour (see the final boss's
+            // star volley below) — it doesn't change how the bolt behaves.
+            fireArrow: !!cfg.fireArrow,
         });
     }
     // The final boss's second attack: a whole ring of fire arrows launched together,
@@ -937,6 +941,7 @@ export function initEmberArena(canvas, opts) {
             biteTimer: def.bite ? Math.random() * def.bite.cooldown : 0,
             biteWindup: 0,
             biteLungeT: 0, biteLungeDx: 0, biteLungeDy: 0,
+            spitTimer: def.spit ? 0.8 + Math.random() * def.spit.interval : 0,
         });
     }
 
@@ -1147,6 +1152,16 @@ export function initEmberArena(canvas, opts) {
                 // Inside its comfort zone it backs off instead of closing in.
                 if (dist < def.shoot.standoff) speedMul = -0.5;
                 else if (dist < def.shoot.range) speedMul = def.shoot.approach;
+            }
+            // Unlike def.shoot, this never touches speedMul — the imp keeps hopping
+            // in and biting exactly as before, the spit is just a bonus jab it lobs
+            // along the way.
+            if (def.spit) {
+                m.spitTimer -= dt;
+                if (dist < def.spit.range && m.spitTimer <= 0) {
+                    fireBolt(m, Object.assign({ fireArrow: true }, def.spit));
+                    m.spitTimer = def.spit.interval;
+                }
             }
             if (m.type === 'imp') {
                 const hopPhase = ((elapsed + m.phase) % IMP_HOP_PERIOD) / IMP_HOP_PERIOD;
@@ -1840,12 +1855,16 @@ export function initEmberArena(canvas, opts) {
     function drawTreasures() {
         treasures.forEach((tr) => {
             if (tr.life < 2 && Math.floor(tr.life * 8) % 2 === 0) return;
-            // A slow spin (scaleX only, a cheap stand-in for a 3D turn) so a gem sitting
-            // still still reads as something worth walking over, not just background.
-            const spin = Math.cos(elapsed * 3 + tr.x);
+            // Pops in over its first quarter-second instead of just appearing — reads
+            // as the chest dropping onto the ground rather than fading into being. A
+            // chest doesn't spin like the old gem did; a small idle bob is enough to
+            // mark it as interactive.
+            const age = 9 - tr.life;
+            const pop = Math.min(1, age / 0.25);
+            const bob = Math.sin(elapsed * 3 + tr.x) * 1.5;
             ctx.save();
-            ctx.translate(tr.x, tr.y);
-            ctx.scale(spin, 1);
+            ctx.translate(tr.x, tr.y + bob);
+            ctx.scale(pop, pop);
             paintSprite(ctx, TREASURE_FRAME, TREASURE_PALETTE, 0, 0, 2.4);
             ctx.restore();
         });
