@@ -63,7 +63,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.47">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.48">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -239,7 +239,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=44';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=45';
 
     initDiagramPage();
 
@@ -529,6 +529,15 @@
         // sync by hand with it.
         return window.matchMedia('(orientation: portrait) and (max-width: 480px)').matches;
     }
+    // The prompt covering the arena and the arena actually being frozen are the same
+    // fact, not two things to keep in sync by hand — every place that used to just
+    // flip rotatePrompt.hidden goes through here instead. Without this the arena kept
+    // running behind the prompt (monsters still landing hits on a player who can
+    // neither see nor control anything), which read as unfair rather than paused.
+    function setRotatePrompt(show) {
+        rotatePrompt.hidden = !show;
+        game.setPaused(show);
+    }
     const START_KEYS = [' ', 'Enter', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V'];
     // Capture-phase on window: this runs before any listener the game module
     // attaches to the canvas or document, regardless of which script registered
@@ -538,30 +547,30 @@
         if (e.target !== canvas || !isPortraitPhone()) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        rotatePrompt.hidden = false;
+        setRotatePrompt(true);
     }, true);
     window.addEventListener('keydown', (e) => {
         if (!isPortraitPhone() || !START_KEYS.includes(e.key)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        rotatePrompt.hidden = false;
+        setRotatePrompt(true);
     }, true);
-    // Rotating clears/raises the prompt to match — back to landscape hides it,
-    // back to portrait (mid-session, after the very first load) raises it again
-    // right away instead of waiting for another tap: the controls are already
+    // Rotating clears/raises the prompt to match — back to landscape hides it (and
+    // unpauses), back to portrait (mid-session, after the very first load) raises it
+    // again right away instead of waiting for another tap: the controls are already
     // gone at that point, so silence would just leave the player stranded.
     // 'resize' doesn't fire on initial page load, only on a real viewport change,
     // so a cold load in portrait is untouched by this — still idle canvas, still
     // waiting for that first tap, exactly as before.
     window.addEventListener('resize', () => {
-        // The run is over: there's nothing left that needs landscape, and the results
-        // screen (Play again/Reset record) already has its own hidden state to manage.
-        // Only raise the prompt for states that actually need the controls back.
+        // The run is over: there's nothing left that needs landscape or pausing — the
+        // results screen (Play again/Reset record) already has its own hidden state
+        // to manage, and the arena has nothing left in it worth protecting.
         if (currentState === 'over' || currentState === 'won') {
-            rotatePrompt.hidden = true;
+            setRotatePrompt(false);
             return;
         }
-        rotatePrompt.hidden = !isPortraitPhone();
+        setRotatePrompt(isPortraitPhone());
     });
 
     // touch-action: none (on the stick, the buttons, the whole landscape panel) and

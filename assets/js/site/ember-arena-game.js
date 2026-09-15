@@ -115,6 +115,7 @@ export function initEmberArena(canvas, opts) {
     let familiarCooldown = 0; // seconds left before another visit can even be rolled
     let familiarAnnounce = null; // { kind, t } while the arrival banner freezes the arena
     let finalBossDeath = null; // { t, x, y, nextPulse } while the final boss's own defeat beat plays out
+    let externalPause = false; // set by the page — e.g. the portrait rotate-prompt covering the arena
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -171,7 +172,21 @@ export function initEmberArena(canvas, opts) {
         else if (name === 'card') chirp({ from: 880, to: 1320, duration: 0.1, type: 'triangle', gain: 0.04 });
         else if (name === 'storm') { noiseBurst(0.5, 0.07, 900); chirp({ from: 220, to: 1200, duration: 0.45, type: 'sawtooth', gain: 0.03 }); }
         else if (name === 'boss') { chirp({ from: 120, to: 60, duration: 0.7, type: 'sawtooth', gain: 0.06 }); noiseBurst(0.5, 0.05, 400); }
-        else if (name === 'win') [0, 0.13, 0.26, 0.42].forEach((d, i) => chirp({ from: [523, 659, 784, 1046][i], to: [523, 659, 784, 1046][i], duration: 0.22, type: 'triangle', gain: 0.05, delay: d }));
+        else if (name === 'win') {
+            // A proper "we made it" fanfare instead of a quick four-note blip — this
+            // is the payoff after a full run, it earns more than half a second: a
+            // rising run up a C major triad into a held, layered final chord (three
+            // notes stacked, two waveforms each for a fuller, brighter "brass" feel)
+            // plus a soft noise swell under it for weight.
+            const run = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5 E5 G5 C6 E6
+            run.forEach((f, i) => chirp({ from: f, to: f, duration: 0.16, type: 'triangle', gain: 0.05, delay: i * 0.1 }));
+            const chordAt = run.length * 0.1;
+            [1046.5, 1318.51, 1567.98].forEach((f) => { // C6 E6 G6, held
+                chirp({ from: f, to: f, duration: 0.9, type: 'triangle', gain: 0.05, delay: chordAt });
+                chirp({ from: f, to: f, duration: 0.9, type: 'square', gain: 0.02, delay: chordAt });
+            });
+            noiseBurst(0.3, 0.03, 3000, chordAt);
+        }
         else if (name === 'over') chirp({ from: 300, to: 70, duration: 0.7, type: 'sawtooth', gain: 0.05 });
         else if (name === 'starburst') { chirp({ from: 700, to: 1500, duration: 0.12, type: 'sawtooth', gain: 0.045 }); chirp({ from: 1500, to: 2200, duration: 0.1, type: 'sawtooth', gain: 0.03, delay: 0.08 }); }
         else if (name === 'slam') { noiseBurst(0.12, 0.06, 500); chirp({ from: 140, to: 50, duration: 0.22, type: 'sawtooth', gain: 0.05 }); }
@@ -806,6 +821,10 @@ export function initEmberArena(canvas, opts) {
     }
 
     function update(dt) {
+        // The page covers the arena (the portrait rotate-prompt) and wants nothing to
+        // progress while the player can't see or control it — a full freeze, ahead of
+        // every other check below, since none of it matters if the screen is covered.
+        if (externalPause) return;
         // The arrival banner freezes the arena the same way 'choosing' does below —
         // a real pause, independent of `state`, so it can't fight the run/menu logic
         // that already gates on `state !== 'choosing'` elsewhere.
@@ -1811,6 +1830,13 @@ export function initEmberArena(canvas, opts) {
         },
         hasWon() {
             return hasWon;
+        },
+        // For the page to freeze the arena for a reason of its own (the portrait
+        // rotate-prompt covering the canvas) — independent of `state`, same as
+        // familiarAnnounce/finalBossDeath above; it just needs an external trigger
+        // since the page, not the engine, knows when its own overlay is covering play.
+        setPaused(value) {
+            externalPause = !!value;
         },
         // The record only, not the separate "won at least once" star (WON_KEY) —
         // that's its own achievement, not part of the stat record.
