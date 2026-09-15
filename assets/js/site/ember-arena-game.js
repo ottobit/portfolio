@@ -38,6 +38,11 @@ const MONSTER_DMG_LEVEL_CAP = 1.6;   // never past 1.6x the base damage
 // the hit itself read as a lunge, not just the telegraph glow beforehand.
 const BITE_LUNGE_DUR = 0.18; // seconds, out and back
 const BITE_LUNGE_DIST = 8;   // px, peak offset at the midpoint of the lunge
+// The telegraph can start this many px before actual contact — starting it only
+// once fully touching left the glow buried under/behind the monster by the time
+// it appeared, since the monster keeps closing that last stretch during the
+// windup. A small head start makes it a warning you can actually react to.
+const BITE_ENGAGE_MARGIN = 14;
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -197,7 +202,16 @@ export function initEmberArena(canvas, opts) {
             });
             noiseBurst(0.3, 0.03, 3000, chordAt);
         }
-        else if (name === 'over') chirp({ from: 300, to: 70, duration: 0.7, type: 'sawtooth', gain: 0.05 });
+        else if (name === 'over') {
+            // A proper "you died" motif instead of a single downward blip — the sad
+            // mirror of the 'win' fanfare above: a descending four-note fall into a
+            // held low note, with a soft thud under it for weight.
+            const fall = [392.0, 349.23, 293.66, 246.94]; // G4 F4 D4 B3
+            fall.forEach((f, i) => chirp({ from: f, to: f * 0.94, duration: 0.2, type: 'sawtooth', gain: 0.045, delay: i * 0.15 }));
+            const holdAt = fall.length * 0.15;
+            chirp({ from: 196.0, to: 164.81, duration: 0.9, type: 'sawtooth', gain: 0.05, delay: holdAt }); // G3 -> E3, held
+            noiseBurst(0.25, 0.03, 250, holdAt);
+        }
         else if (name === 'starburst') { chirp({ from: 700, to: 1500, duration: 0.12, type: 'sawtooth', gain: 0.045 }); chirp({ from: 1500, to: 2200, duration: 0.1, type: 'sawtooth', gain: 0.03, delay: 0.08 }); }
         else if (name === 'slam') { noiseBurst(0.12, 0.06, 500); chirp({ from: 140, to: 50, duration: 0.22, type: 'sawtooth', gain: 0.05 }); }
         else if (name === 'bark') { chirp({ from: 380, to: 220, duration: 0.09, type: 'square', gain: 0.045 }); chirp({ from: 340, to: 180, duration: 0.08, type: 'square', gain: 0.035, delay: 0.12 }); }
@@ -1101,7 +1115,9 @@ export function initEmberArena(canvas, opts) {
                     }
                 } else {
                     m.biteTimer -= dt;
-                    if (touching && m.biteTimer <= 0) {
+                    // Engage range is a bit wider than the actual touch range used for
+                    // landing/whiffing above — see BITE_ENGAGE_MARGIN.
+                    if (dist < player.r + m.r + BITE_ENGAGE_MARGIN && m.biteTimer <= 0) {
                         m.biteWindup = def.bite.telegraph;
                         if (!reducedMotion) shake = Math.max(shake, 2);
                     }
