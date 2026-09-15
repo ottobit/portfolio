@@ -525,8 +525,8 @@ export function initEmberArena(canvas, opts) {
             sfx('kill');
             if (m.type === 'finalBoss') {
                 gainXp(m.xpValue);
-                win(); // computes/saves the stats and tells the page to start revealing
-                       // the results now — the overlay fades in overlapping the pulses below
+                // win() (stats + the results overlay) doesn't fire until the death
+                // sequence below actually finishes — see beginFinalBossDeath.
                 beginFinalBossDeath(m.x, m.y);
                 return;
             }
@@ -570,15 +570,17 @@ export function initEmberArena(canvas, opts) {
         }
     }
     // The final boss gets its own defeat beat instead of instantly cutting to the
-    // results screen: a couple of extra shockwaves beyond the burst() already fired,
-    // staggered over ~1.6s while the arena stays frozen (see the finalBossDeath check
+    // results screen: a real pause — the arena freezes (see the finalBossDeath check
     // near the top of update(), same independent-of-`state` freeze pattern
-    // familiarAnnounce already uses). win() has already flipped `state` to 'won' by
-    // the time this starts — the finalBossDeath branch keeps the particles/explosions
-    // ticking through updateParticles/updateExplosions so the sequence actually plays
-    // out instead of freezing mid-air the instant the run ends.
-    const FINAL_BOSS_DEATH_DUR = 1.6;
-    const FINAL_BOSS_DEATH_PULSES = [0, 0.45, 0.9]; // seconds into the sequence
+    // familiarAnnounce already uses) for FINAL_BOSS_DEATH_DUR real seconds, three
+    // staggered shockwaves beyond the burst() already fired, all playing out in
+    // slow motion (SLOW_MOTION_FACTOR) for weight. `state` stays 'playing' for the
+    // whole sequence — win() (which flips it to 'won' and reveals the results,
+    // fading in) only fires once the sequence actually finishes, not before, so the
+    // overlay never competes with the explosion for attention.
+    const FINAL_BOSS_DEATH_DUR = 3; // real seconds the arena stays frozen
+    const FINAL_BOSS_DEATH_PULSES = [0, 1.0, 2.0]; // real seconds into the sequence
+    const SLOW_MOTION_FACTOR = 0.35; // how much slower particles/explosions move during it
     function spawnDeathPulse(x, y) {
         // No `ult`/`boss` flag: updateExplosions() already treats a bare explosion as
         // purely decorative — it expands and fades without touching monsters or player.
@@ -588,7 +590,10 @@ export function initEmberArena(canvas, opts) {
         sfx('starburst');
     }
     function beginFinalBossDeath(x, y) {
-        finalBossDeath = { t: 0, x, y, nextPulse: 0 };
+        finalBossDeath = reducedMotion ? null : { t: 0, x, y, nextPulse: 0 };
+        // Reduced motion: skip the slow-motion spectacle entirely and go straight to
+        // the results, same as every other reducedMotion shortcut in this file.
+        if (!finalBossDeath) win();
     }
     // Cookie/May: walk in from a random edge (same corner-picking idea as
     // spawnMonster, minus any chase logic), pause to bark, then leave the way they
@@ -812,22 +817,29 @@ export function initEmberArena(canvas, opts) {
             }
             return;
         }
-        // The final boss's own defeat beat: `state` is already 'won' by this point
-        // (win() flips it before this ever gets set, see damageMonster), so it can't
-        // gate on `state !== 'playing'` below like everything else — it has to run
-        // its own tail here instead, ticking only the visual effects so the pulses
-        // above actually finish playing instead of freezing on the spot.
+        // The final boss's own defeat beat: `state` stays 'playing' through the whole
+        // thing (win() only fires once it's over, see below) — it can't rely on that
+        // to freeze the arena like 'choosing' does, so it returns early right here
+        // instead, before any of the normal player/monster/spawn logic below runs.
+        // The visuals (particles/explosions/floaters/shake) still get ticked, just
+        // in slow motion, so the sequence actually plays out instead of the arena
+        // going fully static for three seconds.
         if (finalBossDeath) {
-            finalBossDeath.t += dt;
+            finalBossDeath.t += dt; // real time — gates duration and pulse timing
+            const slowDt = dt * SLOW_MOTION_FACTOR;
             while (finalBossDeath.nextPulse < FINAL_BOSS_DEATH_PULSES.length
                 && finalBossDeath.t >= FINAL_BOSS_DEATH_PULSES[finalBossDeath.nextPulse]) {
                 spawnDeathPulse(finalBossDeath.x, finalBossDeath.y);
                 finalBossDeath.nextPulse++;
             }
-            updateParticles(dt);
-            updateExplosions(dt);
-            updateFloaters(dt);
-            if (finalBossDeath.t >= FINAL_BOSS_DEATH_DUR) finalBossDeath = null;
+            updateParticles(slowDt);
+            updateExplosions(slowDt);
+            updateFloaters(slowDt);
+            shake = Math.max(0, shake - dt * 26);
+            if (finalBossDeath.t >= FINAL_BOSS_DEATH_DUR) {
+                finalBossDeath = null;
+                win();
+            }
             return;
         }
         // 'choosing' freezes the arena: the cards are a real pause, not a soft one.

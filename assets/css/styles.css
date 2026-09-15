@@ -2092,9 +2092,12 @@ a.info-card:focus-visible .info-card-title::after {
 }
 /* The results overlay specifically (not the upgrade cards / rotate prompt / familiar
    announce, which still snap in instantly as before) fades in instead of appearing
-   with a hard cut — timed to overlap the final boss's own death pulses rather than
-   waiting for them to finish. .is-visible is toggled from JS a frame after `hidden`
-   is cleared, since a display:none -> visible change can't itself be transitioned. */
+   with a hard cut. For a boss-fight win this only starts once the final boss's own
+   death sequence has actually finished (see finalBossDeath/win() in
+   ember-arena-game.js) — the fade is the transition *out* of that moment, not
+   something competing with it for attention. .is-visible is toggled from JS a frame
+   after `hidden` is cleared, since a display:none -> visible change can't itself be
+   transitioned. */
 #ember-overlay {
     opacity: 0;
     transition: opacity 0.6s ease;

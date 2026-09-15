@@ -63,7 +63,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.46">
+    <link rel="stylesheet" href="../../assets/css/styles.css?v=10.47">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -239,7 +239,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=43';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=44';
 
     initDiagramPage();
 
@@ -363,11 +363,13 @@
                 renderOutcome();
                 overlay.hidden = false;
                 // Fades in via the .is-visible CSS transition (styles.css) instead of
-                // snapping into view — for a boss-fight win this overlaps the death
-                // pulses still playing in the canvas behind it. The double rAF makes
-                // sure the browser has actually painted the opacity:0 frame (right
-                // after `hidden` clears) before the class flips and the transition
-                // starts — a single rAF isn't reliably enough in every engine.
+                // snapping into view. For a boss-fight win, onStateChange only fires
+                // once the final boss's own death sequence is over (see win() in
+                // ember-arena-game.js), so this fade is never competing with that
+                // moment for attention — it's what comes after it. The double rAF
+                // makes sure the browser has actually painted the opacity:0 frame
+                // (right after `hidden` clears) before the class flips and the
+                // transition starts — a single rAF isn't reliably enough in every engine.
                 overlay.classList.remove('is-visible');
                 requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('is-visible')));
             }
