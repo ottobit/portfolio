@@ -114,6 +114,7 @@ export function initEmberArena(canvas, opts) {
     let familiarCheckTimer = 0;
     let familiarCooldown = 0; // seconds left before another visit can even be rolled
     let familiarAnnounce = null; // { kind, t } while the arrival banner freezes the arena
+    let finalBossDeath = null; // { t, x, y, nextPulse } while the final boss's own defeat beat plays out
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -284,6 +285,7 @@ export function initEmberArena(canvas, opts) {
         familiarCooldown = 0;
         if (familiarAnnounce) onFamiliarAnnounce(null);
         familiarAnnounce = null;
+        finalBossDeath = null;
         tuning = Object.assign({}, baseTuning);
         taken = {};
         pendingChoices = null;
@@ -523,7 +525,9 @@ export function initEmberArena(canvas, opts) {
             sfx('kill');
             if (m.type === 'finalBoss') {
                 gainXp(m.xpValue);
-                win();
+                win(); // computes/saves the stats and tells the page to start revealing
+                       // the results now — the overlay fades in overlapping the pulses below
+                beginFinalBossDeath(m.x, m.y);
                 return;
             }
             if (Math.random() < tuning.heartChance) {
@@ -545,6 +549,46 @@ export function initEmberArena(canvas, opts) {
                 color: colors[Math.floor(Math.random() * colors.length)],
             });
         }
+    }
+    function updateFloaters(dt) {
+        for (let i = floaters.length - 1; i >= 0; i--) {
+            const f = floaters[i];
+            f.life -= dt;
+            f.y -= 26 * dt;
+            if (f.life <= 0) floaters.splice(i, 1);
+        }
+    }
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const pt = particles[i];
+            pt.life -= dt;
+            pt.x += pt.vx * dt;
+            pt.y += pt.vy * dt;
+            pt.vx *= 0.94;
+            pt.vy *= 0.94;
+            if (pt.life <= 0) particles.splice(i, 1);
+        }
+    }
+    // The final boss gets its own defeat beat instead of instantly cutting to the
+    // results screen: a couple of extra shockwaves beyond the burst() already fired,
+    // staggered over ~1.6s while the arena stays frozen (see the finalBossDeath check
+    // near the top of update(), same independent-of-`state` freeze pattern
+    // familiarAnnounce already uses). win() has already flipped `state` to 'won' by
+    // the time this starts — the finalBossDeath branch keeps the particles/explosions
+    // ticking through updateParticles/updateExplosions so the sequence actually plays
+    // out instead of freezing mid-air the instant the run ends.
+    const FINAL_BOSS_DEATH_DUR = 1.6;
+    const FINAL_BOSS_DEATH_PULSES = [0, 0.45, 0.9]; // seconds into the sequence
+    function spawnDeathPulse(x, y) {
+        // No `ult`/`boss` flag: updateExplosions() already treats a bare explosion as
+        // purely decorative — it expands and fades without touching monsters or player.
+        explosions.push({ x, y, r: 0, maxR: 160 + Math.random() * 40, life: 0.5, dur: 0.5 });
+        burst(x, y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 6 : 20);
+        if (!reducedMotion) shake = Math.max(shake, 8);
+        sfx('starburst');
+    }
+    function beginFinalBossDeath(x, y) {
+        finalBossDeath = { t: 0, x, y, nextPulse: 0 };
     }
     // Cookie/May: walk in from a random edge (same corner-picking idea as
     // spawnMonster, minus any chase logic), pause to bark, then leave the way they
@@ -768,6 +812,24 @@ export function initEmberArena(canvas, opts) {
             }
             return;
         }
+        // The final boss's own defeat beat: `state` is already 'won' by this point
+        // (win() flips it before this ever gets set, see damageMonster), so it can't
+        // gate on `state !== 'playing'` below like everything else — it has to run
+        // its own tail here instead, ticking only the visual effects so the pulses
+        // above actually finish playing instead of freezing on the spot.
+        if (finalBossDeath) {
+            finalBossDeath.t += dt;
+            while (finalBossDeath.nextPulse < FINAL_BOSS_DEATH_PULSES.length
+                && finalBossDeath.t >= FINAL_BOSS_DEATH_PULSES[finalBossDeath.nextPulse]) {
+                spawnDeathPulse(finalBossDeath.x, finalBossDeath.y);
+                finalBossDeath.nextPulse++;
+            }
+            updateParticles(dt);
+            updateExplosions(dt);
+            updateFloaters(dt);
+            if (finalBossDeath.t >= FINAL_BOSS_DEATH_DUR) finalBossDeath = null;
+            return;
+        }
         // 'choosing' freezes the arena: the cards are a real pause, not a soft one.
         if (state !== 'playing') return;
         elapsed += dt;
@@ -859,21 +921,8 @@ export function initEmberArena(canvas, opts) {
             }
         }
 
-        for (let i = floaters.length - 1; i >= 0; i--) {
-            const f = floaters[i];
-            f.life -= dt;
-            f.y -= 26 * dt;
-            if (f.life <= 0) floaters.splice(i, 1);
-        }
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const pt = particles[i];
-            pt.life -= dt;
-            pt.x += pt.vx * dt;
-            pt.y += pt.vy * dt;
-            pt.vx *= 0.94;
-            pt.vy *= 0.94;
-            if (pt.life <= 0) particles.splice(i, 1);
-        }
+        updateFloaters(dt);
+        updateParticles(dt);
         for (let i = hearts.length - 1; i >= 0; i--) {
             const h = hearts[i];
             h.life -= dt;
@@ -974,7 +1023,11 @@ export function initEmberArena(canvas, opts) {
                     if (!reducedMotion) shake = Math.max(shake, 3);
                     continue;
                 }
-                if (hurtPlayer(def.contactDamage || 10)) return;
+                // While spinning the hero plows through contact like a whirlwind —
+                // same idea as Diablo's Barbarian — but stays vulnerable to bolts
+                // and other ranged attacks below, so the spin can't trivialize a
+                // boss fight fought at range.
+                if (!spinning && hurtPlayer(def.contactDamage || 10)) return;
             }
         }
 
@@ -1011,6 +1064,16 @@ export function initEmberArena(canvas, opts) {
             }
         }
 
+        if (updateExplosions(dt)) return;
+
+        pushStats();
+        pushCooldowns();
+    }
+    // Returns true if this tick's explosions killed the player — update()'s normal
+    // path stops right there (skips pushStats/pushCooldowns, same as before this was
+    // pulled out of the loop below); the finalBossDeath branch above never sees true
+    // since its own decorative pulses never carry `.boss`/`.ult`.
+    function updateExplosions(dt) {
         for (let i = explosions.length - 1; i >= 0; i--) {
             const ex = explosions[i];
             ex.life -= dt;
@@ -1031,13 +1094,11 @@ export function initEmberArena(canvas, opts) {
                 }
             } else if (ex.boss && !ex.hit && circlesOverlap(player.x, player.y, player.r, ex.x, ex.y, ex.r)) {
                 ex.hit = true;
-                if (hurtPlayer(ex.damage)) return;
+                if (hurtPlayer(ex.damage)) return true;
             }
             if (ex.life <= 0) explosions.splice(i, 1);
         }
-
-        pushStats();
-        pushCooldowns();
+        return false;
     }
 
     // What the upgrade cards actually added up to by the end of the run — same
