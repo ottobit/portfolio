@@ -2584,7 +2584,10 @@ a.info-card:focus-visible .info-card-title::after {
    upgrade cards) — shown on top of the canvas, not in place of it. The canvas
    itself stays visible and interactive in portrait; this only appears once the
    player actually tries to play (see the pointerdown/keydown interceptors in
-   index.html), and hides itself again the moment the phone is rotated. */
+   index.html), and hides itself again the moment the phone is rotated. Showing
+   it also pauses the arena for real (game.setPaused(), same call site) — not
+   just visually, so nothing keeps happening to a player who can't see or
+   control it. */
 .game-rotate-prompt {
     gap: 0.6rem;
     color: var(--text-muted);
