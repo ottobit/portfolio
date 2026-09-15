@@ -33,7 +33,6 @@ const ARROW_COLOR = '#8d6e63';
 const ARROW_GLOW = '#d7ccc8';
 const ARROW_SPEED = 420;
 const ARROW_LIFE = 1.1;
-const BOW_INTERVAL = 0.35; // seconds between arrows while the button is held
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -95,7 +94,10 @@ export function initEmberArena(canvas, opts) {
         paralyzedUntil: 0,
         meleeDamage: 18,
         fireDamage: 14,
-        arrowDamage: 10,
+        // Higher than its original 10 now that it's a deliberate cooldown-gated shot
+        // (BASE_BOW_CD) instead of a hold-and-spam stream — a single precision hit
+        // is worth more than a tick in a machine-gun.
+        arrowDamage: 22,
         moving: false,
         walkT: 0,
     };
@@ -111,11 +113,16 @@ export function initEmberArena(canvas, opts) {
     const TAU = Math.PI * 2;
     const BASE_SPIN_DUR = 0.32; // seconds per full turn, before any Fury card
     const BASE_ULT_CD = 8;
+    // Weaker and single-target, so it can't be the same 8s wait as the fireball —
+    // but still a real cooldown, not the hold-and-spam it launched with (that made
+    // the sword pointless: free ranged damage with no risk, no reason to get close).
+    const BASE_BOW_CD = 2.2;
     // Everything a level-up card can move lives here, so a card is one line and the
     // run's numbers are never scattered as literals through the loop.
     const baseTuning = {
         spinDur: BASE_SPIN_DUR,
         ultCd: BASE_ULT_CD,
+        bowCd: BASE_BOW_CD,
         meleeRange: 44,
         speed: 190,
         knockback: KNOCKBACK,
@@ -156,8 +163,7 @@ export function initEmberArena(canvas, opts) {
     let spinHeld = false;   // the action is held down
     let spinAngle = 0;      // radians turned since this spin started
     let spinHitTimer = 0;   // time left before the next damage tick
-    let bowHeld = false;    // the bow action is held down
-    let bowTimer = 0;       // time left before the next arrow while held (or mid-cooldown after one)
+    let bowCooldown = 0;    // same idea as ultCooldown, just a shorter wait
     let ultCooldown = 0;
     let levelFlash = 0;
     let flashKind = '';   // 'level' | 'boss' | 'final'
@@ -178,8 +184,8 @@ export function initEmberArena(canvas, opts) {
     function onStateChange(s, stats) {
         if (typeof options.onStateChange === 'function') options.onStateChange(s, stats);
     }
-    function onCooldownChange(ult) {
-        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult);
+    function onCooldownChange(ult, bow) {
+        if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult, bow);
     }
     function onChoices(choices) {
         if (typeof options.onChoices === 'function') options.onChoices(choices);
@@ -303,7 +309,7 @@ export function initEmberArena(canvas, opts) {
         onStatsChange(Math.max(0, Math.ceil(player.hp)), player.maxHp, level, Math.floor(xp), xpToNext, bestLevel);
     }
     function pushCooldowns() {
-        onCooldownChange(ultCooldown / tuning.ultCd);
+        onCooldownChange(ultCooldown / tuning.ultCd, bowCooldown / tuning.bowCd);
     }
     pushStats();
     pushCooldowns();
@@ -328,7 +334,7 @@ export function initEmberArena(canvas, opts) {
         player.paralyzedUntil = 0;
         player.meleeDamage = 18;
         player.fireDamage = 14;
-        player.arrowDamage = 10;
+        player.arrowDamage = 22;
         monsters = [];
         explosions = [];
         bolts = [];
@@ -358,8 +364,7 @@ export function initEmberArena(canvas, opts) {
         spinHeld = false;
         spinAngle = 0;
         spinHitTimer = 0;
-        bowHeld = false;
-        bowTimer = 0;
+        bowCooldown = 0;
         ultCooldown = 0;
         levelFlash = 0;
         flashKind = '';
@@ -462,13 +467,10 @@ export function initEmberArena(canvas, opts) {
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
         if (e.key === ' ' || e.key === 'z' || e.key === 'Z') meleeRelease();
-        if (e.key === 'b' || e.key === 'B') bowRelease();
     }
-    // Losing the window while an action is held would leave it stuck on (spinning
-    // forever, or firing arrows nobody is holding the button down for).
+    // Losing the window while the sword is held would leave the hero spinning forever.
     function handleBlur() {
         meleeRelease();
-        bowRelease();
         keys.up = keys.down = keys.left = keys.right = false;
     }
 
@@ -546,16 +548,12 @@ export function initEmberArena(canvas, opts) {
         sfx('arrow');
         return true;
     }
-    // Press: fire once immediately, same as the sword's press-to-swing. Hold: keep
-    // firing at BOW_INTERVAL while a target exists — see the bowTimer tick in update().
+    // A tap, same shape as ultimateAttack(): fires once and starts a real cooldown
+    // — no longer a hold-to-spam stream (see BASE_BOW_CD above for why).
     function bowAttack() {
         if (elapsed < player.paralyzedUntil) return;
-        bowHeld = true;
-        if (bowTimer > 0) return;
-        if (fireArrow()) bowTimer = BOW_INTERVAL;
-    }
-    function bowRelease() {
-        bowHeld = false;
+        if (bowCooldown > 0) return;
+        if (fireArrow()) bowCooldown = tuning.bowCd;
     }
     function meleeHit() {
         const range = tuning.meleeRange;
@@ -1042,14 +1040,7 @@ export function initEmberArena(canvas, opts) {
             burst(player.x + Math.cos(a) * player.r, player.y + Math.sin(a) * player.r, { a: '#2ecc71', b: '#f1c40f', c: '#ffffff' }, reducedMotion ? 1 : 3);
         }
         ultCooldown = Math.max(0, ultCooldown - dt);
-        if (bowTimer > 0) bowTimer -= dt;
-        // No target this frame just leaves bowTimer at 0, so the very next frame
-        // tries again — cheap (one more pass over what's usually a handful of
-        // monsters) and means the bow starts firing the instant something spawns
-        // into range instead of waiting out a cooldown that never really started.
-        if (bowHeld && bowTimer <= 0) {
-            if (fireArrow()) bowTimer = BOW_INTERVAL;
-        }
+        bowCooldown = Math.max(0, bowCooldown - dt);
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
@@ -1314,7 +1305,7 @@ export function initEmberArena(canvas, opts) {
         return {
             meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, arrowDamage: player.arrowDamage, maxHp: player.maxHp,
             speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
-            knockback: tuning.knockback, ultCd: tuning.ultCd, heartChance: tuning.heartChance,
+            knockback: tuning.knockback, ultCd: tuning.ultCd, bowCd: tuning.bowCd, heartChance: tuning.heartChance,
         };
     }
     function endRun(won) {
@@ -2032,7 +2023,6 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') bowAttack();
             else if (state !== 'choosing') start();
         },
-        bowRelease,
         chooseUpgrade,
         resize,
         // The page's stick hands the direction over here: -1..1 per axis, or null on

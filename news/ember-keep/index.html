@@ -174,13 +174,13 @@
             </div>
             <div class="game-controls-actions">
                 <button class="game-touch-btn" id="ember-melee-btn" type="button" aria-label="Sword spin attack" data-aria-label-it="Rotazione con la spada">⚔️</button>
-                <button class="game-touch-btn game-touch-btn-bow" id="ember-bow-btn" type="button" aria-label="Bow (auto-aims the nearest monster)" data-aria-label-it="Arco (mira da solo al mostro più vicino)">🏹</button>
+                <button class="game-touch-btn game-touch-btn-bow" id="ember-bow-btn" type="button" aria-label="Bow (single shot at the nearest monster, has a cooldown)" data-aria-label-it="Arco (un colpo sul mostro più vicino, con ricarica)">🏹</button>
                 <button class="game-touch-btn game-touch-btn-ult" id="ember-ult-btn" type="button" aria-label="Fireball (hits the whole arena)" data-aria-label-it="Palla di fuoco (tutta l'arena)">🔥</button>
             </div>
         </div>
         </div>
         </div>
-        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), B per l'arco (tienilo premuto: mira da solo al mostro più vicino), X o C per la palla di fuoco a tutta arena (con una ricarica).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), B for the bow (hold it: auto-aims the nearest monster), X or C for the full-arena fireball (has a cooldown).</p>
+        <p class="game-instructions" data-it="Frecce o WASD per muoverti, Spazio per la spada (tienilo premuto e diventi una trottola), B per l'arco (un colpo sul mostro più vicino, con una ricarica), X o C per la palla di fuoco a tutta arena (con una ricarica più lunga).">Arrow keys or WASD to move, Space for the sword (hold it and you keep spinning), B for the bow (one shot at the nearest monster, has a cooldown), X or C for the full-arena fireball (a longer cooldown).</p>
         <ul class="game-legend">
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="hero" width="44" height="44" role="img" aria-label="Hero" data-aria-label-it="Eroe"></canvas>
@@ -240,7 +240,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=49';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=50';
 
     initDiagramPage();
 
@@ -316,8 +316,9 @@
     const game = initEmberArena(canvas, {
         strings: arenaText(),
         // The sword has no cooldown, so only the fireball button shows a ring.
-        onCooldownChange(ult) {
+        onCooldownChange(ult, bow) {
             setCooldown(ultBtn, ult);
+            setCooldown(bowBtn, bow);
         },
         onStatsChange(hp, maxHp, level, xp, xpToNext, best) {
             hpFill.style.width = `${Math.max(0, (hp / maxHp) * 100)}%`;
@@ -450,6 +451,7 @@
             ['👊', it ? 'Spinta' : 'Knockback', Math.round(fs.knockback)],
             ['🌀', it ? 'Durata rotazione' : 'Spin duration', `${fs.spinDur.toFixed(2)}s`],
             ['⏱️', it ? 'Ricarica ultimate' : 'Ultimate cooldown', `${fs.ultCd.toFixed(1)}s`],
+            ['⏱️', it ? 'Ricarica arco' : 'Bow cooldown', `${fs.bowCd.toFixed(1)}s`],
             ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
         ];
         summaryRows.forEach(([icon, label, value]) => {
@@ -699,7 +701,7 @@
         window.addEventListener('blur', () => stop(null));
     };
     bindHold(meleeBtn, () => game.meleeAttack(), () => game.meleeRelease());
-    bindHold(bowBtn, () => game.bowAttack(), () => game.bowRelease());
+    bindAction(bowBtn, () => game.bowAttack());
     bindAction(ultBtn, () => game.ultimateAttack());
 
     // Legend sprites come from the game module itself, so they can never drift from
