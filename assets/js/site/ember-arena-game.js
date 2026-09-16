@@ -748,6 +748,10 @@ export function initEmberArena(canvas, opts) {
         sfx('starburst');
     }
     function beginFinalBossDeath(x, y) {
+        // Cut the loop right at the kill, not three seconds later when win() finally
+        // calls endRun() — otherwise the whole slow-motion death beat plays out with
+        // the background track still looping under it.
+        stopMusic();
         finalBossDeath = reducedMotion ? null : { t: 0, x, y, nextPulse: 0 };
         // Reduced motion: skip the slow-motion spectacle entirely and go straight to
         // the results, same as every other reducedMotion shortcut in this file.
@@ -1145,7 +1149,9 @@ export function initEmberArena(canvas, opts) {
                 if (pool.length) {
                     const up = pool[Math.floor(Math.random() * pool.length)];
                     grantUpgrade(up.id);
-                    floaters.push({ x: player.x, y: player.y - player.r - 6, text: up.icon, life: 0.9, color: '#1abc9c' });
+                    // Bigger and a touch longer-lived than a damage/heal floater —
+                    // a treasure's reward icon deserves to actually stand out.
+                    floaters.push({ x: player.x, y: player.y - player.r - 6, text: up.icon, life: 1.3, color: '#1abc9c', size: 28 });
                     pushStats();
                     sfx('card');
                 }
@@ -2009,8 +2015,11 @@ export function initEmberArena(canvas, opts) {
     }
     function drawFloaters() {
         ctx.textAlign = 'center';
-        ctx.font = '700 13px system-ui, sans-serif';
         floaters.forEach((f) => {
+            // Most floaters (damage numbers, heals) share the default size — the
+            // treasure's upgrade icon asks for a bigger one (see its own push()) so
+            // it reads as a reward, not another number lost in the usual scroll.
+            ctx.font = `700 ${f.size || 13}px system-ui, sans-serif`;
             ctx.globalAlpha = Math.max(0, Math.min(1, f.life * 2));
             ctx.fillStyle = f.color;
             ctx.fillText(f.text, f.x, f.y);
