@@ -13,7 +13,7 @@ import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
 } from './ember-arena-storage.js?v=1';
-import { blendHex, tintPalette, themeColors, circlesOverlap } from './ember-arena-color.js?v=1';
+import { blendHex, tintPalette, themeColors, circlesOverlap, distToSegment } from './ember-arena-color.js?v=2';
 
 // Kill the warlord that shows up here and the run is over — won, not just survived.
 // Exported so the page can show the target ("7 / 15") without reaching into a game
@@ -42,6 +42,8 @@ const ARROW_SPREAD = 0.32; // total radians the fan spans
 const LIGHTNING_COLOR = '#ffffff';
 const LIGHTNING_GLOW = '#7c4dff';
 const COLOSSUS_BOLT_DUR = 0.5; // seconds, the whole strike-to-fade duration
+const ARROW_ARC_DAMAGE = 10; // same as a direct arrow hit, for simplicity
+const ARROW_ARC_RANGE = 12;   // px beyond a monster's own radius before the arc finds it
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -110,10 +112,10 @@ export function initEmberArena(canvas, opts) {
         paralyzedUntil: 0,
         meleeDamage: 18,
         fireDamage: 14,
-        // Per-arrow damage, lower now that each shot is a fan of ARROW_COUNT arrows
-        // instead of one — full value lands only when several arrows converge on
-        // the same target; the fan's real payoff is hitting more than one monster.
-        arrowDamage: 9,
+        // Per-arrow damage. Electric arcs between adjacent arrows (see fireArrow())
+        // now cover the gaps the fan itself misses, so even a lone target standing
+        // between two arrows still takes real damage instead of dodging the volley.
+        arrowDamage: 10,
         moving: false,
         walkT: 0,
     };
@@ -192,6 +194,7 @@ export function initEmberArena(canvas, opts) {
     let hurtFlash = 0;
     let shake = 0;
     let colossusBoltT = 0; // visual duration of the Colossus lightning, 0 = nothing to draw
+    let nextArrowVolley = 0; // id for the next bow shot, so its 10 arrows can find each other
     let taken = {};              // upgrade id -> how many times it was picked
     let pendingChoices = null;   // the three cards waiting to be answered
     let hasWon = readFlag(WON_KEY);
@@ -358,7 +361,7 @@ export function initEmberArena(canvas, opts) {
         player.paralyzedUntil = 0;
         player.meleeDamage = 18;
         player.fireDamage = 14;
-        player.arrowDamage = 9;
+        player.arrowDamage = 10;
         monsters = [];
         explosions = [];
         bolts = [];
@@ -397,6 +400,7 @@ export function initEmberArena(canvas, opts) {
         hurtFlash = 0;
         shake = 0;
         colossusBoltT = 0;
+        nextArrowVolley = 0;
         stick = null;
         // Levels skipped by opts.startLevel still hand out a card, so a test hero is
         // equipped roughly like one that actually played its way up here.
@@ -580,7 +584,11 @@ export function initEmberArena(canvas, opts) {
         if (!target) return false;
         const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
         // A fan, not a single shot: centered on the nearest monster, spread wide
-        // enough to also catch whatever else is standing nearby.
+        // enough to also catch whatever else is standing nearby. volley/slot let
+        // the electric-arc pass below (in update()) find which arrows started out
+        // adjacent in this exact shot, even once some of them have been spliced
+        // out of `arrows` for landing a hit or expiring.
+        const volley = nextArrowVolley++;
         for (let i = 0; i < ARROW_COUNT; i++) {
             const t = ARROW_COUNT > 1 ? i / (ARROW_COUNT - 1) - 0.5 : 0;
             const angle = baseAngle + t * ARROW_SPREAD;
@@ -588,6 +596,7 @@ export function initEmberArena(canvas, opts) {
                 x: player.x, y: player.y,
                 vx: Math.cos(angle) * ARROW_SPEED, vy: Math.sin(angle) * ARROW_SPEED,
                 r: 4, life: ARROW_LIFE,
+                volley, slot: i, arcHit: new Set(),
             });
         }
         sfx('arrow');
@@ -1375,6 +1384,35 @@ export function initEmberArena(canvas, opts) {
                 }
             }
         }
+        // Electricity between still-adjacent-slot arrows: a monster standing
+        // between two arrows that missed it directly still takes a hit, once per
+        // arc (arcHit lives on the lower-slot arrow of the pair) rather than every
+        // frame it lingers in range.
+        {
+            const volleys = new Map();
+            for (const a of arrows) {
+                if (!volleys.has(a.volley)) volleys.set(a.volley, []);
+                volleys.get(a.volley).push(a);
+            }
+            volleys.forEach((list) => {
+                list.sort((p, q) => p.slot - q.slot);
+                for (let k = 0; k < list.length - 1; k++) {
+                    const a1 = list[k];
+                    const a2 = list[k + 1];
+                    if (a2.slot !== a1.slot + 1) continue;
+                    for (let j = monsters.length - 1; j >= 0; j--) {
+                        const m = monsters[j];
+                        if (a1.arcHit.has(m)) continue;
+                        if (distToSegment(m.x, m.y, a1.x, a1.y, a2.x, a2.y) < m.r + ARROW_ARC_RANGE) {
+                            a1.arcHit.add(m);
+                            burst(m.x, m.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 3 : 6);
+                            damageMonster(j, ARROW_ARC_DAMAGE);
+                            hitsGiven++;
+                        }
+                    }
+                }
+            });
+        }
 
         if (updateExplosions(dt)) return;
 
@@ -1850,6 +1888,48 @@ export function initEmberArena(canvas, opts) {
             ctx.restore();
         });
     }
+    // The electric arcs between adjacent arrows in a volley — same grouping as
+    // the hit-test in update(), just for drawing: a short zigzag (the gap between
+    // two arrows is small, unlike the Colossus bolt's screen-spanning jag) with
+    // the same halo-then-core stroke used throughout the file.
+    function drawArrowArcs() {
+        const volleys = new Map();
+        for (const a of arrows) {
+            if (!volleys.has(a.volley)) volleys.set(a.volley, []);
+            volleys.get(a.volley).push(a);
+        }
+        ctx.save();
+        ctx.lineCap = 'round';
+        volleys.forEach((list) => {
+            list.sort((p, q) => p.slot - q.slot);
+            for (let k = 0; k < list.length - 1; k++) {
+                const a1 = list[k];
+                const a2 = list[k + 1];
+                if (a2.slot !== a1.slot + 1) continue;
+                const segs = 3;
+                const nx = -(a2.y - a1.y);
+                const ny = a2.x - a1.x;
+                const nlen = Math.hypot(nx, ny) || 1;
+                ctx.beginPath();
+                ctx.moveTo(a1.x, a1.y);
+                for (let s = 1; s < segs; s++) {
+                    const f = s / segs;
+                    const mx = a1.x + (a2.x - a1.x) * f;
+                    const my = a1.y + (a2.y - a1.y) * f;
+                    const off = Math.sin(elapsed * 40 + a1.slot * 7 + s * 5) * 3;
+                    ctx.lineTo(mx + (nx / nlen) * off, my + (ny / nlen) * off);
+                }
+                ctx.lineTo(a2.x, a2.y);
+                ctx.strokeStyle = LIGHTNING_GLOW;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.strokeStyle = LIGHTNING_COLOR;
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            }
+        });
+        ctx.restore();
+    }
 
     // One glowing ring of fire, `progress` (0..1) of the way from the origin to the
     // arena's edge. Used twice per fireball, a beat apart, so the blast reads as two
@@ -2193,6 +2273,7 @@ export function initEmberArena(canvas, opts) {
         drawFamiliar(colors);
         drawBolts();
         drawArrows();
+        drawArrowArcs();
         drawExplosions(colors);
         drawParticles();
         if (state !== 'over' && state !== 'won') drawPlayer(colors);
