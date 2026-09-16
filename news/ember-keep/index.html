@@ -248,7 +248,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=63';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=64';
 
     initDiagramPage();
 
@@ -307,6 +307,7 @@
             finalBossBar: 'Boss finale',
             cookieAnnounce: 'Cookie è apparso!',
             mayAnnounce: 'May è apparsa!',
+            lang: 'it',
         },
         en: {
             start: 'Tap or press Space to start',
@@ -317,6 +318,7 @@
             finalBossBar: 'Final boss',
             cookieAnnounce: 'Cookie has appeared!',
             mayAnnounce: 'May has appeared!',
+            lang: 'en',
         },
     };
     const arenaText = () => ARENA_TEXT[getLang() === 'it' ? 'it' : 'en'];

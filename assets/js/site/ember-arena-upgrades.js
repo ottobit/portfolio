@@ -14,6 +14,11 @@ export const DEFAULT_STRINGS = {
     finalBossBar: 'Final boss',
     cookieAnnounce: 'Cookie has appeared!',
     mayAnnounce: 'May has appeared!',
+    // 'it' or 'en' — which half of a BIG_CHEST_REWARDS entry's bilingual `name`
+    // to read out loud when the big chest is opened. Everything else here is
+    // pre-translated by the page; this one text lives in the reward data
+    // itself instead, so it needs the language flag rather than a finished string.
+    lang: 'en',
 };
 
 // Every card but the Colossus grants a shrinking increment as it's picked
