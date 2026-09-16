@@ -8,7 +8,7 @@ import {
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
 } from './ember-arena-sprites.js?v=10';
 export { drawArenaIcon };
-import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=4';
+import { DEFAULT_STRINGS, UPGRADES, BIG_CHEST_REWARDS } from './ember-arena-upgrades.js?v=5';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
@@ -44,6 +44,11 @@ const LIGHTNING_GLOW = '#7c4dff';
 const COLOSSUS_BOLT_DUR = 0.5; // seconds, the whole strike-to-fade duration
 const ARROW_ARC_DAMAGE = 10; // same as a direct arrow hit, for simplicity
 const ARROW_ARC_RANGE = 12;   // px beyond a monster's own radius before the arc finds it
+const ICE_ARC_PARALYZE_DUR = 0.6; // the ice bow's arc: no damage, briefly freezes instead
+const SWORD_BOLT_SPEED = 300;
+const SWORD_BOLT_LIFE = 1.2;
+const SWORD_BOLT_INTERVAL = 0.9; // roughly one launch every couple of spins
+const ICE_ULT_PARALYZE_DUR = 0.9; // the glacial-burst ultimate: longer, since it's on a long cooldown
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -118,6 +123,11 @@ export function initEmberArena(canvas, opts) {
         arrowDamage: 10,
         moving: false,
         walkT: 0,
+        // One-shot permanent unlocks from the big chest — flags, not stacking
+        // numbers, see BIG_CHEST_REWARDS in ember-arena-upgrades.js.
+        bowIce: false,
+        swordFire: false,
+        ultimateIce: false,
     };
     const keys = { up: false, down: false, left: false, right: false };
     // Fixed analog stick in the bottom-left corner: always drawn, engaged by a
@@ -150,10 +160,13 @@ export function initEmberArena(canvas, opts) {
         // Same idea as heartChance, same base value as the old fixed TREASURE_CHANCE
         // constant it replaces — now tunable so Fortuna can raise it too.
         treasureChance: typeof options.treasureChance === 'number' ? options.treasureChance : 0.1,
-        // The big chest's own, much rarer roll — deliberately not raised by Fortuna
-        // (unlike treasureChance above): it's meant to stay a rare milestone drop,
-        // not something that stacks away with the rest of a lucky build.
-        bigTreasureChance: typeof options.bigTreasureChance === 'number' ? options.bigTreasureChance : 0.012,
+        // The chance a level 5/10 boss (and only that boss) drops a big chest.
+        // Much higher than a per-monster roll would be — with only two of these
+        // bosses in a typical run, a per-monster-sized chance would make the big
+        // chest a near-never event instead of a rare-but-present one. Deliberately
+        // not raised by Fortuna (unlike treasureChance above): it's meant to stay a
+        // milestone drop, not something that stacks away with the rest of a lucky build.
+        bigTreasureChance: typeof options.bigTreasureChance === 'number' ? options.bigTreasureChance : 0.5,
     };
     let tuning = Object.assign({}, baseTuning);
     let strings = Object.assign({}, DEFAULT_STRINGS, options.strings || {});
@@ -164,6 +177,8 @@ export function initEmberArena(canvas, opts) {
     let explosions = [];
     let bolts = [];
     let arrows = []; // the hero's own bow shots — the mirror of bolts, but aimed at monsters
+    let swordBolts = []; // periodic fireballs from the flaming-sword big-chest reward
+    let swordBoltTimer = 0;
     let hearts = [];
     let treasures = [];
     let floaters = [];   // damage numbers drifting up
@@ -201,7 +216,6 @@ export function initEmberArena(canvas, opts) {
     let nextArrowVolley = 0; // id for the next bow shot, so its 10 arrows can find each other
     let taken = {};              // upgrade id -> how many times it was picked
     let pendingChoices = null;   // the three level-up cards waiting to be answered
-    let pendingChestChoices = null; // the three big-chest cards (one per weapon) waiting to be answered
     let hasWon = readFlag(WON_KEY);
     let muted = readFlag(MUTE_KEY);
     let lastTime = null;
@@ -216,8 +230,8 @@ export function initEmberArena(canvas, opts) {
     function onCooldownChange(ult, bow) {
         if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult, bow);
     }
-    function onChoices(choices, kind) {
-        if (typeof options.onChoices === 'function') options.onChoices(choices, kind);
+    function onChoices(choices) {
+        if (typeof options.onChoices === 'function') options.onChoices(choices);
     }
     // kind is 'cookie'/'may' when the arrival banner should show, or null to hide it.
     function onFamiliarAnnounce(kind) {
@@ -367,10 +381,15 @@ export function initEmberArena(canvas, opts) {
         player.meleeDamage = 18;
         player.fireDamage = 14;
         player.arrowDamage = 10;
+        player.bowIce = false;
+        player.swordFire = false;
+        player.ultimateIce = false;
         monsters = [];
         explosions = [];
         bolts = [];
         arrows = [];
+        swordBolts = [];
+        swordBoltTimer = 0;
         hearts = [];
         treasures = [];
         floaters = [];
@@ -385,7 +404,6 @@ export function initEmberArena(canvas, opts) {
         tuning = Object.assign({}, baseTuning);
         taken = {};
         pendingChoices = null;
-        pendingChestChoices = null;
         level = 1;
         xp = 0;
         xpToNext = 6;
@@ -701,13 +719,10 @@ export function initEmberArena(canvas, opts) {
             if (Math.random() < tuning.heartChance) {
                 hearts.push({ x: m.x, y: m.y, life: 9 });
             }
-            // Independent roll from the heart above — a kill can drop neither, either,
-            // or (rarely) both. The two chest kinds are mutually exclusive with each
-            // other though (one chest per kill, checked rarer-first): a big chest is
-            // meant to feel like a rare event of its own, not something that can double
-            // up with a small one on the same corpse.
-            if (Math.random() < tuning.bigTreasureChance) {
-                treasures.push({ x: m.x, y: m.y, life: 9, kind: 'big' });
+            // Independent roll from the heart above. Only the level 5/10 boss can drop
+            // a big chest — a regular kill only ever rolls for the small one.
+            if (m.type === 'boss' && Math.random() < tuning.bigTreasureChance) {
+                treasures.push({ x: m.x, y: m.y, life: 9, kind: 'big', size: m.r });
             } else if (Math.random() < tuning.treasureChance) {
                 treasures.push({ x: m.x, y: m.y, life: 9, kind: 'small' });
             }
@@ -889,46 +904,6 @@ export function initEmberArena(canvas, opts) {
     function availableUpgrades() {
         return UPGRADES.filter((u) => (taken[u.id] || 0) < u.max);
     }
-    // One random card per weapon (sword/bow/fire), for the big chest's choice — a
-    // deliberate pick, unlike a small chest's fully random one. If a weapon has no
-    // card left (all copies already taken), its slot is backfilled from whichever
-    // other weapon still has cards, so the chest still offers 3 real choices as
-    // long as any weapon-tagged card remains anywhere.
-    function pickChestChoices() {
-        const weapons = ['sword', 'bow', 'fire'];
-        const pool = availableUpgrades();
-        const used = new Set();
-        const choices = [];
-        weapons.forEach((w) => {
-            const options = pool.filter((u) => u.weapon === w && !used.has(u.id));
-            if (options.length) {
-                const pick = options[Math.floor(Math.random() * options.length)];
-                used.add(pick.id);
-                choices.push(pick);
-            }
-        });
-        if (choices.length < 3) {
-            const rest = pool.filter((u) => u.weapon && !used.has(u.id));
-            while (choices.length < 3 && rest.length) {
-                const idx = Math.floor(Math.random() * rest.length);
-                const pick = rest.splice(idx, 1)[0];
-                used.add(pick.id);
-                choices.push(pick);
-            }
-        }
-        return choices;
-    }
-    function openBigChest() {
-        const choices = pickChestChoices();
-        // Every weapon card already maxed out — a rare late-run edge case. The chest
-        // has nothing left to offer, so it's simply consumed without an overlay.
-        if (!choices.length) return;
-        pendingChestChoices = choices;
-        state = 'choosing';
-        sfx('card');
-        onChoices(choices.map((u) => ({ id: u.id, icon: u.icon, name: u.name, desc: u.desc })), 'chest');
-        onStateChange(state);
-    }
     function grantUpgrade(id) {
         const up = UPGRADES.find((u) => u.id === id);
         if (!up) return false;
@@ -985,20 +960,6 @@ export function initEmberArena(canvas, opts) {
     }
     function chooseUpgrade(id) {
         if (state !== 'choosing') return;
-        // A big chest's choice resolves separately from a level-up's: no
-        // announceLevel(), no xp/level bookkeeping — the run wasn't paused for
-        // levelling up, only for a reward pick.
-        if (pendingChestChoices) {
-            if (!pendingChestChoices.some((u) => u.id === id)) return;
-            grantUpgrade(id);
-            pendingChestChoices = null;
-            state = 'playing';
-            sfx('card');
-            floaters.push({ x: player.x, y: player.y - player.r - 6, text: '🎁', life: 1.3, color: '#7c4dff', size: 28 });
-            pushStats();
-            onStateChange(state);
-            return;
-        }
         if (pendingChoices && !pendingChoices.some((u) => u.id === id)) return;
         grantUpgrade(id);
         pendingChoices = null;
@@ -1043,6 +1004,7 @@ export function initEmberArena(canvas, opts) {
             flash: 0, phase: Math.random() * Math.PI * 2,
             chargeTimer: 3, charging: 0,
             kx: 0, ky: 0,
+            paralyzedUntil: 0, // set by the ice bow's arc — see the arrow-arc block in update()
             // Stagger the first shot so a pair spawned together doesn't fire in lockstep.
             shootTimer: def.shoot ? 0.8 + Math.random() * def.shoot.interval : 0,
             starTimer: def.starAttack ? def.starAttack.interval : 0,
@@ -1165,6 +1127,47 @@ export function initEmberArena(canvas, opts) {
                 burst(tipX, tipY, { a: '#dfe6e9', b: '#ffffff', c: '#b2bec3' }, reducedMotion ? 1 : 2);
             }
         }
+        // The flaming sword: while spinning, launch an extra fireball at the nearest
+        // monster every so often, on top of the normal melee damage.
+        if (player.swordFire && spinning) {
+            swordBoltTimer -= dt;
+            if (swordBoltTimer <= 0) {
+                const target = nearestMonster();
+                if (target) {
+                    const angle = Math.atan2(target.y - player.y, target.x - player.x);
+                    swordBolts.push({
+                        x: player.x, y: player.y,
+                        vx: Math.cos(angle) * SWORD_BOLT_SPEED, vy: Math.sin(angle) * SWORD_BOLT_SPEED,
+                        r: 6, life: SWORD_BOLT_LIFE,
+                    });
+                }
+                swordBoltTimer = SWORD_BOLT_INTERVAL;
+            }
+        } else {
+            swordBoltTimer = 0;
+        }
+        for (let i = swordBolts.length - 1; i >= 0; i--) {
+            const sb = swordBolts[i];
+            sb.x += sb.vx * dt;
+            sb.y += sb.vy * dt;
+            sb.life -= dt;
+            if (sb.life <= 0) {
+                swordBolts.splice(i, 1);
+                continue;
+            }
+            let hit = false;
+            for (let j = monsters.length - 1; j >= 0; j--) {
+                const m = monsters[j];
+                if (circlesOverlap(sb.x, sb.y, sb.r, m.x, m.y, m.r)) {
+                    burst(m.x, m.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 3 : 6);
+                    damageMonster(j, Math.round(player.meleeDamage * 0.5));
+                    hitsGiven++;
+                    hit = true;
+                    break;
+                }
+            }
+            if (hit) swordBolts.splice(i, 1);
+        }
 
         // Fortuna: an occasional lucky sparkle, absent on a build that never
         // took the card — same burst() used everywhere else for particles.
@@ -1215,11 +1218,20 @@ export function initEmberArena(canvas, opts) {
                 treasures.splice(i, 1);
                 continue;
             }
-            const pickupR = tr.kind === 'big' ? 16 : 12;
+            const pickupR = tr.kind === 'big' ? tr.size : 12;
             if (circlesOverlap(tr.x, tr.y, pickupR, player.x, player.y, player.r)) {
                 treasures.splice(i, 1);
                 if (tr.kind === 'big') {
-                    openBigChest();
+                    const pool = BIG_CHEST_REWARDS.filter((r) => !r.owned({ player }));
+                    // All three already unlocked — a rare late-run edge case. Re-grant
+                    // one anyway rather than doing nothing: apply() is idempotent, and
+                    // the player still gets a floater for the chest they just opened.
+                    const rewards = pool.length ? pool : BIG_CHEST_REWARDS;
+                    const reward = rewards[Math.floor(Math.random() * rewards.length)];
+                    reward.apply({ player });
+                    floaters.push({ x: player.x, y: player.y - player.r - 6, text: reward.icon, life: 1.6, color: '#7c4dff', size: 34 });
+                    pushStats();
+                    sfx('card');
                     continue;
                 }
                 // Same pool a level-up card draws from — a small chest is just that
@@ -1262,80 +1274,87 @@ export function initEmberArena(canvas, opts) {
             const dy = player.y - m.y;
             const dist = Math.hypot(dx, dy) || 1;
             let speedMul = 1;
-            if (def.shoot) {
-                m.shootTimer -= dt;
-                if (dist < def.shoot.range && m.shootTimer <= 0) {
-                    fireBolt(m, def.shoot);
-                    m.shootTimer = def.shoot.interval;
+            // The ice bow's arc briefly freezes a monster in place: no new attacks,
+            // no advancing. Knockback, flash decay and an already-telegraphed bite
+            // landing stay outside this check (see paralyzedUntil in the plan) — the
+            // effect is short and only needs to cover "stops, stops attacking".
+            const frozen = elapsed < (m.paralyzedUntil || 0);
+            if (!frozen) {
+                if (def.shoot) {
+                    m.shootTimer -= dt;
+                    if (dist < def.shoot.range && m.shootTimer <= 0) {
+                        fireBolt(m, def.shoot);
+                        m.shootTimer = def.shoot.interval;
+                    }
+                    // Inside its comfort zone it backs off instead of closing in.
+                    if (dist < def.shoot.standoff) speedMul = -0.5;
+                    else if (dist < def.shoot.range) speedMul = def.shoot.approach;
                 }
-                // Inside its comfort zone it backs off instead of closing in.
-                if (dist < def.shoot.standoff) speedMul = -0.5;
-                else if (dist < def.shoot.range) speedMul = def.shoot.approach;
-            }
-            // Unlike def.shoot, this never touches speedMul — the imp keeps hopping
-            // in and biting exactly as before, the breath is just a bonus jab it
-            // lands along the way. Same telegraph-then-resolve shape as def.bite
-            // below, just gated on range instead of touching, and it never leaves
-            // the imp — no projectile, the flame is drawn attached in drawMonsters().
-            if (def.spit) {
-                if (m.breathWindup > 0) {
-                    m.breathWindup -= dt;
-                    if (m.breathWindup <= 0) {
-                        m.spitTimer = def.spit.interval;
-                        // Whiffs if the player stepped out of range during the telegraph
-                        // — same dodge rule as a bite.
-                        if (dist < def.spit.range) {
-                            m.breathT = def.spit.duration;
-                            if (hurtPlayer(def.spit.damage * monsterDamageMul())) return;
+                // Unlike def.shoot, this never touches speedMul — the imp keeps hopping
+                // in and biting exactly as before, the breath is just a bonus jab it
+                // lands along the way. Same telegraph-then-resolve shape as def.bite
+                // below, just gated on range instead of touching, and it never leaves
+                // the imp — no projectile, the flame is drawn attached in drawMonsters().
+                if (def.spit) {
+                    if (m.breathWindup > 0) {
+                        m.breathWindup -= dt;
+                        if (m.breathWindup <= 0) {
+                            m.spitTimer = def.spit.interval;
+                            // Whiffs if the player stepped out of range during the telegraph
+                            // — same dodge rule as a bite.
+                            if (dist < def.spit.range) {
+                                m.breathT = def.spit.duration;
+                                if (hurtPlayer(def.spit.damage * monsterDamageMul())) return;
+                            }
+                        }
+                    } else if (m.breathT > 0) {
+                        m.breathT -= dt;
+                    } else {
+                        m.spitTimer -= dt;
+                        if (dist < def.spit.range && m.spitTimer <= 0) {
+                            m.breathWindup = def.spit.telegraph;
                         }
                     }
-                } else if (m.breathT > 0) {
-                    m.breathT -= dt;
-                } else {
-                    m.spitTimer -= dt;
-                    if (dist < def.spit.range && m.spitTimer <= 0) {
-                        m.breathWindup = def.spit.telegraph;
+                }
+                if (m.type === 'imp') {
+                    const hopPhase = ((elapsed + m.phase) % IMP_HOP_PERIOD) / IMP_HOP_PERIOD;
+                    speedMul *= Math.max(IMP_HOP_SPEED_FLOOR, Math.sin(hopPhase * Math.PI));
+                }
+                // 'rush'-style biters (imp, bat) quicken their own steps for the telegraph
+                // window instead of teleport-snapping at the last instant — the speed-up
+                // itself is the tell that a bite is coming.
+                if (def.bite && def.bite.style === 'rush' && m.biteWindup > 0) {
+                    speedMul = def.bite.rushMul;
+                }
+                if (m.type === 'boss' || m.type === 'finalBoss') {
+                    m.chargeTimer -= dt;
+                    if (m.chargeTimer <= 0) {
+                        m.charging = 0.5;
+                        // The final boss recovers faster between charges — less breathing
+                        // room than the regular boss gives.
+                        m.chargeTimer = m.type === 'finalBoss' ? 2 : 3;
+                        if (!reducedMotion) shake = Math.max(shake, 4);
+                    }
+                    if (m.charging > 0) {
+                        m.charging -= dt;
+                        speedMul = 3;
+                        // The charge just ended this frame, so a shockwave lands where it
+                        // stopped — no more standing still and trading hits once it's done
+                        // closing the distance. Both bosses now get this, not just the
+                        // regular one; triggerBossSlam scales it up for the final boss.
+                        if (m.charging <= 0) triggerBossSlam(m);
                     }
                 }
-            }
-            if (m.type === 'imp') {
-                const hopPhase = ((elapsed + m.phase) % IMP_HOP_PERIOD) / IMP_HOP_PERIOD;
-                speedMul *= Math.max(IMP_HOP_SPEED_FLOOR, Math.sin(hopPhase * Math.PI));
-            }
-            // 'rush'-style biters (imp, bat) quicken their own steps for the telegraph
-            // window instead of teleport-snapping at the last instant — the speed-up
-            // itself is the tell that a bite is coming.
-            if (def.bite && def.bite.style === 'rush' && m.biteWindup > 0) {
-                speedMul = def.bite.rushMul;
-            }
-            if (m.type === 'boss' || m.type === 'finalBoss') {
-                m.chargeTimer -= dt;
-                if (m.chargeTimer <= 0) {
-                    m.charging = 0.5;
-                    // The final boss recovers faster between charges — less breathing
-                    // room than the regular boss gives.
-                    m.chargeTimer = m.type === 'finalBoss' ? 2 : 3;
-                    if (!reducedMotion) shake = Math.max(shake, 4);
+                if (def.starAttack) {
+                    m.starTimer -= dt;
+                    if (m.starTimer <= 0) {
+                        fireStarVolley(m, def.starAttack);
+                        m.starTimer = def.starAttack.interval;
+                    }
                 }
-                if (m.charging > 0) {
-                    m.charging -= dt;
-                    speedMul = 3;
-                    // The charge just ended this frame, so a shockwave lands where it
-                    // stopped — no more standing still and trading hits once it's done
-                    // closing the distance. Both bosses now get this, not just the
-                    // regular one; triggerBossSlam scales it up for the final boss.
-                    if (m.charging <= 0) triggerBossSlam(m);
-                }
+                m.x += (dx / dist) * m.speed * speedMul * dt;
+                m.y += (dy / dist) * m.speed * speedMul * dt;
             }
-            if (def.starAttack) {
-                m.starTimer -= dt;
-                if (m.starTimer <= 0) {
-                    fireStarVolley(m, def.starAttack);
-                    m.starTimer = def.starAttack.interval;
-                }
-            }
-            m.x += (dx / dist) * m.speed * speedMul * dt;
-            m.y += (dy / dist) * m.speed * speedMul * dt;
             if (m.kx !== 0 || m.ky !== 0) {
                 m.x += m.kx * dt;
                 m.y += m.ky * dt;
@@ -1475,9 +1494,15 @@ export function initEmberArena(canvas, opts) {
                         if (a1.arcHit.has(m)) continue;
                         if (distToSegment(m.x, m.y, a1.x, a1.y, a2.x, a2.y) < m.r + ARROW_ARC_RANGE) {
                             a1.arcHit.add(m);
-                            burst(m.x, m.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 3 : 6);
-                            damageMonster(j, ARROW_ARC_DAMAGE);
-                            hitsGiven++;
+                            if (player.bowIce) {
+                                // The ice bow: the arc no longer hurts, it freezes.
+                                m.paralyzedUntil = Math.max(m.paralyzedUntil || 0, elapsed + ICE_ARC_PARALYZE_DUR);
+                                burst(m.x, m.y, { a: ICE_COLOR, b: ICE_GLOW, c: '#a5d8ff' }, reducedMotion ? 3 : 6);
+                            } else {
+                                burst(m.x, m.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 3 : 6);
+                                damageMonster(j, ARROW_ARC_DAMAGE);
+                                hitsGiven++;
+                            }
                         }
                     }
                 }
@@ -1507,6 +1532,12 @@ export function initEmberArena(canvas, opts) {
                         burst(m.x, m.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 4 : 9);
                         damageMonster(j, player.fireDamage * 3);
                         hitsGiven++;
+                        // Glacial burst: the ultimate also briefly freezes what it hits,
+                        // on top of its usual damage — the name is on the effect, the
+                        // explosion itself stays fire-coloured to read cleanly.
+                        if (player.ultimateIce) {
+                            m.paralyzedUntil = Math.max(m.paralyzedUntil || 0, elapsed + ICE_ULT_PARALYZE_DUR);
+                        }
                     }
                 }
                 for (let j = bolts.length - 1; j >= 0; j--) {
@@ -1958,6 +1989,23 @@ export function initEmberArena(canvas, opts) {
             ctx.restore();
         });
     }
+    // The flaming sword's periodic bonus fireballs — a filled circle with a soft
+    // outer glow, same fire palette as the ultimate, no need for the arrows' own
+    // rotated-sprite treatment since this is a simple travelling ball of fire.
+    function drawSwordBolts() {
+        swordBolts.forEach((sb) => {
+            ctx.beginPath();
+            ctx.arc(sb.x, sb.y, sb.r * 1.8, 0, TAU);
+            ctx.fillStyle = FIRE_GLOW;
+            ctx.globalAlpha = 0.4;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.arc(sb.x, sb.y, sb.r, 0, TAU);
+            ctx.fillStyle = FIRE_COLOR;
+            ctx.fill();
+        });
+    }
     // The electric arcs between adjacent arrows in a volley — same grouping as
     // the hit-test in update(), just for drawing: a short zigzag (the gap between
     // two arrows is small, unlike the Colossus bolt's screen-spanning jag) with
@@ -1990,10 +2038,10 @@ export function initEmberArena(canvas, opts) {
                     ctx.lineTo(mx + (nx / nlen) * off, my + (ny / nlen) * off);
                 }
                 ctx.lineTo(a2.x, a2.y);
-                ctx.strokeStyle = LIGHTNING_GLOW;
+                ctx.strokeStyle = player.bowIce ? ICE_GLOW : LIGHTNING_GLOW;
                 ctx.lineWidth = 3;
                 ctx.stroke();
-                ctx.strokeStyle = LIGHTNING_COLOR;
+                ctx.strokeStyle = player.bowIce ? ICE_COLOR : LIGHTNING_COLOR;
                 ctx.lineWidth = 1.2;
                 ctx.stroke();
             }
@@ -2160,7 +2208,11 @@ export function initEmberArena(canvas, opts) {
             ctx.translate(tr.x, tr.y + bob);
             ctx.scale(pop, pop);
             if (tr.kind === 'big') {
-                paintSprite(ctx, BIGCHEST_FRAME, BIGCHEST_PALETTE, 0, 0, 3.2);
+                // As big as the boss that dropped it: the frame's grid spans its
+                // stored radius (the boss's own r at the moment it died), not a
+                // fixed scale.
+                const cell = (tr.size * 2) / BIGCHEST_FRAME[0].length;
+                paintSprite(ctx, BIGCHEST_FRAME, BIGCHEST_PALETTE, 0, 0, cell);
             } else {
                 paintSprite(ctx, TREASURE_FRAME, TREASURE_PALETTE, 0, 0, 2.4);
             }
@@ -2348,6 +2400,7 @@ export function initEmberArena(canvas, opts) {
         drawBolts();
         drawArrows();
         drawArrowArcs();
+        drawSwordBolts();
         drawExplosions(colors);
         drawParticles();
         if (state !== 'over' && state !== 'won') drawPlayer(colors);

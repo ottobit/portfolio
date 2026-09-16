@@ -154,7 +154,7 @@
                 </div>
             </div>
             <div class="game-overlay game-upgrade" id="ember-upgrade" hidden>
-                <h2 id="ember-upgrade-title" data-it="Scegli un potenziamento">Choose an upgrade</h2>
+                <h2 data-it="Scegli un potenziamento">Choose an upgrade</h2>
                 <div class="game-upgrade-cards" id="ember-upgrade-cards"></div>
                 <p class="game-upgrade-hint" data-it="Da tastiera: 1, 2, 3">On the keyboard: 1, 2, 3</p>
             </div>
@@ -220,7 +220,7 @@
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="bigchest" width="44" height="44" role="img" aria-label="Big treasure chest" data-aria-label-it="Scrigno grande"></canvas>
-                <div class="game-legend-text"><b data-it="Scrigno grande">Big chest</b><span data-it="Molto raro. Ti fa scegliere un potenziamento per arco, spada o palla di fuoco, come una carta di livello.">Very rare. Lets you choose an upgrade for the bow, sword or fireball, like a level-up card.</span></div>
+                <div class="game-legend-text"><b data-it="Scrigno grande">Big chest</b><span data-it="Lo lasciano solo i boss di livello 5 e 10. Ti dà subito, a caso, un potenziamento elementale permanente per una delle tue armi.">Only bosses at level 5 and 10 drop it. It instantly hands you a random, permanent elemental upgrade for one of your weapons.</span></div>
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="finalBoss" width="44" height="44" role="img" aria-label="Final boss" data-aria-label-it="Boss finale"></canvas>
@@ -248,7 +248,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=61';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=62';
 
     initDiagramPage();
 
@@ -265,7 +265,6 @@
     const overlayWon = document.getElementById('ember-overlay-won');
     const upgradeOverlay = document.getElementById('ember-upgrade');
     const upgradeCards = document.getElementById('ember-upgrade-cards');
-    const upgradeTitle = document.getElementById('ember-upgrade-title');
     const rotatePrompt = document.getElementById('ember-rotate-prompt');
     const familiarAnnounceOverlay = document.getElementById('ember-familiar-announce');
     const familiarAnnounceIcon = document.getElementById('ember-familiar-announce-icon');
@@ -336,10 +335,8 @@
             lastLevel = level;
             paintLevel();
         },
-        onChoices(choices, kind) {
-            lastChoiceKind = kind || 'level';
+        onChoices(choices) {
             renderCards(choices);
-            updateUpgradeTitle();
         },
         onFamiliarAnnounce(kind) {
             if (kind) {
@@ -395,15 +392,7 @@
 
     // --- Level-up cards -----------------------------------------------------
     let lastChoices = [];
-    let lastChoiceKind = 'level'; // 'level' or 'chest' — which overlay title to show
     let lastStats = null;
-
-    function updateUpgradeTitle() {
-        const it = getLang() === 'it';
-        upgradeTitle.textContent = lastChoiceKind === 'chest'
-            ? (it ? 'Scrigno grande! Scegli il tuo potenziamento' : 'Big chest! Choose your upgrade')
-            : (it ? 'Scegli un potenziamento' : 'Choose an upgrade');
-    }
 
     function renderCards(choices) {
         lastChoices = choices;
@@ -509,10 +498,7 @@
     // page language changes instead of being left in the old one.
     document.addEventListener('langchange', () => {
         game.setStrings(arenaText());
-        if (!upgradeOverlay.hidden && lastChoices.length) {
-            renderCards(lastChoices);
-            updateUpgradeTitle();
-        }
+        if (!upgradeOverlay.hidden && lastChoices.length) renderCards(lastChoices);
         if (!overlay.hidden) renderOutcome();
     });
 

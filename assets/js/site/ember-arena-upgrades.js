@@ -137,3 +137,31 @@ export const UPGRADES = [
         },
     },
 ];
+
+// The big chest's three exclusive rewards — permanent behaviour unlocks (not
+// stacking numbers), granted at random with no choice on pickup. Kept out of
+// UPGRADES on purpose: these must never show up in the level-up cards or the
+// small chest, only in the big chest's own instant-grant logic.
+export const BIG_CHEST_REWARDS = [
+    {
+        id: 'icebow', icon: '❄️',
+        name: { it: 'Arco di ghiaccio', en: 'Ice bow' },
+        desc: { it: "L'arco tra le frecce non danneggia più: paralizza per un istante i mostri che tocca.", en: 'The arc between arrows no longer damages: it briefly paralyzes any monster it touches.' },
+        owned: (p) => p.player.bowIce,
+        apply: (p) => { p.player.bowIce = true; },
+    },
+    {
+        id: 'firesword', icon: '🔥',
+        name: { it: 'Spada fiammeggiante', en: 'Flaming sword' },
+        desc: { it: 'Ogni rotazione lancia anche una fiammata verso il mostro più vicino.', en: 'Every spin also launches a fireball at the nearest monster.' },
+        owned: (p) => p.player.swordFire,
+        apply: (p) => { p.player.swordFire = true; },
+    },
+    {
+        id: 'iceburst', icon: '🥶',
+        name: { it: 'Deflagrazione glaciale', en: 'Glacial burst' },
+        desc: { it: 'La palla di fuoco paralizza per un istante ogni mostro che colpisce.', en: 'The fireball briefly paralyzes every monster it hits.' },
+        owned: (p) => p.player.ultimateIce,
+        apply: (p) => { p.player.ultimateIce = true; },
+    },
+];
