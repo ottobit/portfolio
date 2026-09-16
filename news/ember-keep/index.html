@@ -393,6 +393,12 @@
         },
     });
 
+    // Lets a Playwright script (or anything else scripting this page) see the real
+    // game state through game._debugState() and drive it through the same public
+    // API a player uses (setStick/bowAttack/meleeAttack/...) instead of guessing
+    // screen coordinates for the joystick and buttons. No effect on normal play.
+    window.__EMBER_DEBUG_GAME__ = game;
+
     hasWon = game.hasWon();
     paintLevel();
 
