@@ -4,11 +4,11 @@
 // mutable run state — player, monsters, bolts, tuning — across ~50 functions).
 import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
-    TREASURE_FRAME, TREASURE_PALETTE,
+    TREASURE_FRAME, TREASURE_PALETTE, BIGCHEST_FRAME, BIGCHEST_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=9';
+} from './ember-arena-sprites.js?v=10';
 export { drawArenaIcon };
-import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=3';
+import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=4';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
@@ -150,6 +150,10 @@ export function initEmberArena(canvas, opts) {
         // Same idea as heartChance, same base value as the old fixed TREASURE_CHANCE
         // constant it replaces — now tunable so Fortuna can raise it too.
         treasureChance: typeof options.treasureChance === 'number' ? options.treasureChance : 0.1,
+        // The big chest's own, much rarer roll — deliberately not raised by Fortuna
+        // (unlike treasureChance above): it's meant to stay a rare milestone drop,
+        // not something that stacks away with the rest of a lucky build.
+        bigTreasureChance: typeof options.bigTreasureChance === 'number' ? options.bigTreasureChance : 0.012,
     };
     let tuning = Object.assign({}, baseTuning);
     let strings = Object.assign({}, DEFAULT_STRINGS, options.strings || {});
@@ -196,7 +200,8 @@ export function initEmberArena(canvas, opts) {
     let colossusBoltT = 0; // visual duration of the Colossus lightning, 0 = nothing to draw
     let nextArrowVolley = 0; // id for the next bow shot, so its 10 arrows can find each other
     let taken = {};              // upgrade id -> how many times it was picked
-    let pendingChoices = null;   // the three cards waiting to be answered
+    let pendingChoices = null;   // the three level-up cards waiting to be answered
+    let pendingChestChoices = null; // the three big-chest cards (one per weapon) waiting to be answered
     let hasWon = readFlag(WON_KEY);
     let muted = readFlag(MUTE_KEY);
     let lastTime = null;
@@ -211,8 +216,8 @@ export function initEmberArena(canvas, opts) {
     function onCooldownChange(ult, bow) {
         if (typeof options.onCooldownChange === 'function') options.onCooldownChange(ult, bow);
     }
-    function onChoices(choices) {
-        if (typeof options.onChoices === 'function') options.onChoices(choices);
+    function onChoices(choices, kind) {
+        if (typeof options.onChoices === 'function') options.onChoices(choices, kind);
     }
     // kind is 'cookie'/'may' when the arrival banner should show, or null to hide it.
     function onFamiliarAnnounce(kind) {
@@ -380,6 +385,7 @@ export function initEmberArena(canvas, opts) {
         tuning = Object.assign({}, baseTuning);
         taken = {};
         pendingChoices = null;
+        pendingChestChoices = null;
         level = 1;
         xp = 0;
         xpToNext = 6;
@@ -696,9 +702,14 @@ export function initEmberArena(canvas, opts) {
                 hearts.push({ x: m.x, y: m.y, life: 9 });
             }
             // Independent roll from the heart above — a kill can drop neither, either,
-            // or (rarely) both.
-            if (Math.random() < tuning.treasureChance) {
-                treasures.push({ x: m.x, y: m.y, life: 9 });
+            // or (rarely) both. The two chest kinds are mutually exclusive with each
+            // other though (one chest per kill, checked rarer-first): a big chest is
+            // meant to feel like a rare event of its own, not something that can double
+            // up with a small one on the same corpse.
+            if (Math.random() < tuning.bigTreasureChance) {
+                treasures.push({ x: m.x, y: m.y, life: 9, kind: 'big' });
+            } else if (Math.random() < tuning.treasureChance) {
+                treasures.push({ x: m.x, y: m.y, life: 9, kind: 'small' });
             }
             gainXp(m.xpValue);
         }
@@ -878,6 +889,46 @@ export function initEmberArena(canvas, opts) {
     function availableUpgrades() {
         return UPGRADES.filter((u) => (taken[u.id] || 0) < u.max);
     }
+    // One random card per weapon (sword/bow/fire), for the big chest's choice — a
+    // deliberate pick, unlike a small chest's fully random one. If a weapon has no
+    // card left (all copies already taken), its slot is backfilled from whichever
+    // other weapon still has cards, so the chest still offers 3 real choices as
+    // long as any weapon-tagged card remains anywhere.
+    function pickChestChoices() {
+        const weapons = ['sword', 'bow', 'fire'];
+        const pool = availableUpgrades();
+        const used = new Set();
+        const choices = [];
+        weapons.forEach((w) => {
+            const options = pool.filter((u) => u.weapon === w && !used.has(u.id));
+            if (options.length) {
+                const pick = options[Math.floor(Math.random() * options.length)];
+                used.add(pick.id);
+                choices.push(pick);
+            }
+        });
+        if (choices.length < 3) {
+            const rest = pool.filter((u) => u.weapon && !used.has(u.id));
+            while (choices.length < 3 && rest.length) {
+                const idx = Math.floor(Math.random() * rest.length);
+                const pick = rest.splice(idx, 1)[0];
+                used.add(pick.id);
+                choices.push(pick);
+            }
+        }
+        return choices;
+    }
+    function openBigChest() {
+        const choices = pickChestChoices();
+        // Every weapon card already maxed out — a rare late-run edge case. The chest
+        // has nothing left to offer, so it's simply consumed without an overlay.
+        if (!choices.length) return;
+        pendingChestChoices = choices;
+        state = 'choosing';
+        sfx('card');
+        onChoices(choices.map((u) => ({ id: u.id, icon: u.icon, name: u.name, desc: u.desc })), 'chest');
+        onStateChange(state);
+    }
     function grantUpgrade(id) {
         const up = UPGRADES.find((u) => u.id === id);
         if (!up) return false;
@@ -934,6 +985,20 @@ export function initEmberArena(canvas, opts) {
     }
     function chooseUpgrade(id) {
         if (state !== 'choosing') return;
+        // A big chest's choice resolves separately from a level-up's: no
+        // announceLevel(), no xp/level bookkeeping — the run wasn't paused for
+        // levelling up, only for a reward pick.
+        if (pendingChestChoices) {
+            if (!pendingChestChoices.some((u) => u.id === id)) return;
+            grantUpgrade(id);
+            pendingChestChoices = null;
+            state = 'playing';
+            sfx('card');
+            floaters.push({ x: player.x, y: player.y - player.r - 6, text: '🎁', life: 1.3, color: '#7c4dff', size: 28 });
+            pushStats();
+            onStateChange(state);
+            return;
+        }
         if (pendingChoices && !pendingChoices.some((u) => u.id === id)) return;
         grantUpgrade(id);
         pendingChoices = null;
@@ -1150,9 +1215,14 @@ export function initEmberArena(canvas, opts) {
                 treasures.splice(i, 1);
                 continue;
             }
-            if (circlesOverlap(tr.x, tr.y, 12, player.x, player.y, player.r)) {
+            const pickupR = tr.kind === 'big' ? 16 : 12;
+            if (circlesOverlap(tr.x, tr.y, pickupR, player.x, player.y, player.r)) {
                 treasures.splice(i, 1);
-                // Same pool a level-up card draws from — a treasure is just that
+                if (tr.kind === 'big') {
+                    openBigChest();
+                    continue;
+                }
+                // Same pool a level-up card draws from — a small chest is just that
                 // reward handed out early, not a separate currency to track.
                 const pool = availableUpgrades();
                 if (pool.length) {
@@ -1459,7 +1529,7 @@ export function initEmberArena(canvas, opts) {
             meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, arrowDamage: player.arrowDamage, maxHp: player.maxHp,
             speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
             knockback: tuning.knockback, ultCd: tuning.ultCd, bowCd: tuning.bowCd, heartChance: tuning.heartChance,
-            treasureChance: tuning.treasureChance,
+            treasureChance: tuning.treasureChance, bigTreasureChance: tuning.bigTreasureChance,
         };
     }
     function endRun(won) {
@@ -2089,7 +2159,11 @@ export function initEmberArena(canvas, opts) {
             ctx.save();
             ctx.translate(tr.x, tr.y + bob);
             ctx.scale(pop, pop);
-            paintSprite(ctx, TREASURE_FRAME, TREASURE_PALETTE, 0, 0, 2.4);
+            if (tr.kind === 'big') {
+                paintSprite(ctx, BIGCHEST_FRAME, BIGCHEST_PALETTE, 0, 0, 3.2);
+            } else {
+                paintSprite(ctx, TREASURE_FRAME, TREASURE_PALETTE, 0, 0, 2.4);
+            }
             ctx.restore();
         });
     }

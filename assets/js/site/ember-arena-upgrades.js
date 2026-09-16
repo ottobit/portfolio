@@ -29,7 +29,7 @@ export function pickStep(steps, pickIndex) {
 // over more level-ups instead of a handful of picks that used to trivialise a run.
 export const UPGRADES = [
     {
-        id: 'strength', icon: '💪', max: 7,
+        id: 'strength', icon: '💪', max: 7, weapon: 'sword',
         name: { it: 'Forza', en: 'Strength' },
         desc: { it: 'La spada fa più male.', en: 'The sword hits harder.' },
         apply: (p) => {
@@ -37,7 +37,7 @@ export const UPGRADES = [
         },
     },
     {
-        id: 'blade', icon: '⚔️', max: 4,
+        id: 'blade', icon: '⚔️', max: 4, weapon: 'sword',
         name: { it: 'Lama lunga', en: 'Long blade' },
         desc: { it: 'Colpisci da più lontano.', en: 'Reach further out.' },
         apply: (p) => {
@@ -45,7 +45,7 @@ export const UPGRADES = [
         },
     },
     {
-        id: 'fury', icon: '🌀', max: 4,
+        id: 'fury', icon: '🌀', max: 4, weapon: 'sword',
         name: { it: 'Furia', en: 'Fury' },
         desc: { it: 'Giri più in fretta, colpisci più spesso.', en: 'Spin faster, hit more often.' },
         apply: (p) => {
@@ -56,7 +56,7 @@ export const UPGRADES = [
         },
     },
     {
-        id: 'shove', icon: '👊', max: 4,
+        id: 'shove', icon: '👊', max: 4, weapon: 'sword',
         name: { it: 'Spinta', en: 'Shove' },
         desc: { it: 'I mostri volano via più lontano.', en: 'Monsters fly further back.' },
         apply: (p) => {
@@ -64,7 +64,23 @@ export const UPGRADES = [
         },
     },
     {
-        id: 'ember', icon: '🔥', max: 7,
+        id: 'arrowpower', icon: '🏹', max: 6, weapon: 'bow',
+        name: { it: 'Frecce pesanti', en: 'Heavy arrows' },
+        desc: { it: 'Ogni freccia fa più danno.', en: 'Each arrow hits harder.' },
+        apply: (p) => {
+            p.player.arrowDamage += pickStep([4, 3, 3, 2, 2, 2], p.pickIndex);
+        },
+    },
+    {
+        id: 'quicknock', icon: '🎯', max: 4, weapon: 'bow',
+        name: { it: 'Corda tesa', en: 'Quick nock' },
+        desc: { it: "L'arco torna prima.", en: 'The bow comes back sooner.' },
+        apply: (p) => {
+            p.tuning.bowCd = Math.max(0.6, p.tuning.bowCd - pickStep([0.25, 0.2, 0.15, 0.1], p.pickIndex));
+        },
+    },
+    {
+        id: 'ember', icon: '🔥', max: 7, weapon: 'fire',
         name: { it: 'Braci', en: 'Embers' },
         desc: { it: 'La palla di fuoco brucia di più.', en: 'The fireball burns hotter.' },
         apply: (p) => {
@@ -72,7 +88,7 @@ export const UPGRADES = [
         },
     },
     {
-        id: 'storm', icon: '⏱️', max: 4,
+        id: 'storm', icon: '⏱️', max: 4, weapon: 'fire',
         name: { it: 'Ricarica rapida', en: 'Quick reload' },
         desc: { it: 'La palla di fuoco torna prima.', en: 'The fireball comes back sooner.' },
         apply: (p) => {
