@@ -86,3 +86,18 @@ export function themeColors() {
 export function circlesOverlap(ax, ay, ar, bx, by, br) {
     return Math.hypot(ax - bx, ay - by) < ar + br;
 }
+
+// Minimum distance from a point to a segment — for testing whether a monster
+// (a circle) touches the electric arc between two arrows (a segment), not just
+// another arrow (a circle) the way circlesOverlap does.
+export function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    // Inlined clamp: clamp() itself is a local closure helper inside
+    // ember-arena-game.js, not something this dependency-free geometry file
+    // can import from it.
+    const raw = lenSq > 0 ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
+    const t = Math.max(0, Math.min(1, raw));
+    const cx = x1 + dx * t, cy = y1 + dy * t;
+    return Math.hypot(px - cx, py - cy);
+}
