@@ -35,7 +35,7 @@ const ARROW_GLOW = '#d7ccc8';
 const ARROW_SPEED = 420;
 const ARROW_LIFE = 1.1;
 const ARROW_COUNT = 10;   // arrows per shot, fanned out around the aim direction
-const ARROW_SPREAD = 0.32; // total radians the fan spans
+const ARROW_SPREAD = 1.3; // total radians the fan spans — a wide, dramatic spray
 // Electric white-violet, not used anywhere else in the palette (fire is orange,
 // enemy bolts magenta, ice pale blue, arrows wood/bronze) — must read as
 // "lightning", not as any of those.
@@ -44,7 +44,10 @@ const LIGHTNING_GLOW = '#7c4dff';
 const COLOSSUS_BOLT_DUR = 0.9; // seconds, the whole strike-to-fade duration
 const GIANT_GROW_SPEED = 9; // scale units/sec the Colossus grows at — reaches 4x in well under a second
 const ARROW_ARC_DAMAGE = 10; // same as a direct arrow hit, for simplicity
-const ARROW_ARC_RANGE = 12;   // px beyond a monster's own radius before the arc finds it
+// px beyond a monster's own radius before the arc finds it. Scaled up alongside
+// ARROW_SPREAD above — a wider fan spaces adjacent arrows further apart, so the
+// arc between them needs more reach to keep finding what stands between them.
+const ARROW_ARC_RANGE = 26;
 const ICE_ARC_PARALYZE_DUR = 0.6; // the ice bow's arc: no damage, briefly freezes instead
 const SWORD_BOLT_SPEED = 300;
 const SWORD_BOLT_LIFE = 1.2;
@@ -548,10 +551,13 @@ export function initEmberArena(canvas, opts) {
         explosions.push({
             x: player.x, y: player.y, r: 0,
             maxR: Math.hypot(W, H), life: ULT_DUR, dur: ULT_DUR,
-            ult: true, hit: new Set(), seed: Math.random() * TAU,
+            ult: true, ice: player.ultimateIce, hit: new Set(), seed: Math.random() * TAU,
         });
-        // Sparks out of the blast, through the same particle burst the monsters die into.
-        burst(player.x, player.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 10 : 26);
+        // Sparks out of the blast, through the same particle burst the monsters die into —
+        // icy blue/white once the glacial-burst reward is in, fire otherwise.
+        burst(player.x, player.y, player.ultimateIce
+            ? { a: ICE_COLOR, b: ICE_GLOW, c: '#ffffff' }
+            : { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 10 : 26);
     }
     // The Colossus card's reveal moment: a single instant strike, not a repeatable
     // weapon (the card is max: 1, so this fires at most once per run) — same real
@@ -1694,11 +1700,19 @@ export function initEmberArena(canvas, opts) {
             clamp((player.meleeDamage - 18) / 18, 0, 1),
             clamp((tuning.meleeRange - baseTuning.meleeRange) / 18, 0, 1),
         );
-        const bladeColor = meleeT > 0 ? blendHex(colors.blade, FIRE_COLOR, meleeT) : colors.blade;
+        let bladeColor = meleeT > 0 ? blendHex(colors.blade, FIRE_COLOR, meleeT) : colors.blade;
         // The edge outruns the body on purpose — a hotter, brighter rim reads as
         // "glowing" at a glance instead of just "slightly less grey".
         const edgeT = clamp(meleeT * 1.4, 0, 1);
-        const bladeEdgeColor = edgeT > 0 ? blendHex(colors.bladeEdge, FIRE_GLOW, edgeT) : colors.bladeEdge;
+        let bladeEdgeColor = edgeT > 0 ? blendHex(colors.bladeEdge, FIRE_GLOW, edgeT) : colors.bladeEdge;
+        // Flaming sword reward: the blade itself burns, regardless of how much
+        // melee investment meleeT tracks — two overlapping sine waves so the
+        // flicker never settles into an obvious steady beat.
+        if (player.swordFire) {
+            const flicker = 0.5 + 0.3 * Math.sin(elapsed * 16) + 0.2 * Math.sin(elapsed * 27 + 1.4);
+            bladeColor = blendHex(FIRE_COLOR, '#fff3c4', clamp(flicker, 0, 1));
+            bladeEdgeColor = blendHex(FIRE_GLOW, '#ffffff', clamp(flicker * 1.2, 0, 1));
+        }
 
         // A pulsing ember aura once at least one Braci card is in, same technique as
         // the ice-paralysis ring above — grows with fireDamage, absent on a build
@@ -2081,16 +2095,23 @@ export function initEmberArena(canvas, opts) {
     // arena's edge. Used twice per fireball, a beat apart, so the blast reads as two
     // waves chasing each other out to every corner — not just a bright spot at the
     // player's feet.
-    function drawFireRing(cx, cy, maxR, progress, widthScale, alpha) {
+    function drawFireRing(cx, cy, maxR, progress, widthScale, alpha, ice) {
         if (progress <= 0) return;
         const r = progress * maxR;
         ctx.save();
         ctx.globalAlpha = alpha * (1 - progress * 0.15);
         const grad = ctx.createRadialGradient(cx, cy, Math.max(0, r - 22), cx, cy, r + 6);
-        grad.addColorStop(0, 'rgba(230, 126, 34, 0)');
-        grad.addColorStop(0.55, 'rgba(249, 202, 36, 0.55)');
-        grad.addColorStop(0.85, 'rgba(255, 243, 196, 0.9)');
-        grad.addColorStop(1, 'rgba(230, 126, 34, 0)');
+        if (ice) {
+            grad.addColorStop(0, 'rgba(116, 192, 252, 0)');
+            grad.addColorStop(0.55, 'rgba(208, 240, 255, 0.55)');
+            grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.9)');
+            grad.addColorStop(1, 'rgba(116, 192, 252, 0)');
+        } else {
+            grad.addColorStop(0, 'rgba(230, 126, 34, 0)');
+            grad.addColorStop(0.55, 'rgba(249, 202, 36, 0.55)');
+            grad.addColorStop(0.85, 'rgba(255, 243, 196, 0.9)');
+            grad.addColorStop(1, 'rgba(230, 126, 34, 0)');
+        }
         ctx.strokeStyle = grad;
         ctx.lineWidth = 14 * widthScale;
         ctx.beginPath();
@@ -2120,8 +2141,8 @@ export function initEmberArena(canvas, opts) {
             // decides the actual hit — what you see is exactly what the blast reaches.
             const p1 = 1 - Math.max(0, ex.life) / ex.dur;
             const p2 = Math.max(0, p1 - 0.15);
-            drawFireRing(ex.x, ex.y, ex.maxR, p1, 1, a);
-            drawFireRing(ex.x, ex.y, ex.maxR, p2, 0.7, a);
+            drawFireRing(ex.x, ex.y, ex.maxR, p1, 1, a, ex.ice);
+            drawFireRing(ex.x, ex.y, ex.maxR, p2, 0.7, a, ex.ice);
             // A fireball, not a travelling hoop: it swells fast, then burns down. The
             // damage still sweeps the whole arena — you see it in the monsters popping
             // as the wave reaches them, which reads far better than a geometric circle.
@@ -2129,10 +2150,17 @@ export function initEmberArena(canvas, opts) {
             ctx.save();
 
             const ball = ctx.createRadialGradient(ex.x, ex.y, 0, ex.x, ex.y, br);
-            ball.addColorStop(0, `rgba(255, 255, 245, ${0.95 * a})`);
-            ball.addColorStop(0.35, `rgba(249, 202, 36, ${0.85 * a})`);
-            ball.addColorStop(0.75, `rgba(230, 126, 34, ${0.6 * a})`);
-            ball.addColorStop(1, 'rgba(192, 57, 43, 0)');
+            if (ex.ice) {
+                ball.addColorStop(0, `rgba(255, 255, 255, ${0.95 * a})`);
+                ball.addColorStop(0.35, `rgba(208, 240, 255, ${0.85 * a})`);
+                ball.addColorStop(0.75, `rgba(116, 192, 252, ${0.6 * a})`);
+                ball.addColorStop(1, 'rgba(41, 128, 185, 0)');
+            } else {
+                ball.addColorStop(0, `rgba(255, 255, 245, ${0.95 * a})`);
+                ball.addColorStop(0.35, `rgba(249, 202, 36, ${0.85 * a})`);
+                ball.addColorStop(0.75, `rgba(230, 126, 34, ${0.6 * a})`);
+                ball.addColorStop(1, 'rgba(192, 57, 43, 0)');
+            }
             ctx.fillStyle = ball;
             ctx.beginPath();
             ctx.arc(ex.x, ex.y, br, 0, TAU);
@@ -2152,7 +2180,9 @@ export function initEmberArena(canvas, opts) {
                 const size = br * (0.16 + 0.16 * hash(i + 90));
                 ctx.globalAlpha = a * 0.8;
                 const pick = hash(i + 7);
-                ctx.fillStyle = pick > 0.72 ? '#fff3c4' : pick > 0.4 ? FIRE_GLOW : FIRE_COLOR;
+                ctx.fillStyle = ex.ice
+                    ? (pick > 0.72 ? '#ffffff' : pick > 0.4 ? ICE_GLOW : ICE_COLOR)
+                    : (pick > 0.72 ? '#fff3c4' : pick > 0.4 ? FIRE_GLOW : FIRE_COLOR);
                 ctx.beginPath();
                 ctx.arc(ex.x + Math.cos(ang) * rr, ex.y + Math.sin(ang) * rr, size, 0, TAU);
                 ctx.fill();
