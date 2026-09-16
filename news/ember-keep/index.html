@@ -15,13 +15,13 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ottobit.github.io/portfolio/news/ember-keep/">
     <link rel="canonical" href="https://ottobit.github.io/portfolio/news/ember-keep/">
-    <meta property="og:title" content="ottobit — Pomeriggi da leggenda">
+    <meta property="og:title" content="ottobit — Embergale">
     <meta property="og:description" content="Da Ocarina of Time a Baldur's Gate: i ricordi che hanno reso possibile Embergale, una piccola arena di combattimento giocabile nel browser.">
     <meta property="og:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ottobit — Pomeriggi da leggenda">
+    <meta name="twitter:title" content="ottobit — Embergale">
     <meta name="twitter:description" content="Da Ocarina of Time a Baldur's Gate: i ricordi che hanno reso possibile Embergale, una piccola arena di combattimento giocabile nel browser.">
     <meta name="twitter:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
     <script type="application/ld+json">
@@ -244,7 +244,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=55';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=56';
 
     initDiagramPage();
 
@@ -547,7 +547,7 @@
         rotatePrompt.hidden = !show;
         game.setPaused(show);
     }
-    const START_KEYS = [' ', 'Enter', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V', 'b', 'B'];
+    const START_KEYS = [' ', 'Enter', 'z', 'Z', 'v', 'V', 'b', 'B'];
     // Capture-phase on window: this runs before any listener the game module
     // attaches to the canvas or document, regardless of which script registered
     // its listener first — a bubble-phase listener on the same node the module

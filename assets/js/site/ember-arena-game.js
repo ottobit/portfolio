@@ -34,7 +34,7 @@ const ARROW_COLOR = '#8d6e63';
 const ARROW_GLOW = '#d7ccc8';
 const ARROW_SPEED = 420;
 const ARROW_LIFE = 1.1;
-const ARROW_COUNT = 3;   // arrows per shot, fanned out around the aim direction
+const ARROW_COUNT = 10;   // arrows per shot, fanned out around the aim direction
 const ARROW_SPREAD = 0.32; // total radians the fan spans
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
@@ -61,10 +61,11 @@ const BITE_ENGAGE_MARGIN = 14;
 const IMP_HOP_PERIOD = 0.85; // seconds per hop
 const IMP_HOP_HEIGHT = 11;   // px, peak lift mid-hop
 const IMP_HOP_SPEED_FLOOR = 0.06;
-// Rarer than a heart (tuning.heartChance, ~0.13 base) — a treasure hands out a
-// full random upgrade on pickup, same effect as a level-up card, so it needs to
-// stay a genuine rare find rather than something every third kill drops.
-const TREASURE_CHANCE = 0.05;
+// Still rarer than a heart (tuning.heartChance, ~0.13 base) — a treasure hands
+// out a full random upgrade on pickup, same effect as a level-up card, so it
+// stays a genuine find rather than something every third kill drops — just a
+// noticeably more common one than the original 0.05.
+const TREASURE_CHANCE = 0.1;
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -466,7 +467,7 @@ export function initEmberArena(canvas, opts) {
             if (state === 'playing') meleeAttack();
             else if (state !== 'choosing') start();
         }
-        if (e.key === 'x' || e.key === 'X' || e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V') {
+        if (e.key === 'v' || e.key === 'V') {
             if (state === 'playing') ultimateAttack();
             else if (state !== 'choosing') start();
         }
