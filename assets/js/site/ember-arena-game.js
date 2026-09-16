@@ -41,7 +41,8 @@ const ARROW_SPREAD = 0.32; // total radians the fan spans
 // "lightning", not as any of those.
 const LIGHTNING_COLOR = '#ffffff';
 const LIGHTNING_GLOW = '#7c4dff';
-const COLOSSUS_BOLT_DUR = 0.5; // seconds, the whole strike-to-fade duration
+const COLOSSUS_BOLT_DUR = 0.9; // seconds, the whole strike-to-fade duration
+const GIANT_GROW_SPEED = 9; // scale units/sec the Colossus grows at — reaches 4x in well under a second
 const ARROW_ARC_DAMAGE = 10; // same as a direct arrow hit, for simplicity
 const ARROW_ARC_RANGE = 12;   // px beyond a monster's own radius before the arc finds it
 const ICE_ARC_PARALYZE_DUR = 0.6; // the ice bow's arc: no damage, briefly freezes instead
@@ -109,6 +110,7 @@ export function initEmberArena(canvas, opts) {
         y: H / 2,
         r: 14,
         giantScale: 1,
+        giantTargetScale: 1,
         giantTimer: 0,
         facing: { x: 1, y: 0 },
         maxHp: 100,
@@ -367,6 +369,7 @@ export function initEmberArena(canvas, opts) {
         player.facing = { x: 1, y: 0 };
         player.r = 14;
         player.giantScale = 1;
+        player.giantTargetScale = 1;
         player.giantTimer = 0;
         player.maxHp = 100;
         player.hp = 100;
@@ -556,8 +559,11 @@ export function initEmberArena(canvas, opts) {
     // all at once instead of an expanding ring.
     function triggerColossusBolt() {
         colossusBoltT = COLOSSUS_BOLT_DUR;
-        if (!reducedMotion) shake = Math.max(shake, 8);
+        if (!reducedMotion) shake = Math.max(shake, 10);
         sfx('thunder');
+        // The strike itself lands on the player — a burst there reads as the point
+        // of impact the growth animation follows, not just damage on the monsters.
+        burst(player.x, player.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 6 : 16);
         for (let j = monsters.length - 1; j >= 0; j--) {
             const m = monsters[j];
             burst(m.x, m.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 4 : 9);
@@ -1184,8 +1190,15 @@ export function initEmberArena(canvas, opts) {
             player.giantTimer = Math.max(0, player.giantTimer - dt);
             if (player.giantTimer === 0) {
                 player.giantScale = 1;
+                player.giantTargetScale = 1;
                 player.r = 14;
             }
+        }
+        // Grows into the Colossus instead of snapping to 4x the instant the card
+        // is picked — the lightning strike (drawColossusBolt) lands first, then
+        // the hero visibly swells into the size it's about to crush things at.
+        if (player.giantScale < player.giantTargetScale) {
+            player.giantScale = Math.min(player.giantTargetScale, player.giantScale + GIANT_GROW_SPEED * dt);
         }
 
         updateFloaters(dt);
@@ -2154,8 +2167,19 @@ export function initEmberArena(canvas, opts) {
     function drawColossusBolt() {
         const t = colossusBoltT / COLOSSUS_BOLT_DUR;
         const alpha = Math.min(1, t * 2.5); // full almost instantly, then fades with t
-        const segments = 7;
-        const jag = 22; // max zigzag amplitude, px
+        const progress = 1 - t; // 0 -> 1, how far into the strike we are
+        // A shockwave ring expanding out from the player at the moment of impact —
+        // reads as the ground itself reacting to the strike, not just the bolt.
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - progress) * 0.7;
+        ctx.strokeStyle = LIGHTNING_GLOW;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 20 + progress * 140, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+        const segments = 8;
+        const jag = 26; // max zigzag amplitude, px
         function boltPath(x1, y1, x2, y2, seed) {
             ctx.beginPath();
             ctx.moveTo(x1, y1);
