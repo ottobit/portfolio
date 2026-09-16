@@ -100,15 +100,18 @@ export const UPGRADES = [
     {
         id: 'luck', icon: '🍀', max: 4,
         name: { it: 'Fortuna', en: 'Fortune' },
-        desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
+        desc: { it: 'I mostri lasciano cuori e scrigni più spesso.', en: 'Monsters drop hearts and treasure chests more often.' },
         apply: (p) => {
             p.tuning.heartChance += pickStep([0.07, 0.06, 0.05, 0.04], p.pickIndex);
+            // Smaller steps than hearts — a chest hands out a full upgrade card, so
+            // even a maxed-out Fortuna should raise it by less in absolute terms.
+            p.tuning.treasureChance += pickStep([0.03, 0.025, 0.02, 0.015], p.pickIndex);
         },
     },
     {
         id: 'giant', icon: '🗿', max: 1,
         name: { it: 'Colosso', en: 'Colossus' },
-        desc: { it: 'Per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'For 5 seconds, grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
+        desc: { it: 'Un fulmine ti colpisce e danneggia tutti i mostri in campo, poi per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'A lightning bolt strikes you and damages every monster on screen, then for 5 seconds you grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
         apply: (p) => {
             p.player.giantScale = 4;
             p.player.r = 56;
