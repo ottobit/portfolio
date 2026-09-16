@@ -220,7 +220,7 @@
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="bigchest" width="44" height="44" role="img" aria-label="Big treasure chest" data-aria-label-it="Scrigno grande"></canvas>
-                <div class="game-legend-text"><b data-it="Scrigno grande">Big chest</b><span data-it="Lo lasciano solo i boss di livello 5 e 10. Ti dà subito, a caso, un potenziamento elementale permanente per una delle tue armi.">Only bosses at level 5 and 10 drop it. It instantly hands you a random, permanent elemental upgrade for one of your weapons.</span></div>
+                <div class="game-legend-text"><b data-it="Scrigno grande">Big chest</b><span data-it="Lo lasciano sempre i boss di livello 5 e 10. Ti dà subito, a caso, un potenziamento elementale permanente per una delle tue armi.">Bosses at level 5 and 10 always drop it. It instantly hands you a random, permanent elemental upgrade for one of your weapons.</span></div>
             </li>
             <li class="game-legend-item">
                 <canvas class="game-legend-sprite" data-sprite="finalBoss" width="44" height="44" role="img" aria-label="Final boss" data-aria-label-it="Boss finale"></canvas>
@@ -248,7 +248,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=62';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=63';
 
     initDiagramPage();
 
@@ -462,7 +462,6 @@
             ['⏱️', it ? 'Ricarica arco' : 'Bow cooldown', `${fs.bowCd.toFixed(1)}s`],
             ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
             ['🍀', it ? 'Probabilità scrigni' : 'Treasure chance', `${Math.round(fs.treasureChance * 100)}%`],
-            ['🎁', it ? 'Probabilità scrigni grandi' : 'Big chest chance', `${(fs.bigTreasureChance * 100).toFixed(1)}%`],
         ];
         summaryRows.forEach(([icon, label, value]) => {
             const dt = document.createElement('dt');

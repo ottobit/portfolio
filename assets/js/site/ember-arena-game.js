@@ -160,13 +160,6 @@ export function initEmberArena(canvas, opts) {
         // Same idea as heartChance, same base value as the old fixed TREASURE_CHANCE
         // constant it replaces — now tunable so Fortuna can raise it too.
         treasureChance: typeof options.treasureChance === 'number' ? options.treasureChance : 0.1,
-        // The chance a level 5/10 boss (and only that boss) drops a big chest.
-        // Much higher than a per-monster roll would be — with only two of these
-        // bosses in a typical run, a per-monster-sized chance would make the big
-        // chest a near-never event instead of a rare-but-present one. Deliberately
-        // not raised by Fortuna (unlike treasureChance above): it's meant to stay a
-        // milestone drop, not something that stacks away with the rest of a lucky build.
-        bigTreasureChance: typeof options.bigTreasureChance === 'number' ? options.bigTreasureChance : 0.5,
     };
     let tuning = Object.assign({}, baseTuning);
     let strings = Object.assign({}, DEFAULT_STRINGS, options.strings || {});
@@ -719,9 +712,9 @@ export function initEmberArena(canvas, opts) {
             if (Math.random() < tuning.heartChance) {
                 hearts.push({ x: m.x, y: m.y, life: 9 });
             }
-            // Independent roll from the heart above. Only the level 5/10 boss can drop
-            // a big chest — a regular kill only ever rolls for the small one.
-            if (m.type === 'boss' && Math.random() < tuning.bigTreasureChance) {
+            // The level 5/10 boss always drops a big chest — a guaranteed milestone
+            // reward, not a lucky roll. A regular kill only ever rolls for the small one.
+            if (m.type === 'boss') {
                 treasures.push({ x: m.x, y: m.y, life: 9, kind: 'big', size: m.r });
             } else if (Math.random() < tuning.treasureChance) {
                 treasures.push({ x: m.x, y: m.y, life: 9, kind: 'small' });
@@ -1560,7 +1553,7 @@ export function initEmberArena(canvas, opts) {
             meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, arrowDamage: player.arrowDamage, maxHp: player.maxHp,
             speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
             knockback: tuning.knockback, ultCd: tuning.ultCd, bowCd: tuning.bowCd, heartChance: tuning.heartChance,
-            treasureChance: tuning.treasureChance, bigTreasureChance: tuning.bigTreasureChance,
+            treasureChance: tuning.treasureChance,
         };
     }
     function endRun(won) {
