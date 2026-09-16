@@ -111,7 +111,7 @@ export const UPGRADES = [
     {
         id: 'giant', icon: '🗿', max: 1,
         name: { it: 'Colosso', en: 'Colossus' },
-        desc: { it: 'Per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'For 5 seconds, grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
+        desc: { it: 'Un fulmine ti colpisce e danneggia tutti i mostri in campo, poi per 5 secondi diventi 4× più grande e travolgi i mostri comuni. Il bonus a danno e portata resta per sempre.', en: 'A lightning bolt strikes you and damages every monster on screen, then for 5 seconds you grow 4× larger and crush regular monsters. The damage and reach bonus stays forever.' },
         apply: (p) => {
             p.player.giantScale = 4;
             p.player.r = 56;

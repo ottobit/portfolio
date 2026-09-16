@@ -8,7 +8,7 @@ import {
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
 } from './ember-arena-sprites.js?v=9';
 export { drawArenaIcon };
-import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=2';
+import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=3';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
@@ -36,6 +36,12 @@ const ARROW_SPEED = 420;
 const ARROW_LIFE = 1.1;
 const ARROW_COUNT = 10;   // arrows per shot, fanned out around the aim direction
 const ARROW_SPREAD = 0.32; // total radians the fan spans
+// Electric white-violet, not used anywhere else in the palette (fire is orange,
+// enemy bolts magenta, ice pale blue, arrows wood/bronze) — must read as
+// "lightning", not as any of those.
+const LIGHTNING_COLOR = '#ffffff';
+const LIGHTNING_GLOW = '#7c4dff';
+const COLOSSUS_BOLT_DUR = 0.5; // seconds, the whole strike-to-fade duration
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -185,6 +191,7 @@ export function initEmberArena(canvas, opts) {
     let screenFlash = 0;
     let hurtFlash = 0;
     let shake = 0;
+    let colossusBoltT = 0; // visual duration of the Colossus lightning, 0 = nothing to draw
     let taken = {};              // upgrade id -> how many times it was picked
     let pendingChoices = null;   // the three cards waiting to be answered
     let hasWon = readFlag(WON_KEY);
@@ -251,6 +258,9 @@ export function initEmberArena(canvas, opts) {
         // A quick, cheap twang — the bow can fire several times a second while
         // held, so unlike every other sfx here this one stays a single short chirp.
         else if (name === 'arrow') chirp({ from: 900, to: 500, duration: 0.08, type: 'triangle', gain: 0.035 });
+        // The Colossus card's own strike: a sharp crack, not a rolling rumble — it
+        // lands once, on the spot, rather than building like the fireball's 'storm'.
+        else if (name === 'thunder') { noiseBurst(0.15, 0.08, 2500); chirp({ from: 1600, to: 80, duration: 0.35, type: 'sawtooth', gain: 0.05 }); }
     }
 
     // --- Background music --------------------------------------------------
@@ -386,6 +396,7 @@ export function initEmberArena(canvas, opts) {
         screenFlash = 0;
         hurtFlash = 0;
         shake = 0;
+        colossusBoltT = 0;
         stick = null;
         // Levels skipped by opts.startLevel still hand out a card, so a test hero is
         // equipped roughly like one that actually played its way up here.
@@ -515,6 +526,21 @@ export function initEmberArena(canvas, opts) {
         });
         // Sparks out of the blast, through the same particle burst the monsters die into.
         burst(player.x, player.y, { a: FIRE_COLOR, b: FIRE_GLOW, c: '#fff3c4' }, reducedMotion ? 10 : 26);
+    }
+    // The Colossus card's reveal moment: a single instant strike, not a repeatable
+    // weapon (the card is max: 1, so this fires at most once per run) — same real
+    // damage as the fireball's own per-monster hit (see updateExplosions), landed
+    // all at once instead of an expanding ring.
+    function triggerColossusBolt() {
+        colossusBoltT = COLOSSUS_BOLT_DUR;
+        if (!reducedMotion) shake = Math.max(shake, 8);
+        sfx('thunder');
+        for (let j = monsters.length - 1; j >= 0; j--) {
+            const m = monsters[j];
+            burst(m.x, m.y, { a: LIGHTNING_COLOR, b: LIGHTNING_GLOW, c: '#e0d4ff' }, reducedMotion ? 4 : 9);
+            damageMonster(j, player.fireDamage * 3);
+            hitsGiven++;
+        }
     }
     // Press: start turning and land a hit at once. Hold: keep turning, one hit per
     // turn. Release: stop once the turn in progress completes, so a tap is one spin.
@@ -844,6 +870,9 @@ export function initEmberArena(canvas, opts) {
         if (!up) return false;
         up.apply({ player, tuning, pickIndex: taken[id] || 0 });
         taken[id] = (taken[id] || 0) + 1;
+        // apply() has already set giantScale synchronously, so the Colossus is
+        // already "on screen" for the whole bolt effect below.
+        if (id === 'giant') triggerColossusBolt();
         return true;
     }
     function applyLevelUp(announce) {
@@ -1071,6 +1100,7 @@ export function initEmberArena(canvas, opts) {
         levelFlash = Math.max(0, levelFlash - dt);
         screenFlash = Math.max(0, screenFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
+        colossusBoltT = Math.max(0, colossusBoltT - dt);
         shake = Math.max(0, shake - dt * 26);
         // The Colossus card's size/crush effect is a 5s burst, not a permanent change
         // — only the melee damage/range bonus it also grants sticks around after.
@@ -1898,6 +1928,46 @@ export function initEmberArena(canvas, opts) {
             ctx.restore();
         });
     }
+    // Two zigzag bolts, one from above and one from below the arena, converging on
+    // the player — recomputed every frame (elapsed in the seed) for a live crackle
+    // instead of a static shape, same halo-then-core stroke technique already used
+    // in drawBolts()/drawArrows() but as a broken path instead of a circle.
+    function drawColossusBolt() {
+        const t = colossusBoltT / COLOSSUS_BOLT_DUR;
+        const alpha = Math.min(1, t * 2.5); // full almost instantly, then fades with t
+        const segments = 7;
+        const jag = 22; // max zigzag amplitude, px
+        function boltPath(x1, y1, x2, y2, seed) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            for (let i = 1; i < segments; i++) {
+                const f = i / segments;
+                const px = x1 + (x2 - x1) * f;
+                const py = y1 + (y2 - y1) * f;
+                const off = Math.sin(elapsed * 37 + seed + i * 13.1) * 0.5 * jag;
+                ctx.lineTo(px + off, py);
+            }
+            ctx.lineTo(x2, y2);
+        }
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        [
+            [player.x, -20, 11],
+            [player.x, H + 20, 47],
+        ].forEach(([sx, sy, seed]) => {
+            ctx.strokeStyle = LIGHTNING_GLOW;
+            ctx.lineWidth = 9;
+            boltPath(sx, sy, player.x, player.y, seed);
+            ctx.stroke();
+            ctx.strokeStyle = LIGHTNING_COLOR;
+            ctx.lineWidth = 3;
+            boltPath(sx, sy, player.x, player.y, seed);
+            ctx.stroke();
+        });
+        ctx.restore();
+    }
 
     function drawLevelFlash(colors) {
         if (levelFlash <= 0) return;
@@ -2117,6 +2187,7 @@ export function initEmberArena(canvas, opts) {
         drawExplosions(colors);
         drawParticles();
         if (state !== 'over' && state !== 'won') drawPlayer(colors);
+        if (colossusBoltT > 0) drawColossusBolt();
         drawFloaters();
         ctx.restore();
         if (screenFlash > 0) {
