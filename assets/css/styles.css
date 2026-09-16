@@ -2262,7 +2262,10 @@ a.info-card:focus-visible .info-card-title::after {
 .game-controls-actions {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    /* Roomier than a bare-minimum gap: the sword sits in the middle of the three,
+       bow and fireball a bit further from it on each side — an accurate thumb tap
+       doesn't need to land between two buttons crowded right up against it. */
+    gap: 1.1rem;
 }
 .game-stick {
     position: relative;
@@ -2444,14 +2447,12 @@ a.info-card:focus-visible .info-card-title::after {
         grid-row: 1;
         align-self: center;
         flex-direction: column;
-        gap: 0.7rem;
+        gap: 1.1rem;
     }
+    /* Every action button now matches the fireball's own size (see the base
+       .game-touch-btn rule below) — no more small buttons flanking one big one,
+       just three equally easy targets for a thumb that's already working hard. */
     .game-panel .game-touch-btn {
-        width: 74px;
-        height: 74px;
-        font-size: 1.6rem;
-    }
-    .game-panel .game-touch-btn-ult {
         width: 86px;
         height: 86px;
         font-size: 1.9rem;
@@ -2533,14 +2534,18 @@ a.info-card:focus-visible .info-card-title::after {
 .game-touch-btn {
     --cd: 0;
     position: relative;
-    width: 64px;
-    height: 64px;
+    /* All three action buttons share this size now — they used to scale with how
+       big a hit each attack was (the fireball biggest), but a smaller sword/bow
+       target just meant more strain aiming a thumb at it for no real benefit;
+       the border color alone already tells them apart. */
+    width: 76px;
+    height: 76px;
     padding: 0;
     border-radius: 50%;
     border: 2px solid var(--border);
     background: var(--bg);
     color: var(--text);
-    font-size: 1.7rem;
+    font-size: 2rem;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -2552,14 +2557,10 @@ a.info-card:focus-visible .info-card-title::after {
     -webkit-tap-highlight-color: transparent;
 }
 .game-touch-btn-ult {
-    width: 76px;
-    height: 76px;
-    font-size: 2rem;
     border-color: rgba(249, 202, 36, 0.7);
 }
 /* Same wood/bronze already used for the arrow itself (see ARROW_COLOR in
-   ember-arena-game.js) — size stays the base .game-touch-btn default, it's a
-   steady third attack, not a big one-shot like the fireball. */
+   ember-arena-game.js). */
 .game-touch-btn-bow {
     border-color: rgba(141, 110, 99, 0.7);
 }
@@ -2758,7 +2759,11 @@ a.info-card:focus-visible .info-card-title::after {
         grid-row: 1;
         align-self: center;
         flex-direction: column;
-        gap: 0.7rem;
+        /* Tighter than the other breakpoints, even a touch tighter than this had
+           before — the tightest tested phone height (~280px real) leaves no room
+           to both grow the buttons to match and widen the gap; the panel below
+           clips overflow instead of scrolling it, so this stays conservative. */
+        gap: 0.4rem;
     }
     /* Sized up again for accessibility (bigger touch targets, easier to read and
        hit accurately) — the full-shape arena still leaves enough room next to it,
@@ -2772,15 +2777,13 @@ a.info-card:focus-visible .info-card-title::after {
         height: 56px;
         margin: -28px 0 0 -28px;
     }
+    /* Same equal-size treatment as the other breakpoints, just a touch smaller —
+       three 86px buttons plus gaps would overflow the tightest tested phone
+       height (~280px real), which this panel clips instead of scrolling. */
     .game-play .game-touch-btn {
         width: 74px;
         height: 74px;
-        font-size: 1.6rem;
-    }
-    .game-play .game-touch-btn-ult {
-        width: 86px;
-        height: 86px;
-        font-size: 1.9rem;
+        font-size: 1.65rem;
     }
 }
 
