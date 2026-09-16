@@ -8,7 +8,7 @@ import {
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
 } from './ember-arena-sprites.js?v=10';
 export { drawArenaIcon };
-import { DEFAULT_STRINGS, UPGRADES, BIG_CHEST_REWARDS } from './ember-arena-upgrades.js?v=5';
+import { DEFAULT_STRINGS, UPGRADES, BIG_CHEST_REWARDS } from './ember-arena-upgrades.js?v=6';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
@@ -200,8 +200,9 @@ export function initEmberArena(canvas, opts) {
     let bowCooldown = 0;    // same idea as ultCooldown, just a shorter wait
     let ultCooldown = 0;
     let levelFlash = 0;
-    let flashKind = '';   // 'level' | 'boss' | 'final'
+    let flashKind = '';   // 'level' | 'boss' | 'final' | 'reward'
     let flashLevel = 1;
+    let flashRewardText = ''; // set alongside flashKind === 'reward'
     let screenFlash = 0;
     let hurtFlash = 0;
     let shake = 0;
@@ -413,6 +414,7 @@ export function initEmberArena(canvas, opts) {
         ultCooldown = 0;
         levelFlash = 0;
         flashKind = '';
+        flashRewardText = '';
         screenFlash = 0;
         hurtFlash = 0;
         shake = 0;
@@ -1223,6 +1225,12 @@ export function initEmberArena(canvas, opts) {
                     const reward = rewards[Math.floor(Math.random() * rewards.length)];
                     reward.apply({ player });
                     floaters.push({ x: player.x, y: player.y - player.r - 6, text: reward.icon, life: 1.6, color: '#7c4dff', size: 34 });
+                    // The floater alone reads as "something happened" but not what —
+                    // name it out loud too, same banner the level-up/boss text already
+                    // uses, so it's unmistakable which weapon just changed.
+                    flashKind = 'reward';
+                    flashRewardText = reward.name[strings.lang === 'it' ? 'it' : 'en'];
+                    levelFlash = 1.6;
                     pushStats();
                     sfx('card');
                     continue;
@@ -1961,18 +1969,32 @@ export function initEmberArena(canvas, opts) {
     // enemy bolts above — it needs to read as "an arrow" at a glance, not just as
     // another dot flying across the arena.
     function drawArrows() {
+        // The ice bow gets its own frosty shaft/tip instead of the default wood-and-bronze
+        // arrow — so the arrows themselves read as icy, not just the arc between them.
+        const shaftColor = player.bowIce ? ICE_COLOR : ARROW_COLOR;
+        const tipColor = player.bowIce ? ICE_GLOW : ARROW_GLOW;
         arrows.forEach((a) => {
             const angle = Math.atan2(a.vy, a.vx);
             ctx.save();
             ctx.translate(a.x, a.y);
+            // A soft halo around each ice arrow — brighter and colder than the shaft
+            // itself, so a whole volley reads as icy at a glance, not just up close.
+            if (player.bowIce) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0, TAU);
+                ctx.fillStyle = ICE_GLOW;
+                ctx.globalAlpha = 0.4;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
             ctx.rotate(angle);
-            ctx.strokeStyle = ARROW_COLOR;
+            ctx.strokeStyle = shaftColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(-8, 0);
             ctx.lineTo(3, 0);
             ctx.stroke();
-            ctx.fillStyle = ARROW_GLOW;
+            ctx.fillStyle = tipColor;
             ctx.beginPath();
             ctx.moveTo(4, 0);
             ctx.lineTo(-1, -2.5);
@@ -2169,10 +2191,12 @@ export function initEmberArena(canvas, opts) {
     function drawLevelFlash(colors) {
         if (levelFlash <= 0) return;
         const isBoss = flashKind === 'boss' || flashKind === 'final';
+        const isReward = flashKind === 'reward';
         const flashText = flashKind === 'final' ? strings.finalBoss
             : flashKind === 'boss' ? strings.boss
+            : isReward ? flashRewardText
             : typeof strings.level === 'function' ? strings.level(flashLevel) : `Level ${flashLevel}!`;
-        ctx.fillStyle = isBoss ? '#e74c3c' : colors.text;
+        ctx.fillStyle = isBoss ? '#e74c3c' : isReward ? LIGHTNING_GLOW : colors.text;
         ctx.textAlign = 'center';
         ctx.font = `700 ${isBoss ? 28 : 20}px system-ui, sans-serif`;
         ctx.globalAlpha = Math.min(1, levelFlash);
