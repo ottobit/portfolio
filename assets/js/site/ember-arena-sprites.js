@@ -153,13 +153,13 @@ export const MONSTER_TYPES = {
         // of hopping, so the acceleration itself reads as "about to bite".
         bite: { cooldown: 1.1, telegraph: 0.3, damage: 14, style: 'rush', rushMul: 2.2 },
         // A ranged jab on top of the bite, not instead of it — it keeps hopping in
-        // and biting up close as before, but now also breathes a short jet of fire
-        // while it closes the distance. A real gout of flame (fireBreath, not a
-        // single homing bolt): 4 embers in a straight line, short-lived so it reads
-        // as a burst that dissipates rather than a projectile with real range.
-        // Damage stays per-ember (weaker than the bite, the secondary threat), so
-        // only standing right in the line risks more than one landing.
-        spit: { interval: 2.2, speed: 240, damage: 7, range: 260, count: 4, gap: 10 },
+        // and biting up close as before, but now also breathes fire while it closes
+        // the distance. Never a projectile: telegraph, then a single hit if the
+        // player is still in range, drawn as a short jet attached to the imp's own
+        // position (see drawMonsters) instead of something thrown — like a dragon's
+        // breath, not a dart. Damage lands once per use (secondary to the bite),
+        // so only standing in range during the telegraph risks it.
+        spit: { interval: 2.2, telegraph: 0.25, duration: 0.5, range: 120, damage: 12 },
     },
     bat: {
         palette: { A: '#8e44ad', a: '#5b2c6f', E: '#ffffff', p: '#e74c3c' },

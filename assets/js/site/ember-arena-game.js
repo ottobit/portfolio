@@ -6,7 +6,7 @@ import {
     drawArenaIcon, HERO_PALETTE, HERO_FRAMES, MONSTER_TYPES, HEART_FRAME, HEART_PALETTE,
     TREASURE_FRAME, TREASURE_PALETTE,
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
-} from './ember-arena-sprites.js?v=8';
+} from './ember-arena-sprites.js?v=9';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
@@ -34,6 +34,8 @@ const ARROW_COLOR = '#8d6e63';
 const ARROW_GLOW = '#d7ccc8';
 const ARROW_SPEED = 420;
 const ARROW_LIFE = 1.1;
+const ARROW_COUNT = 3;   // arrows per shot, fanned out around the aim direction
+const ARROW_SPREAD = 0.32; // total radians the fan spans
 const KNOCKBACK = 320;   // px/s shove a sword hit gives a monster
 const KNOCK_DECAY = 6;   // how quickly that shove dies down
 // The numbers in MONSTER_TYPES/triggerBossSlam/fireStarVolley are the level-1
@@ -106,10 +108,10 @@ export function initEmberArena(canvas, opts) {
         paralyzedUntil: 0,
         meleeDamage: 18,
         fireDamage: 14,
-        // Higher than its original 10 now that it's a deliberate cooldown-gated shot
-        // (BASE_BOW_CD) instead of a hold-and-spam stream — a single precision hit
-        // is worth more than a tick in a machine-gun.
-        arrowDamage: 22,
+        // Per-arrow damage, lower now that each shot is a fan of ARROW_COUNT arrows
+        // instead of one — full value lands only when several arrows converge on
+        // the same target; the fan's real payoff is hitting more than one monster.
+        arrowDamage: 9,
         moving: false,
         walkT: 0,
     };
@@ -347,7 +349,7 @@ export function initEmberArena(canvas, opts) {
         player.paralyzedUntil = 0;
         player.meleeDamage = 18;
         player.fireDamage = 14;
-        player.arrowDamage = 22;
+        player.arrowDamage = 9;
         monsters = [];
         explosions = [];
         bolts = [];
@@ -551,14 +553,18 @@ export function initEmberArena(canvas, opts) {
     function fireArrow() {
         const target = nearestMonster();
         if (!target) return false;
-        const dx = target.x - player.x;
-        const dy = target.y - player.y;
-        const d = Math.hypot(dx, dy) || 1;
-        arrows.push({
-            x: player.x, y: player.y,
-            vx: (dx / d) * ARROW_SPEED, vy: (dy / d) * ARROW_SPEED,
-            r: 4, life: ARROW_LIFE,
-        });
+        const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+        // A fan, not a single shot: centered on the nearest monster, spread wide
+        // enough to also catch whatever else is standing nearby.
+        for (let i = 0; i < ARROW_COUNT; i++) {
+            const t = ARROW_COUNT > 1 ? i / (ARROW_COUNT - 1) - 0.5 : 0;
+            const angle = baseAngle + t * ARROW_SPREAD;
+            arrows.push({
+                x: player.x, y: player.y,
+                vx: Math.cos(angle) * ARROW_SPEED, vy: Math.sin(angle) * ARROW_SPEED,
+                r: 4, life: ARROW_LIFE,
+            });
+        }
         sfx('arrow');
         return true;
     }
@@ -621,30 +627,6 @@ export function initEmberArena(canvas, opts) {
         }
         sfx('starburst');
         if (!reducedMotion) shake = Math.max(shake, 3);
-    }
-    // The imp's spit, upgraded from one homing bolt into an actual gout of fire: a
-    // narrow fan of short-lived embers aimed at the player, not a ring like the
-    // final boss's volley above — a breath, not an explosion. Short life (well under
-    // a normal bolt's) so it reads as a burst that dissipates, not a projectile with
-    // real range.
-    function fireBreath(m, cfg) {
-        // A straight jet, not a fan: every ember shares the same angle and velocity,
-        // spawned staggered along that line instead of spread across a cone — the
-        // whole line pops into view at once and travels forward together, reading
-        // as one solid streak of flame.
-        const baseAngle = Math.atan2(player.y - m.y, player.x - m.x);
-        const vx = Math.cos(baseAngle) * cfg.speed;
-        const vy = Math.sin(baseAngle) * cfg.speed;
-        const gap = cfg.gap || 10;
-        for (let i = 0; i < cfg.count; i++) {
-            const offset = i * gap;
-            bolts.push({
-                x: m.x + Math.cos(baseAngle) * offset, y: m.y + Math.sin(baseAngle) * offset,
-                vx, vy,
-                r: 5, damage: cfg.damage * monsterDamageMul(), life: 0.55, fireArrow: true,
-            });
-        }
-        sfx('starburst');
     }
     // The regular boss's shockwave, right where its charge ends. Its own entry in
     // `explosions` (flagged `boss`, not `ult`) so it is handled and drawn as its own
@@ -963,6 +945,8 @@ export function initEmberArena(canvas, opts) {
             biteWindup: 0,
             biteLungeT: 0, biteLungeDx: 0, biteLungeDy: 0,
             spitTimer: def.spit ? 0.8 + Math.random() * def.spit.interval : 0,
+            breathWindup: 0, // telegraph before the breath lands
+            breathT: 0,      // how long the attached flame lingers after it lands
         });
     }
 
@@ -1175,13 +1159,29 @@ export function initEmberArena(canvas, opts) {
                 else if (dist < def.shoot.range) speedMul = def.shoot.approach;
             }
             // Unlike def.shoot, this never touches speedMul — the imp keeps hopping
-            // in and biting exactly as before, the spit is just a bonus jab it lobs
-            // along the way.
+            // in and biting exactly as before, the breath is just a bonus jab it
+            // lands along the way. Same telegraph-then-resolve shape as def.bite
+            // below, just gated on range instead of touching, and it never leaves
+            // the imp — no projectile, the flame is drawn attached in drawMonsters().
             if (def.spit) {
-                m.spitTimer -= dt;
-                if (dist < def.spit.range && m.spitTimer <= 0) {
-                    fireBreath(m, def.spit);
-                    m.spitTimer = def.spit.interval;
+                if (m.breathWindup > 0) {
+                    m.breathWindup -= dt;
+                    if (m.breathWindup <= 0) {
+                        m.spitTimer = def.spit.interval;
+                        // Whiffs if the player stepped out of range during the telegraph
+                        // — same dodge rule as a bite.
+                        if (dist < def.spit.range) {
+                            m.breathT = def.spit.duration;
+                            if (hurtPlayer(def.spit.damage * monsterDamageMul())) return;
+                        }
+                    }
+                } else if (m.breathT > 0) {
+                    m.breathT -= dt;
+                } else {
+                    m.spitTimer -= dt;
+                    if (dist < def.spit.range && m.spitTimer <= 0) {
+                        m.breathWindup = def.spit.telegraph;
+                    }
                 }
             }
             if (m.type === 'imp') {
@@ -1635,6 +1635,18 @@ export function initEmberArena(canvas, opts) {
                 ctx.fill();
                 ctx.restore();
             }
+            // The telegraph before the imp's breath lands: same pulsing-glow idea as
+            // the bite above, fire-colored instead of red so the two warnings read as
+            // different threats at a glance.
+            if (def.spit && m.breathWindup > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.3 + 0.3 * Math.sin(elapsed * 24);
+                ctx.fillStyle = FIRE_GLOW;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.r * 1.3, 0, TAU);
+                ctx.fill();
+                ctx.restore();
+            }
             // The telegraph before the final boss's star volley: a pulsing glow so the
             // ring of arrows about to come out reads as a warning, not a surprise.
             if (def.starAttack && m.starTimer > 0 && m.starTimer <= def.starAttack.telegraph) {
@@ -1654,6 +1666,38 @@ export function initEmberArena(canvas, opts) {
             ctx.scale(sx, sy);
             drawSprite(def.frames[frame], palette, 0, 0, def.cell, m.x > player.x, override);
             ctx.restore();
+
+            // The breath itself: never a projectile, just a handful of warm blobs drawn
+            // fresh every frame along the line from the imp to wherever the player
+            // currently is, clamped to its range — stays attached to the monster and
+            // vanishes the instant breathT runs out, like a dragon's gout of flame
+            // instead of something that was thrown.
+            if (def.spit && m.breathT > 0) {
+                const bdx = player.x - m.x;
+                const bdy = player.y - m.y;
+                const bd = Math.hypot(bdx, bdy) || 1;
+                const len = Math.min(bd, def.spit.range);
+                const steps = 5;
+                ctx.save();
+                for (let s = 1; s <= steps; s++) {
+                    const t = s / steps;
+                    const jitter = Math.sin(elapsed * 30 + s * 2) * 2 * (1 - t);
+                    const px = m.x + (bdx / bd) * len * t - (bdy / bd) * jitter;
+                    const py = m.y + (bdy / bd) * len * t + (bdx / bd) * jitter;
+                    const br = 6 * (1 - t * 0.6);
+                    ctx.globalAlpha = 0.9 * (1 - t * 0.5);
+                    ctx.fillStyle = FIRE_GLOW;
+                    ctx.beginPath();
+                    ctx.arc(px, py, br * 1.6, 0, TAU);
+                    ctx.fill();
+                    ctx.globalAlpha = 1 - t * 0.3;
+                    ctx.fillStyle = FIRE_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(px, py, br, 0, TAU);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
 
             // Named on screen: the shapeshifter because its look won't hold still long
             // enough to recognise otherwise, the bosses because they're the two fights
