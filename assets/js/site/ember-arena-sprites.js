@@ -34,6 +34,23 @@ export const TREASURE_FRAME = [
     '.ccccccc.',
 ];
 
+// A bigger, rarer chest — same wood-chest reading as the small one, but a
+// larger grid and a violet/gold palette borrowed from the arena's own
+// "this matters" lightning colour (LIGHTNING_GLOW in ember-arena-game.js),
+// so it reads as distinct and more precious at a glance, not just a
+// scaled-up copy.
+export const BIGCHEST_PALETTE = { c: '#4a2f6b', C: '#7c4dff', g: '#ffd700' };
+export const BIGCHEST_FRAME = [
+    '.ccccccccc.',
+    'cCCCCCCCCCc',
+    'cCgggggggCc',
+    'cCg.....gCc',
+    'ccccccccccc',
+    'cCCCCCCCCCc',
+    'cCC.g.g.CCc',
+    '.ccccccccc.',
+];
+
 // Cookie and May: two rare familiars, not monsters — no hp, no combat, never picked
 // by the random spawn table. Same sprite technique as everything else (paintSprite),
 // same shape shared between them so the pair reads as two dogs, differentiated by
@@ -338,14 +355,15 @@ export function drawArenaIcon(canvas, key, size = 44) {
     const hero = key === 'hero';
     const heart = key === 'heart';
     const treasure = key === 'treasure';
+    const bigchest = key === 'bigchest';
     const cookie = key === 'cookie';
     const may = key === 'may';
-    const def = hero || heart || treasure || cookie || may ? null : MONSTER_TYPES[key];
-    if (!hero && !heart && !treasure && !cookie && !may && !def) return;
-    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : treasure ? TREASURE_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
+    const def = hero || heart || treasure || bigchest || cookie || may ? null : MONSTER_TYPES[key];
+    if (!hero && !heart && !treasure && !bigchest && !cookie && !may && !def) return;
+    const rows = hero ? HERO_FRAMES[0] : heart ? HEART_FRAME : treasure ? TREASURE_FRAME : bigchest ? BIGCHEST_FRAME : cookie || may ? (cookie ? DOG_FRAME : MAY_FRAME) : def.frames[0];
     const palette = hero
         ? Object.assign({ P: themeColors().accent, T: themeColors().accent }, HERO_PALETTE)
-        : heart ? HEART_PALETTE : treasure ? TREASURE_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
+        : heart ? HEART_PALETTE : treasure ? TREASURE_PALETTE : bigchest ? BIGCHEST_PALETTE : cookie ? COOKIE_PALETTE : may ? MAY_PALETTE : def.palette;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
