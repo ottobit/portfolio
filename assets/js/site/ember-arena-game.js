@@ -8,7 +8,7 @@ import {
     COOKIE_PALETTE, MAY_PALETTE, DOG_FRAME, MAY_FRAME, paintSprite, pickMonsterType,
 } from './ember-arena-sprites.js?v=9';
 export { drawArenaIcon };
-import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=1';
+import { DEFAULT_STRINGS, UPGRADES } from './ember-arena-upgrades.js?v=2';
 import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
@@ -61,11 +61,6 @@ const BITE_ENGAGE_MARGIN = 14;
 const IMP_HOP_PERIOD = 0.85; // seconds per hop
 const IMP_HOP_HEIGHT = 11;   // px, peak lift mid-hop
 const IMP_HOP_SPEED_FLOOR = 0.06;
-// Still rarer than a heart (tuning.heartChance, ~0.13 base) — a treasure hands
-// out a full random upgrade on pickup, same effect as a level-up card, so it
-// stays a genuine find rather than something every third kill drops — just a
-// noticeably more common one than the original 0.05.
-const TREASURE_CHANCE = 0.1;
 // The sword's own size never changes with upgrades (only its colour does, see
 // drawPlayer) — moved out a bit further from BLADE_START's old value of 11 so it
 // reads as held out from the hand instead of hugging the hero's centre.
@@ -144,6 +139,9 @@ export function initEmberArena(canvas, opts) {
         // opts.heartChance exists for the tests, the same seam opts.startLevel already
         // provides: a drop this rare is otherwise only observable by playing for minutes.
         heartChance: typeof options.heartChance === 'number' ? options.heartChance : 0.13,
+        // Same idea as heartChance, same base value as the old fixed TREASURE_CHANCE
+        // constant it replaces — now tunable so Fortuna can raise it too.
+        treasureChance: typeof options.treasureChance === 'number' ? options.treasureChance : 0.1,
     };
     let tuning = Object.assign({}, baseTuning);
     let strings = Object.assign({}, DEFAULT_STRINGS, options.strings || {});
@@ -664,7 +662,7 @@ export function initEmberArena(canvas, opts) {
             }
             // Independent roll from the heart above — a kill can drop neither, either,
             // or (rarely) both.
-            if (Math.random() < TREASURE_CHANCE) {
+            if (Math.random() < tuning.treasureChance) {
                 treasures.push({ x: m.x, y: m.y, life: 9 });
             }
             gainXp(m.xpValue);
@@ -1387,6 +1385,7 @@ export function initEmberArena(canvas, opts) {
             meleeDamage: player.meleeDamage, fireDamage: player.fireDamage, arrowDamage: player.arrowDamage, maxHp: player.maxHp,
             speed: tuning.speed, meleeRange: tuning.meleeRange, spinDur: tuning.spinDur,
             knockback: tuning.knockback, ultCd: tuning.ultCd, bowCd: tuning.bowCd, heartChance: tuning.heartChance,
+            treasureChance: tuning.treasureChance,
         };
     }
     function endRun(won) {

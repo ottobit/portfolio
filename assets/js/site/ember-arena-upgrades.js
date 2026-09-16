@@ -100,9 +100,12 @@ export const UPGRADES = [
     {
         id: 'luck', icon: '🍀', max: 4,
         name: { it: 'Fortuna', en: 'Fortune' },
-        desc: { it: 'I mostri lasciano cuori più spesso.', en: 'Monsters drop hearts more often.' },
+        desc: { it: 'I mostri lasciano cuori e scrigni più spesso.', en: 'Monsters drop hearts and treasure chests more often.' },
         apply: (p) => {
             p.tuning.heartChance += pickStep([0.07, 0.06, 0.05, 0.04], p.pickIndex);
+            // Smaller steps than hearts — a chest hands out a full upgrade card, so
+            // even a maxed-out Fortuna should raise it by less in absolute terms.
+            p.tuning.treasureChance += pickStep([0.03, 0.025, 0.02, 0.015], p.pickIndex);
         },
     },
     {

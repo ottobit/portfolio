@@ -244,7 +244,7 @@
     <script type="module">
     import { getLang } from '../../assets/js/site/theme-lang.js?v=1';
     import { initDiagramPage } from '../../assets/js/shared/diagram-nav.js?v=1';
-    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=56';
+    import { initEmberArena, drawArenaIcon, FINAL_LEVEL } from '../../assets/js/site/ember-arena-game.js?v=57';
 
     initDiagramPage();
 
@@ -457,6 +457,7 @@
             ['⏱️', it ? 'Ricarica ultimate' : 'Ultimate cooldown', `${fs.ultCd.toFixed(1)}s`],
             ['⏱️', it ? 'Ricarica arco' : 'Bow cooldown', `${fs.bowCd.toFixed(1)}s`],
             ['🍀', it ? 'Probabilità cuori' : 'Heart chance', `${Math.round(fs.heartChance * 100)}%`],
+            ['🍀', it ? 'Probabilità scrigni' : 'Treasure chance', `${Math.round(fs.treasureChance * 100)}%`],
         ];
         summaryRows.forEach(([icon, label, value]) => {
             const dt = document.createElement('dt');
