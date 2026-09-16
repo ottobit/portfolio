@@ -30,6 +30,14 @@ dimenticata:
 - Non esiste nessun "auto concludi" valido per tutta la sessione: ogni PR si
   giudica sulla propria portata con il criterio qui sopra. Un via libera
   dato una volta non si trascina alla PR successiva.
+- **Le PR aperte vanno concluse in ordine crescente di numero.** Se ci sono
+  più PR aperte contemporaneamente, quando arriva un "Concludi" (o
+  l'equivalente via libera di un piano approvato) e non è chiaro a quale
+  PR si riferisce, si conclude prima quella con il numero più basso (la più
+  vecchia) prima di passare alle successive — non saltarla solo perché la
+  conversazione in corso riguarda un'altra PR più recente. Se l'utente
+  nomina esplicitamente una PR diversa, quella indicazione vince comunque
+  su questo ordine.
 - Disiscriviti dalla PR solo dopo che è stata mergiata o chiusa.
 - **Eccezione esplicita**: quando l'utente usa la frase "commit push PR" (o
   equivalenti tipo "vai con commit e push e PR") oppure la parola d'ordine
