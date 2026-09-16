@@ -1404,6 +1404,9 @@ export function initEmberArena(canvas, opts) {
             writeBestLevel(bestLevel);
             writeBestRecord({ level, monstersKilled, time: Math.round(elapsed), hitsGiven, hitsReceived, finalStats: stats });
         }
+        // The looping background track has no reason to keep going once the run is
+        // decided — it only muddied the win fanfare/death jingle underneath it.
+        stopMusic();
         sfx(won ? 'win' : 'over');
         pushStats();
         onStateChange(state, {
