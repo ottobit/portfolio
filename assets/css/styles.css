@@ -2395,18 +2395,24 @@ a.info-card:focus-visible .info-card-title::after {
     /* HP/Level only concern the arena, so the bar is only as wide as the
        canvas below it — not the stick and action buttons flanking it, which
        it has nothing to do with. Same left/right offsets as .game-stage's
-       stick (138px) and largest action button (86px), plus its 1.25rem gap,
-       so the bar's edges land exactly above the canvas column. */
+       stick (138px) and largest action button (86px), plus its 1.25rem gap
+       and the extra 1.25rem of breathing room below, so the bar's edges land
+       exactly above the canvas column. */
     .game-panel .game-statbar {
         flex: 0 0 auto;
         max-width: none;
-        margin: 0 calc(86px + 1.25rem) 0 calc(138px + 1.25rem);
+        margin: 0 calc(86px + 2.5rem) 0 calc(138px + 1.25rem);
         width: auto;
     }
     .game-panel .game-stage {
         display: grid;
         grid-template-columns: auto 1fr auto;
         grid-template-rows: minmax(0, 1fr);
+        /* The action column used to sit flush against the page's own right edge —
+           a thumb reaching for it had nothing to rest against. This pulls the
+           whole row (canvas included) left by the same amount, opening a real
+           gutter on the right instead. */
+        padding-right: 1.25rem;
         align-items: stretch;
         height: var(--arena-h);
         gap: 1.25rem;
@@ -2700,12 +2706,13 @@ a.info-card:focus-visible .info-card-title::after {
        landscape screen — not a small arena floating in the middle of empty
        gutters. The stick sits at the true bottom-left corner (thumb rests there
        naturally when a phone is held in two hands) and the buttons stack in a
-       column at the true right edge (reachable by the other thumb), so no
-       control needs a one-handed reach across the screen. The arena fills
-       everything in between, top to bottom — .game-controls goes display:contents
-       so its own two children (the stick, the button column) become grid items
-       in their own right instead of one block that would still sit to only one
-       side. */
+       column near the right edge (reachable by the other thumb) — not flush
+       against it: a button with nothing to rest a thumb past felt cramped, so
+       padding-right below pulls the whole row, canvas included, in from that
+       true edge. The arena fills everything in between, top to bottom —
+       .game-controls goes display:contents so its own two children (the stick,
+       the button column) become grid items in their own right instead of one
+       block that would still sit to only one side. */
     .game-play .game-stage {
         display: grid;
         grid-template-columns: auto 1fr auto;
@@ -2718,6 +2725,7 @@ a.info-card:focus-visible .info-card-title::after {
         flex: 1 1 auto;
         min-height: 0;
         gap: 0.35rem;
+        padding-right: 0.9rem;
     }
     .game-play .game-controls {
         display: contents;
