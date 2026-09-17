@@ -20,17 +20,28 @@
 //   3. curl http://localhost:8811/state
 //      curl -X POST http://localhost:8811/act -H 'Content-Type: application/json' \
 //        -d '{"move": {"dx": 1, "dy": 0}, "bow": true, "ms": 500}'
-//   4. curl -X POST http://localhost:8811/pause -d '{"on": true}'  # turn-by-turn mode
-//   5. curl -X POST http://localhost:8811/stop   # flushes the recorded video and exits
+//   4. curl -X POST http://localhost:8811/act -H 'Content-Type: application/json' \
+//        -d '{"steps": [{"move": {"dx": 1, "dy": 0}, "ms": 400}, {"melee": true, "ms": 600}]}'
+//   5. curl -X POST http://localhost:8811/pause -d '{"on": true}'  # turn-by-turn mode
+//   6. curl -X POST http://localhost:8811/stop   # flushes the recorded video and exits
 //
 // Four things about this bridge that are otherwise learned the hard way:
 //
-//   * The arena runs in real time and does not wait for the caller. Between two
-//     requests the world keeps advancing, and the stick stays exactly where the
-//     last /act left it — so a caller that spends thirty seconds deciding has a
-//     character walking into a wall for thirty seconds, and takes most of its
-//     damage there rather than in the fights it is actually steering. POST
-//     /pause exists for callers that need to think between turns.
+//   * The arena runs in real time and does not wait for the caller — a caller
+//     that spends thirty seconds deciding has a character exposed for thirty
+//     seconds, and takes most of its damage there rather than in the fights it
+//     is actually steering. Two things soften that in real-time mode (see POST
+//     /pause below for the alternative: freeze the arena between turns
+//     entirely). First, the stick is released automatically at the end of
+//     every step (see runStep) — the old behaviour left it exactly where the
+//     last /act set it, so a caller that took a while to decide the next move
+//     had a character walking in a stale direction for however long that
+//     took, which is how a run ended face-first in a wall. A step that ends
+//     now leaves the character stationary — still defended by an active melee
+//     spin, since that's left alone — instead of still walking. Second,
+//     `steps` lets one call chain several moves/attacks with their own `ms`
+//     each, so one round of reasoning buys several seconds of real play
+//     instead of one, cutting the number of exposed gaps between calls.
 //   * The upgrade overlay is one place the game already stops by itself: while
 //     /state reports `choosing: true` the world is frozen and nothing can land
 //     a hit. It is not the only one — see frozenFor below.
@@ -39,12 +50,13 @@
 //     FAMILIAR_ANNOUNCE_DURATION seconds of real game time, independent of
 //     `state`. In turn-by-turn mode, where each /act only unpauses for its own
 //     `ms`, that freeze is paid off a sliver at a time: several turns in a row
-//     can read as "nothing responded" while it drains, and whatever move was
-//     last sent stays armed and fires the instant it lets go — the thing to do
-//     is send one turn with `ms` covering the reported `frozenFor` (in
-//     milliseconds) rather than spend several short ones guessing why nothing
-//     moved. /state's `frozenFor` reports the remaining freeze in seconds, 0
-//     when nothing is holding the arena.
+//     can read as "nothing responded" while it drains — send one turn with
+//     `ms` covering the reported `frozenFor` (in milliseconds) rather than
+//     spend several short ones guessing why nothing moved. (The stale-move
+//     risk this used to carry — a direction sent before the freeze firing the
+//     instant it let go — is what the per-step stick release above already
+//     covers.) /state's `frozenFor` reports the remaining freeze in seconds,
+//     0 when nothing is holding the arena.
 //   * After a death any attack silently restarts the run instead of doing
 //     nothing: meleeAttack/bowAttack/ultimateAttack all fall through to start()
 //     when the state isn't 'playing' (see the returned API in
@@ -159,43 +171,56 @@ async function getState() {
     });
 }
 
-// One POST /act body is one "turn": an optional move direction held for `ms`
-// milliseconds, plus any number of instant actions dispatched at the start of
-// that hold. The game keeps running in real time regardless of how long the
-// caller takes to decide the next call — so by default this only controls what
-// happens *while connected*. POST /pause lifts that limit: in turn-by-turn mode
-// the world is frozen between requests and one /act really is one turn.
-async function applyAction(body) {
-    // In turn-by-turn mode the world is frozen between requests: let it run for
-    // exactly this turn, then freeze it again on the way out.
-    if (stepMode) await setGamePaused(false);
+// One step is one atomic instruction: an optional move direction held for
+// `ms` milliseconds, plus any number of instant actions dispatched at the
+// start of that hold.
+async function runStep(step) {
     // Dispatched via element.click() in-page rather than Playwright's own
     // .click() — the page keeps scrolling itself during play (focusArena(),
     // the upgrade overlay opening), which makes Playwright's actionability
     // wait (visible/stable/unobstructed) time out for up to 30s and 500 the
     // whole turn. A direct DOM click has no such wait and just fires.
-    if (body.restart) {
+    if (step.restart) {
         await page.evaluate(() => document.getElementById('ember-restart')?.click());
     }
-    if (body.chooseIndex !== undefined && body.chooseIndex !== null) {
+    if (step.chooseIndex !== undefined && step.chooseIndex !== null) {
         await page.evaluate((i) => {
             document.querySelectorAll('#ember-upgrade-cards button')[i]?.click();
-        }, body.chooseIndex);
+        }, step.chooseIndex);
     }
-    if (body.melee === true) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeAttack());
-    if (body.melee === false) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeRelease());
+    if (step.melee === true) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeAttack());
+    if (step.melee === false) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeRelease());
 
-    if (body.move) {
-        const { dx, dy } = body.move;
+    if (step.move) {
+        const { dx, dy } = step.move;
         const len = Math.hypot(dx, dy) || 1;
         await page.evaluate(([x, y]) => window.__EMBER_DEBUG_GAME__.setStick(x, y), [dx / len, dy / len]);
-    } else if (body.move === null) {
-        await page.evaluate(() => window.__EMBER_DEBUG_GAME__.setStick(null));
     }
-    if (body.bow) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.bowAttack());
-    if (body.ult) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.ultimateAttack());
+    if (step.bow) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.bowAttack());
+    if (step.ult) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.ultimateAttack());
 
-    await page.waitForTimeout(body.ms || 500);
+    await page.waitForTimeout(step.ms || 500);
+
+    // Released unconditionally, not just on an explicit {"move": null} — in
+    // real-time mode nothing else catches a stale direction between calls, so
+    // a step that ends leaves the character stationary by default rather
+    // than still walking wherever it was last pointed (see the usage note at
+    // the top of this file). Melee is left alone: an active spin keeps
+    // defending through the gap instead of dropping too.
+    await page.evaluate(() => window.__EMBER_DEBUG_GAME__.setStick(null));
+}
+
+// One POST /act body is either a single step, or {"steps": [...]} — a
+// sequence of steps run back to back without an extra round trip per step,
+// so one call can cover several seconds of real play instead of one (see the
+// usage note at the top of this file). In turn-by-turn mode the whole
+// sequence runs inside a single unpause/pause bracket.
+async function applyAction(body) {
+    if (stepMode) await setGamePaused(false);
+    const steps = Array.isArray(body.steps) ? body.steps : [body];
+    for (const step of steps) {
+        await runStep(step);
+    }
     if (stepMode) await setGamePaused(true);
 }
 
