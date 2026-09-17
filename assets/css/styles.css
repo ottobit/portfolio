@@ -1951,16 +1951,21 @@ a.info-card:focus-visible::before {
     opacity: 1;
 }
 
-/* Lets a card open with a real image (e.g. a page's own OG card) instead
-   of the icon chip, full-bleed to the card edges — the negative margins
-   claw back the card's own padding, and .info-card's overflow:hidden
-   clips the image to the card's rounded corners for free. */
-.info-card-image {
-    width: calc(100% + 3rem);
-    height: 160px;
-    margin: -1.6rem -1.5rem 0.2rem;
-    object-fit: cover;
+/* A card that's nothing but an image — a page's own OG card reused as
+   its Playground entry, with no separate title/excerpt because the
+   image already carries them. Padding is dropped so the image reaches
+   every edge, and .info-card's overflow:hidden clips it to the card's
+   rounded corners for free. */
+.info-card--image-only {
+    padding: 0;
+}
+
+.info-card-image--full {
     display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1200 / 630;
+    object-fit: cover;
 }
 
 .info-card-icon {
