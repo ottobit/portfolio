@@ -25,7 +25,7 @@
 //   5. curl -X POST http://localhost:8811/pause -d '{"on": true}'  # turn-by-turn mode
 //   6. curl -X POST http://localhost:8811/stop   # flushes the recorded video and exits
 //
-// Four things about this bridge that are otherwise learned the hard way:
+// Five things about this bridge that are otherwise learned the hard way:
 //
 //   * The arena runs in real time and does not wait for the caller — a caller
 //     that spends thirty seconds deciding has a character exposed for thirty
@@ -41,7 +41,21 @@
 //     spin, since that's left alone — instead of still walking. Second,
 //     `steps` lets one call chain several moves/attacks with their own `ms`
 //     each, so one round of reasoning buys several seconds of real play
-//     instead of one, cutting the number of exposed gaps between calls.
+//     instead of one *up until the first sign of real trouble* — see the next
+//     point — cutting the number of exposed gaps between calls.
+//   * A `steps` batch stops itself the moment things go badly wrong, instead
+//     of finishing a plan that has already failed: applyAction checks the HP
+//     it reads after every step against ABORT_HP_DROP_FRACTION and
+//     ABORT_HP_FLOOR_FRACTION (near the top of the file) and breaks out early
+//     on a death or a bad enough drop, same as a reflex has to be faster than
+//     the reasoning loop that queued the batch in the first place — this is
+//     how a run ended mobbed to 0 HP mid-batch, three steps queued at full
+//     health with no check in between. /act's response reports
+//     `stepsRun`/`stepsRequested`/`abortedReason` alongside the usual state,
+//     so the caller knows immediately whether and why a batch was cut short.
+//     The coverage stops at step boundaries, not mid-step: a single step (or
+//     one long `ms` inside an array) is still unprotected for its own
+//     duration — there's no polling inside a step's wait.
 //   * The upgrade overlay is one place the game already stops by itself: while
 //     /state reports `choosing: true` the world is frozen and nothing can land
 //     a hit. It is not the only one — see frozenFor below.
@@ -91,6 +105,29 @@ let stepMode = false;
 async function setGamePaused(value) {
     await page.evaluate((v) => window.__EMBER_DEBUG_GAME__.setPaused(v), value);
 }
+
+// Cheaper than getState(): just the two numbers applyAction's abort check
+// needs, skipping the DOM queries (overlay, monsters, cooldowns) that
+// getState() also does. Called after every step in a batch, so it has to
+// stay light.
+async function readHp() {
+    return page.evaluate(() => {
+        const p = window.__EMBER_DEBUG_GAME__._debugState().player;
+        return { hp: p.hp, maxHp: p.maxHp };
+    });
+}
+
+// A batch that goes on regardless of what just happened is how a run ended
+// mobbed to 0 HP mid-sequence: three steps queued at 148/148, six monsters
+// closed in during the first one, and the other two ran anyway before the
+// caller could see it and react. These are the same kind of reflex as the
+// automatic stick release above — code, not judgement, because anything
+// that has to wait on another reasoning turn is already too slow to be a
+// reflex. Checked at each step's boundary, not mid-step: a single step with
+// a large `ms` is still uncovered for its whole duration (see the usage
+// note at the top of this file).
+const ABORT_HP_DROP_FRACTION = 0.3;  // lost 30%+ of max HP within this one batch
+const ABORT_HP_FLOOR_FRACTION = 0.2; // down to 20% or less of max HP, however it got there
 
 async function boot() {
     const launchOpts = {};
@@ -212,16 +249,32 @@ async function runStep(step) {
 
 // One POST /act body is either a single step, or {"steps": [...]} — a
 // sequence of steps run back to back without an extra round trip per step,
-// so one call can cover several seconds of real play instead of one (see the
-// usage note at the top of this file). In turn-by-turn mode the whole
-// sequence runs inside a single unpause/pause bracket.
+// so one call can cover several seconds of real play instead of one, up
+// until the first sign of real trouble (see ABORT_HP_DROP_FRACTION above).
+// In turn-by-turn mode the whole sequence runs inside a single
+// unpause/pause bracket.
 async function applyAction(body) {
     if (stepMode) await setGamePaused(false);
     const steps = Array.isArray(body.steps) ? body.steps : [body];
+    const { hp: hpAtStart, maxHp } = await readHp();
+    let stepsRun = 0;
+    let abortedReason = null;
     for (const step of steps) {
         await runStep(step);
+        stepsRun++;
+        const { hp } = await readHp();
+        if (hp <= 0) { abortedReason = 'dead'; break; }
+        if (maxHp > 0 && (hpAtStart - hp) / maxHp >= ABORT_HP_DROP_FRACTION) {
+            abortedReason = 'hp_drop';
+            break;
+        }
+        if (maxHp > 0 && hp / maxHp <= ABORT_HP_FLOOR_FRACTION) {
+            abortedReason = 'hp_floor';
+            break;
+        }
     }
     if (stepMode) await setGamePaused(true);
+    return { stepsRun, stepsRequested: steps.length, abortedReason };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -232,9 +285,9 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         if (req.method === 'POST' && req.url === '/act') {
-            await applyAction(await readBody(req));
+            const result = await applyAction(await readBody(req));
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(await getState()));
+            res.end(JSON.stringify({ ...(await getState()), ...result }));
             return;
         }
         if (req.method === 'POST' && req.url === '/pause') {
