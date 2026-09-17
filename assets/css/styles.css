@@ -1951,6 +1951,18 @@ a.info-card:focus-visible::before {
     opacity: 1;
 }
 
+/* Lets a card open with a real image (e.g. a page's own OG card) instead
+   of the icon chip, full-bleed to the card edges — the negative margins
+   claw back the card's own padding, and .info-card's overflow:hidden
+   clips the image to the card's rounded corners for free. */
+.info-card-image {
+    width: calc(100% + 3rem);
+    height: 160px;
+    margin: -1.6rem -1.5rem 0.2rem;
+    object-fit: cover;
+    display: block;
+}
+
 .info-card-icon {
     display: inline-flex;
     align-items: center;
