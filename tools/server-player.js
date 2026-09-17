@@ -116,10 +116,18 @@ async function getState() {
 // caller takes to decide the next call — this only controls what happens
 // *while connected*, it can't pause the world between calls.
 async function applyAction(body) {
-    if (body.restart) await page.click('#ember-restart').catch(() => {});
+    // Dispatched via element.click() in-page rather than Playwright's own
+    // .click() — the page keeps scrolling itself during play (focusArena(),
+    // the upgrade overlay opening), which makes Playwright's actionability
+    // wait (visible/stable/unobstructed) time out for up to 30s and 500 the
+    // whole turn. A direct DOM click has no such wait and just fires.
+    if (body.restart) {
+        await page.evaluate(() => document.getElementById('ember-restart')?.click());
+    }
     if (body.chooseIndex !== undefined && body.chooseIndex !== null) {
-        const btns = await page.$$('#ember-upgrade-cards button');
-        if (btns[body.chooseIndex]) await btns[body.chooseIndex].click();
+        await page.evaluate((i) => {
+            document.querySelectorAll('#ember-upgrade-cards button')[i]?.click();
+        }, body.chooseIndex);
     }
     if (body.melee === true) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeAttack());
     if (body.melee === false) await page.evaluate(() => window.__EMBER_DEBUG_GAME__.meleeRelease());
