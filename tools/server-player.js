@@ -23,7 +23,7 @@
 //   4. curl -X POST http://localhost:8811/pause -d '{"on": true}'  # turn-by-turn mode
 //   5. curl -X POST http://localhost:8811/stop   # flushes the recorded video and exits
 //
-// Three things about this bridge that are otherwise learned the hard way:
+// Four things about this bridge that are otherwise learned the hard way:
 //
 //   * The arena runs in real time and does not wait for the caller. Between two
 //     requests the world keeps advancing, and the stick stays exactly where the
@@ -31,9 +31,20 @@
 //     character walking into a wall for thirty seconds, and takes most of its
 //     damage there rather than in the fights it is actually steering. POST
 //     /pause exists for callers that need to think between turns.
-//   * The upgrade overlay is the one place the game already stops by itself:
-//     while /state reports `choosing: true` the world is frozen and nothing can
-//     land a hit, which makes it the natural moment to plan.
+//   * The upgrade overlay is one place the game already stops by itself: while
+//     /state reports `choosing: true` the world is frozen and nothing can land
+//     a hit. It is not the only one — see frozenFor below.
+//   * A random "familiar visit" (Cookie/May, when enough monsters are up) can
+//     freeze the whole arena — player included, `choosing` stays false — for
+//     FAMILIAR_ANNOUNCE_DURATION seconds of real game time, independent of
+//     `state`. In turn-by-turn mode, where each /act only unpauses for its own
+//     `ms`, that freeze is paid off a sliver at a time: several turns in a row
+//     can read as "nothing responded" while it drains, and whatever move was
+//     last sent stays armed and fires the instant it lets go — the thing to do
+//     is send one turn with `ms` covering the reported `frozenFor` (in
+//     milliseconds) rather than spend several short ones guessing why nothing
+//     moved. /state's `frozenFor` reports the remaining freeze in seconds, 0
+//     when nothing is holding the arena.
 //   * After a death any attack silently restarts the run instead of doing
 //     nothing: meleeAttack/bowAttack/ultimateAttack all fall through to start()
 //     when the state isn't 'playing' (see the returned API in
@@ -138,6 +149,10 @@ async function getState() {
             treasures: s.treasures.map((t) => ({ x: Math.round(t.x), y: Math.round(t.y), kind: t.kind })),
             W: s.W, H: s.H,
             dead, won, choosing, cards,
+            // Seconds of real game time left on a freeze that isn't `choosing` — see
+            // the note on familiar visits at the top of this file. 0 when nothing is
+            // holding the arena.
+            frozenFor: s.frozenFor,
             bowCooling: document.getElementById('ember-bow-btn').classList.contains('is-cooling'),
             ultCooling: document.getElementById('ember-ult-btn').classList.contains('is-cooling'),
         };

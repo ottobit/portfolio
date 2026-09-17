@@ -2565,8 +2565,19 @@ export function initEmberArena(canvas, opts) {
         // the run with real perception instead of guessing screen coordinates) — not
         // called from the page itself. Cheap enough to leave in permanently: a few
         // reference copies, no behaviour change either way.
+        //
+        // frozenFor reports whether update() is about to no-op and, if so, for how
+        // much more real time — familiarAnnounce (see below) holds the whole arena,
+        // player included, for FAMILIAR_ANNOUNCE_DURATION seconds regardless of
+        // `state`. A caller driving the run one short turn at a time (each turn only
+        // unpauses for its own `ms`) can otherwise read several turns in a row as
+        // "nothing responded", when the truth is a banner is mid-freeze and will let
+        // go on its own — worth knowing before spending more turns on it.
         _debugState() {
-            return { player, monsters, treasures, hearts, elapsed, W, H };
+            const frozenFor = familiarAnnounce
+                ? Math.max(0, FAMILIAR_ANNOUNCE_DURATION - familiarAnnounce.t)
+                : 0;
+            return { player, monsters, treasures, hearts, elapsed, W, H, frozenFor };
         },
         // For the page to freeze the arena for a reason of its own (the portrait
         // rotate-prompt covering the canvas) — independent of `state`, same as
