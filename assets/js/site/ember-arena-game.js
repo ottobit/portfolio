@@ -9,7 +9,7 @@ import {
 } from './ember-arena-sprites.js?v=10';
 export { drawArenaIcon };
 import { DEFAULT_STRINGS, UPGRADES, BIG_CHEST_REWARDS } from './ember-arena-upgrades.js?v=6';
-import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=1';
+import { getAudioCtx, chirp, noiseBurst } from './ember-arena-audio.js?v=2';
 import {
     WON_KEY, MUTE_KEY, readFlag, writeFlag, readBestLevel, writeBestLevel, writeBestRecord,
 } from './ember-arena-storage.js?v=1';

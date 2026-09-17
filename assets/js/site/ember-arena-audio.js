@@ -13,6 +13,18 @@ export function getAudioCtx() {
     return audioCtx;
 }
 
+// iOS Safari only treats a tap as having unlocked the audio session on the
+// gesture's *completion* event (touchend/click/keydown) — a context created
+// or resumed from pointerdown alone, which is what the arena's own "tap to
+// start" hooks into, can end up stuck silent on iPhone even while its own
+// .state reports "running". Re-touching the (already-created, idempotent)
+// context from one of these events, once, is the standard unlock workaround.
+// Harmless everywhere else: on desktop/Android this just calls resume() on
+// an already-running context.
+['touchend', 'mousedown', 'click', 'keydown'].forEach((type) => {
+    window.addEventListener(type, () => getAudioCtx(), { capture: true, once: true });
+});
+
 export function chirp({ from, to, duration, type = 'square', gain = 0.05, delay = 0 }) {
     const ctx = getAudioCtx();
     if (!ctx) return;
