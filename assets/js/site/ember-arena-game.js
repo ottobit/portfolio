@@ -2561,6 +2561,13 @@ export function initEmberArena(canvas, opts) {
         hasWon() {
             return hasWon;
         },
+        // A read-only snapshot for scripted testing/tooling (Playwright bots driving
+        // the run with real perception instead of guessing screen coordinates) — not
+        // called from the page itself. Cheap enough to leave in permanently: a few
+        // reference copies, no behaviour change either way.
+        _debugState() {
+            return { player, monsters, treasures, hearts, elapsed, W, H };
+        },
         // For the page to freeze the arena for a reason of its own (the portrait
         // rotate-prompt covering the canvas) — independent of `state`, same as
         // familiarAnnounce/finalBossDeath above; it just needs an external trigger
