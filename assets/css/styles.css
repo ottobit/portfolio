@@ -1968,6 +1968,20 @@ a.info-card:focus-visible::before {
     object-fit: cover;
 }
 
+/* A card with two baked-in poster images (light + dark) instead of one —
+   the JPEG itself can't repaint on a theme toggle, so both live in the
+   DOM and only one is ever visible. display:none takes the hidden one
+   out of flow entirely, so no absolute positioning is needed. */
+.info-card-image--full[data-theme-img="dark"] {
+    display: none;
+}
+:root[data-theme="dark"] .info-card-image--full[data-theme-img="dark"] {
+    display: block;
+}
+:root[data-theme="dark"] .info-card-image--full[data-theme-img="light"] {
+    display: none;
+}
+
 .info-card-icon {
     display: inline-flex;
     align-items: center;
