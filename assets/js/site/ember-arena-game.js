@@ -188,6 +188,7 @@ export function initEmberArena(canvas, opts) {
     let familiarAnnounce = null; // { kind, t } while the arrival banner freezes the arena
     let finalBossDeath = null; // { t, x, y, nextPulse } while the final boss's own defeat beat plays out
     let externalPause = false; // set by the page — e.g. the portrait rotate-prompt covering the arena
+    let timeScale = 1; // debug-only playback speed multiplier — see setTimeScale/getTimeScale below
     let level = 1;
     let xp = 0;
     let xpToNext = 6;
@@ -2507,7 +2508,7 @@ export function initEmberArena(canvas, opts) {
         if (lastTime === null) lastTime = time;
         const dt = reducedMotion ? 1 / 30 : Math.min((time - lastTime) / 1000, 0.05);
         lastTime = time;
-        update(dt);
+        update(dt * timeScale);
         draw();
         rafId = requestAnimationFrame(loop);
     }
@@ -2577,7 +2578,7 @@ export function initEmberArena(canvas, opts) {
             const frozenFor = familiarAnnounce
                 ? Math.max(0, FAMILIAR_ANNOUNCE_DURATION - familiarAnnounce.t)
                 : 0;
-            return { player, monsters, treasures, hearts, elapsed, W, H, frozenFor };
+            return { player, monsters, treasures, hearts, bolts, elapsed, W, H, frozenFor };
         },
         // For the page to freeze the arena for a reason of its own (the portrait
         // rotate-prompt covering the canvas) — independent of `state`, same as
@@ -2585,6 +2586,17 @@ export function initEmberArena(canvas, opts) {
         // since the page, not the engine, knows when its own overlay is covering play.
         setPaused(value) {
             externalPause = !!value;
+        },
+        // Debug-only playback speed for scripted tooling — same spirit as
+        // setPaused above, an external override independent of `state`.
+        // Scales dt in the loop, not the game clock/timers directly, so it
+        // speeds up or slows down everything uniformly (movement, cooldowns,
+        // animations) without touching the simulation's own logic.
+        setTimeScale(value) {
+            timeScale = Math.max(0, Number(value) || 0);
+        },
+        getTimeScale() {
+            return timeScale;
         },
         // The record only, not the separate "won at least once" star (WON_KEY) —
         // that's its own achievement, not part of the stat record.
