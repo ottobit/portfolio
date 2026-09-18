@@ -1707,19 +1707,42 @@ html.project-arrival .timeline-page {
     margin: 0 auto 3rem;
 }
 
-.timeline-intro h1 {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    font-size: 2rem;
-    margin-bottom: 0.75rem;
+/* A cover-photo-style banner behind the title — same idea as a LinkedIn/
+   Facebook profile cover: a soft accent band with the project's own icon
+   watermarked large and faint on one side, kept low-contrast enough that
+   it never fights the title sitting on top of it. */
+.timeline-cover {
+    position: relative;
+    max-width: 720px;
+    margin: 0 auto 2rem;
+    padding: 2.75rem 2rem;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--accent-soft), var(--surface) 75%);
+    overflow: hidden;
 }
 
-/* The card icon (same markup/class as projects/index.html's own cards)
-   sized down to sit next to an h1 instead of leading a card. */
-.timeline-intro h1 .info-card-icon {
-    font-size: 1.3rem;
+.timeline-cover-icon {
+    position: absolute;
+    top: 50%;
+    right: 1.5rem;
+    transform: translateY(-50%);
+    font-size: 6.5rem;
+    line-height: 1;
+    opacity: 0.16;
+    pointer-events: none;
+    user-select: none;
+}
+
+.timeline-cover h1 {
+    margin-bottom: 0;
+}
+
+.timeline-intro h1 {
+    position: relative;
+    z-index: 1;
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
 }
 
 .timeline-intro p {
