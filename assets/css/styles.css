@@ -1701,18 +1701,6 @@ html.project-arrival .timeline-page {
     flex: 1 0 auto;
 }
 
-/* The same og-poster JPEGs used as this project's card on projects/index.html,
-   reused here as a hero banner — .info-card-image--full already handles the
-   dark/light swap (see its [data-theme-img] rules above), so this only adds
-   the sizing/framing for the new spot. */
-.project-hero {
-    max-width: 720px;
-    margin: 0 auto 2rem;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-}
-
 .timeline-intro {
     text-align: center;
     max-width: 640px;
@@ -1720,8 +1708,18 @@ html.project-arrival .timeline-page {
 }
 
 .timeline-intro h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
     font-size: 2rem;
     margin-bottom: 0.75rem;
+}
+
+/* The card icon (same markup/class as projects/index.html's own cards)
+   sized down to sit next to an h1 instead of leading a card. */
+.timeline-intro h1 .info-card-icon {
+    font-size: 1.3rem;
 }
 
 .timeline-intro p {
