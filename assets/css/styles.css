@@ -1326,6 +1326,30 @@ html.project-arrival .timeline-page {
     display: block;
 }
 
+/* Cerebro Engine's icon: a stylized brain silhouette (an oval with a
+   center fissure line), same hand-drawn pixel-grid technique as
+   .icon-tt-art above, in a bordered chip matching .icon-tt-card's
+   language — so it reads as a drawn icon instead of the generic 🧠
+   emoji. */
+.icon-brain-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9em;
+    height: 1.9em;
+    vertical-align: middle;
+    border: 0.075em solid var(--accent);
+    border-radius: 0.3em;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.icon-brain-art {
+    width: 1.15em;
+    height: auto;
+    display: block;
+}
+
 .detail-body h2 {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
@@ -1732,6 +1756,14 @@ html.project-arrival .timeline-page {
     opacity: 0.16;
     pointer-events: none;
     user-select: none;
+}
+
+/* A bordered chip icon (Triple Triad's card, Cerebro's brain) reads as a
+   drawn box at any size, unlike a bare emoji glyph — at the same 6.5rem
+   as the others it overflows the cover's height. Sized down so the whole
+   chip actually shows. */
+.timeline-cover-icon--chip {
+    font-size: 3.4rem;
 }
 
 .timeline-cover h1 {
