@@ -1770,6 +1770,18 @@ html.project-arrival .timeline-page {
     margin-bottom: 0;
 }
 
+/* The "Title — subtitle" pages (Cerebro, Triple Triad, Dot World) split
+   that into two actual lines instead of one long h1 string, so a narrow
+   viewport never wraps mid-phrase. */
+.timeline-cover-subtitle {
+    position: relative;
+    z-index: 1;
+    margin: 0.15rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
 .timeline-intro h1 {
     position: relative;
     z-index: 1;
