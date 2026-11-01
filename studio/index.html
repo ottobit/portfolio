@@ -5,25 +5,25 @@
     <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ottobit — Studio</title>
-    <meta name="description" content="Cosa sto studiando nell'AI: costruire sistemi affidabili con modelli linguistici, dieci aree in ordine di dipendenza. Perimetro e avanzamento pubblici, materiale di studio privato.">
+    <meta name="description" content="Costruire sistemi affidabili con modelli linguistici: dieci aree di studio sull'AI, in ordine di dipendenza.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ottobit.github.io/portfolio/studio/">
     <link rel="canonical" href="https://ottobit.github.io/portfolio/studio/">
     <meta property="og:title" content="ottobit — Studio">
-    <meta property="og:description" content="Cosa sto studiando nell'AI: costruire sistemi affidabili con modelli linguistici, dieci aree in ordine di dipendenza. Perimetro e avanzamento pubblici, materiale di studio privato.">
+    <meta property="og:description" content="Costruire sistemi affidabili con modelli linguistici: dieci aree di studio sull'AI, in ordine di dipendenza.">
     <meta property="og:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ottobit — Studio">
-    <meta name="twitter:description" content="Cosa sto studiando nell'AI: costruire sistemi affidabili con modelli linguistici, dieci aree in ordine di dipendenza. Perimetro e avanzamento pubblici, materiale di studio privato.">
+    <meta name="twitter:description" content="Costruire sistemi affidabili con modelli linguistici: dieci aree di studio sull'AI, in ordine di dipendenza.">
     <meta name="twitter:image" content="https://ottobit.github.io/portfolio/assets/images/og-image.jpg?v=2">
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "Studio",
-        "description": "Cosa sto studiando nell'AI: costruire sistemi affidabili con modelli linguistici, dieci aree in ordine di dipendenza.",
+        "description": "Costruire sistemi affidabili con modelli linguistici: dieci aree di studio sull'AI, in ordine di dipendenza.",
         "url": "https://ottobit.github.io/portfolio/studio/",
         "author": {
             "@type": "Person",
@@ -53,7 +53,7 @@
         } catch (e) {}
     })();
     </script>
-    <link rel="stylesheet" href="../assets/css/styles.css?v=10.55">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=10.56">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-EPCCSJR8WK"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
@@ -102,32 +102,111 @@
     <main class="timeline-page" id="main">
         <header class="timeline-intro">
             <h1>Studio</h1>
-            <p>Perimetro: costruire sistemi affidabili con modelli linguistici. Dieci aree, in ordine di dipendenza — ognuna si basa sulle precedenti. Il materiale di studio (lezioni, test, mappa) è privato: i link qui sotto portano ad artifact su claude.ai, accessibili solo dal mio account.</p>
+            <p>Costruire sistemi affidabili con modelli linguistici: dieci aree, in ordine di dipendenza. Ognuna si basa sulle precedenti.</p>
         </header>
 
-        <section id="studio-progress" class="studio-progress" aria-label="Avanzamento">
-            <noscript>Richiede JavaScript per mostrare l'avanzamento e le aree di studio.</noscript>
-        </section>
-
-        <ol id="studio-areas" class="studio-areas"></ol>
-
-        <section class="doc-sections">
-            <div class="doc-section">
-                <h2>Criterio di chiusura di un'area</h2>
-                <ul class="doc-list">
-                    <li>Certificato del livello 1 ottenuto</li>
-                    <li>Test del livello 0 rifatto dopo almeno una settimana, con almeno 10/12</li>
-                    <li>Progetto finale consegnato</li>
-                </ul>
-            </div>
-        </section>
-
-        <p class="studio-map-link-wrap">
-            <a id="studio-map-link" class="studio-lock" href="#" hidden>
-                <span class="studio-lock-icon" aria-hidden="true">🔒</span>
-                <span>Mappa completa — Materiale privato, accesso riservato</span>
-            </a>
-        </p>
+        <ol class="studio-index">
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">01</span><span class="studio-index-name">Fondamenti dei modelli</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Spiegare token, finestra di contesto, temperatura e campionamento</li>
+                        <li>Stimare costo e latenza di una chiamata</li>
+                        <li>Progettare intorno ad allucinazioni, data di aggiornamento e non determinismo</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">02</span><span class="studio-index-name">Prompt e output strutturato</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Scrivere un prompt di sistema con istruzioni, esempi e delimitatori</li>
+                        <li>Ottenere JSON valido rispetto a uno schema</li>
+                        <li>Scrivere descrizioni di strumenti efficaci</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">03</span><span class="studio-index-name">Comunicazione tra agenti</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Far parlare processi con JSON-RPC su stdio e HTTP</li>
+                        <li>Scrivere e collegare un server MCP</li>
+                        <li>Delegare un compito a un agente via A2A</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">04</span><span class="studio-index-name">Architetture di agenti</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Scrivere il ciclo di un agente con strumenti</li>
+                        <li>Scegliere tra workflow, agente singolo e multi-agente</li>
+                        <li>Aggiungere memoria, approvazioni e affidabilità</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">05</span><span class="studio-index-name">Harness e loop agentico</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Costruire un harness con strumenti per file e comandi</li>
+                        <li>Gestire il contesto con pulizia e compattazione</li>
+                        <li>Mettere permessi, sandbox, hook, skill e sottoagenti</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">06</span><span class="studio-index-name">Contesto e RAG</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Costruire una ricerca ibrida con reranker e citazioni</li>
+                        <li>Decidere quando il RAG non serve</li>
+                        <li>Usare un archivio vettoriale con filtri di accesso</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">07</span><span class="studio-index-name">Valutazione e sicurezza</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Misurare un sistema con un eval ripetibile</li>
+                        <li>Mettere alla prova i propri sistemi con attacchi indiretti</li>
+                        <li>Mettere difese a strati e misurarne l'effetto</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">08</span><span class="studio-index-name">Produzione: costi, latenza, osservabilità</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Tracciare ogni chiamata con token, costo e tempo</li>
+                        <li>Ridurre i costi con cache, batch e modelli più piccoli</li>
+                        <li>Gestire limiti di frequenza, errori e passaggio a un altro modello</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">09</span><span class="studio-index-name">Protocolli estesi</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Collegare un agente a un'interfaccia con eventi</li>
+                        <li>Esporre strumenti da un sito web</li>
+                        <li>Spiegare come un agente compra e paga in modo verificabile</li>
+                    </ul>
+                </details>
+            </li>
+            <li class="studio-index-item">
+                <details>
+                    <summary><span class="studio-index-num">10</span><span class="studio-index-name">Modelli aperti, locali e fine-tuning</span></summary>
+                    <ul class="doc-list studio-index-goals">
+                        <li>Far girare un modello in locale e misurarlo con i propri eval</li>
+                        <li>Capire quantizzazione e requisiti di memoria</li>
+                        <li>Sapere quando il fine-tuning ha senso</li>
+                    </ul>
+                </details>
+            </li>
+        </ol>
     </main>
 
     <div class="container">
@@ -139,7 +218,8 @@
 
     <script type="module">
     import '../assets/js/site/theme-lang.js?v=1';
+    import { initDiagramPage } from '../assets/js/shared/diagram-nav.js?v=1';
+    initDiagramPage();
     </script>
-    <script type="module" src="../assets/js/site/studio.js?v=1"></script>
 </body>
 </html>
